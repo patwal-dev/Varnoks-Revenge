@@ -31,6 +31,21 @@ let nextEnemyShotTime = null;
 let playerInvulnerableUntil = 0;
 let gameState = "playing";
 let previousFrameTime = 0;
+const stars = [];
+let starSeed = 74821;
+
+for (let index = 0; index < 90; index += 1) {
+  starSeed = (starSeed * 48271) % 2147483647;
+  const x = (starSeed / 2147483647) * canvas.width;
+  starSeed = (starSeed * 48271) % 2147483647;
+  const y = (starSeed / 2147483647) * canvas.height;
+  stars.push({
+    x,
+    y,
+    radius: index % 9 === 0 ? 1.3 : 0.65,
+    alpha: index % 4 === 0 ? 0.8 : 0.45,
+  });
+}
 
 function createEnemies() {
   for (let row = 0; row < 2; row += 1) {
@@ -226,26 +241,79 @@ function updateEnemyShots(deltaSeconds, frameTime) {
 function drawPlayer(frameTime) {
   const isFlashing = frameTime < playerInvulnerableUntil
     && Math.floor(frameTime / 75) % 2 === 0;
-  context.fillStyle = isFlashing ? "#ffffff" : "#64d8ff";
+  context.fillStyle = isFlashing ? "#ffffff" : "#48c9ef";
   context.beginPath();
   context.moveTo(player.x, player.y - player.height / 2);
-  context.lineTo(player.x - player.width / 2, player.y + player.height / 2);
-  context.lineTo(player.x + player.width / 2, player.y + player.height / 2);
+  context.lineTo(player.x + player.width * 0.22, player.y - player.height * 0.16);
+  context.lineTo(player.x + player.width / 2, player.y + player.height * 0.22);
+  context.lineTo(player.x + player.width * 0.31, player.y + player.height * 0.3);
+  context.lineTo(player.x + player.width * 0.17, player.y + player.height / 2);
+  context.lineTo(player.x, player.y + player.height * 0.34);
+  context.lineTo(player.x - player.width * 0.17, player.y + player.height / 2);
+  context.lineTo(player.x - player.width * 0.31, player.y + player.height * 0.3);
+  context.lineTo(player.x - player.width / 2, player.y + player.height * 0.22);
+  context.lineTo(player.x - player.width * 0.22, player.y - player.height * 0.16);
   context.closePath();
+  context.fill();
+
+  context.fillStyle = isFlashing ? "#ffffff" : "#d7f8ff";
+  context.beginPath();
+  context.ellipse(player.x, player.y - player.height * 0.03, 3.2, 6.2, 0, 0, Math.PI * 2);
+  context.fill();
+
+  if (!isFlashing) {
+    context.fillStyle = "#ffb26b";
+    context.fillRect(player.x - 3, player.y + player.height * 0.31, 2, 3);
+    context.fillRect(player.x + 1, player.y + player.height * 0.31, 2, 3);
+  }
+}
+
+function drawStarfield() {
+  context.fillStyle = "#07111f";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  for (const star of stars) {
+    context.fillStyle = `rgba(190, 220, 255, ${star.alpha})`;
+    context.beginPath();
+    context.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+    context.fill();
+  }
+}
+
+function drawEnemy(enemy, index) {
+  const halfWidth = enemy.width / 2;
+  const halfHeight = enemy.height / 2;
+  const x = enemy.x;
+  const y = enemy.y;
+  const warmVariant = index % 2 === 0;
+
+  context.fillStyle = warmVariant ? "#df6685" : "#ef8b63";
+  context.beginPath();
+  context.moveTo(x, y - halfHeight);
+  context.lineTo(x + halfWidth * 0.68, y - halfHeight * 0.28);
+  context.lineTo(x + halfWidth, y + halfHeight * 0.18);
+  context.lineTo(x + halfWidth * 0.68, y + halfHeight * 0.48);
+  context.lineTo(x + halfWidth * 0.48, y + halfHeight);
+  context.lineTo(x + halfWidth * 0.12, y + halfHeight * 0.65);
+  context.lineTo(x - halfWidth * 0.12, y + halfHeight * 0.65);
+  context.lineTo(x - halfWidth * 0.48, y + halfHeight);
+  context.lineTo(x - halfWidth * 0.68, y + halfHeight * 0.48);
+  context.lineTo(x - halfWidth, y + halfHeight * 0.18);
+  context.lineTo(x - halfWidth * 0.68, y - halfHeight * 0.28);
+  context.closePath();
+  context.fill();
+
+  context.fillStyle = "#fff0c2";
+  context.beginPath();
+  context.arc(x - halfWidth * 0.23, y + halfHeight * 0.05, 1.7, 0, Math.PI * 2);
+  context.arc(x + halfWidth * 0.23, y + halfHeight * 0.05, 1.7, 0, Math.PI * 2);
   context.fill();
 }
 
 function drawFrame(frameTime) {
   context.clearRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = "#ff7b72";
-  for (const enemy of enemies) {
-    context.fillRect(
-      enemy.x - enemy.width / 2,
-      enemy.y - enemy.height / 2,
-      enemy.width,
-      enemy.height,
-    );
-  }
+  drawStarfield();
+  enemies.forEach(drawEnemy);
   context.fillStyle = "#ffe08a";
   for (const shot of shots) {
     context.fillRect(shot.x - shot.width / 2, shot.y, shot.width, shot.height);
@@ -259,14 +327,26 @@ function drawFrame(frameTime) {
   if (gameState !== "playing") {
     context.fillStyle = "rgba(0, 0, 0, 0.65)";
     context.fillRect(0, 0, canvas.width, canvas.height);
+    const panelWidth = 360;
+    const panelHeight = 126;
+    const panelX = (canvas.width - panelWidth) / 2;
+    const panelY = (canvas.height - panelHeight) / 2;
+    context.fillStyle = "#0d1b2d";
+    context.fillRect(panelX, panelY, panelWidth, panelHeight);
+    context.strokeStyle = gameState === "win" ? "#48c9ef" : "#df6685";
+    context.lineWidth = 2;
+    context.strokeRect(panelX, panelY, panelWidth, panelHeight);
     context.fillStyle = "#ffffff";
     context.textAlign = "center";
-    context.font = "bold 48px Arial, sans-serif";
+    context.font = "bold 40px Arial, sans-serif";
     context.fillText(
       gameState === "win" ? "You win" : "Game over",
       canvas.width / 2,
-      canvas.height / 2,
+      canvas.height / 2 - 4,
     );
+    context.fillStyle = "#bfd0e3";
+    context.font = "16px Arial, sans-serif";
+    context.fillText("Choose Restart to play again", canvas.width / 2, canvas.height / 2 + 32);
   }
 }
 

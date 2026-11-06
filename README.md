@@ -37,6 +37,8 @@ I approve requirements and changes, manually playtest the game, and decide which
 
 Milestones 1–4 and their manual checks have been reported passed. Milestone 5, win/loss states and in-page restart, is implemented; its manual checks are pending.
 
+The visual polish pass is implemented. The user reported that visual and gameplay regression checks passed; these were user-reported manual checks, not agent-run tests.
+
 ## Known prototype limitation
 
 The player is drawn as a triangle but uses a rectangular hitbox. Shots in the rectangle's corners may count as hits even when they miss the visible ship; this gameplay impact has not been specifically tested.

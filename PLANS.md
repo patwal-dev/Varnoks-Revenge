@@ -37,3 +37,7 @@ Final-version milestones remain within the approved scope. Multiplayer, bosses, 
 ## Review task
 
 - Separate-tool source-code review — **Complete**. Perplexity reviewed `game.js` and `index.html` from GitHub without running the game or automated tests.
+
+## Visual polish
+
+- Code-drawn starfield, enemy silhouettes, clearer player ship, and coordinated page/HUD/ending/button styling — **Implemented**. Visual and gameplay regression checks were reported passed by the user; these were not agent-run tests.
