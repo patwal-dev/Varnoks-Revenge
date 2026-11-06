@@ -32,3 +32,7 @@ Implementation status reflects code changes. Manual checks are recorded from my 
 3. **Difficulty options — Not started:** Add Easy, Hard and Ridiculous choices before play.
 
 Final-version milestones remain within the approved scope. Multiplayer, bosses, a shop, a skill tree, saved progress and mobile controls are out of scope.
+
+## Pending review task
+
+- Separate-tool review of the gameplay source code — **Pending**. Codex has performed a self-review; that does not replace this task.

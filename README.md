@@ -25,14 +25,18 @@ Exact upgrades and balancing are not decided yet. Multiplayer, bosses, a shop, a
 
 ## AI-assisted development
 
-- **OpenAI Codex:** implementation assistance, explanations, debugging and tests
-- **Perplexity:** planning, research and independent review
-- **Local models through LM Studio:** planned explanations, small coding tasks and review
+- **OpenAI Codex in VS Code:** implementation assistance, explanations, debugging and self-review. The model was displayed as “6 Luna”; Codex reported session identifier `gpt-6-luna` from this conversation's session log. Medium reasoning effort was used during initial prototype implementation.
+- **Perplexity:** planning, explanations, development guidance and review of project documents. The exact underlying model is not verified.
+- **LM Studio:** local models are planned tools; they were not used in this prototype session.
 
-I make the decisions, review changes and test the game myself.
+I approve requirements and changes, manually playtest the game, and decide which suggestions to accept. A separate-tool review of the gameplay source code is still pending.
 
 ## Current status
 
 Milestones 1–4 and their manual checks have been reported passed. Milestone 5, win/loss states and in-page restart, is implemented; its manual checks are pending.
+
+## Known prototype limitation
+
+The player is drawn as a triangle but uses a rectangular hitbox. Shots in the rectangle's corners may count as hits even when they miss the visible ship; this gameplay impact has not been specifically tested.
 
 To open the game, open `index.html` in a desktop browser. No installation is required.
