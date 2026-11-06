@@ -29,7 +29,9 @@ Exact upgrades and balancing are not decided yet. Multiplayer, bosses, a shop, a
 - **Perplexity:** planning, explanations, development guidance and review of project documents. The exact underlying model is not verified.
 - **LM Studio:** local models are planned tools; they were not used in this prototype session.
 
-I approve requirements and changes, manually playtest the game, and decide which suggestions to accept. A separate-tool review of the gameplay source code is still pending.
+I approve requirements and changes, manually playtest the game, and decide which suggestions to accept.
+
+**Perplexity source review:** Perplexity reviewed `game.js` and `index.html` from GitHub without running the game or automated tests. It found no blocking gameplay issue and noted the existing rectangular player hitbox, that winning takes priority over enemy-shot damage in the frame the last enemy is destroyed, and that the Space shooting instruction was missing. The instruction is now present above the game. This review is not a runtime test or a claim that the game is bug-free.
 
 ## Current status
 

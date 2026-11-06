@@ -11,6 +11,7 @@ Implementation status reflects code changes. Manual checks are recorded from my 
 2. **Player shooting — Implemented; manual checks passed (user report)**  
    Space fires upward shots repeatedly while held, including during movement; shots are removed when they leave the game area. Space does not scroll the page.  
    **Manual checks passed (user report):** Space fires upward; holding it fires repeatedly at a controlled rate; shooting works while moving; shots disappear beyond the top edge; Space does not scroll the page.
+   **Additional visual check (user report):** After refreshing the local game, the updated controls instruction appeared. This was not a full gameplay retest.
 
 3. **Enemies, enemy fire and collisions — Partially implemented; newest checks pending**  
    **Manual checks passed (user report):** Formation appears and moves side to side within the game area; player shots remove one enemy and are removed; the formation was cleared; movement and shooting were rechecked.  
@@ -33,6 +34,6 @@ Implementation status reflects code changes. Manual checks are recorded from my 
 
 Final-version milestones remain within the approved scope. Multiplayer, bosses, a shop, a skill tree, saved progress and mobile controls are out of scope.
 
-## Pending review task
+## Review task
 
-- Separate-tool review of the gameplay source code — **Pending**. Codex has performed a self-review; that does not replace this task.
+- Separate-tool source-code review — **Complete**. Perplexity reviewed `game.js` and `index.html` from GitHub without running the game or automated tests.
