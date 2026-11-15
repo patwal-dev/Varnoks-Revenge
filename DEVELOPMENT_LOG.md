@@ -42,7 +42,13 @@ Also on 15 November 2026, the user manually checked enemy-shot behavior. On a hi
 
 The user reported screen-recording actual prototype gameplay. ElevenLabs generated the narration with the Roger voice and Eleven v4 model; its duration was 1 minute 11 seconds. The narration file, `ElevenLabs Prototype Narration.mp3`, was saved in the game project folder. iMovie was used to combine the gameplay footage and narration, and the exported demonstration was saved in the game project folder. The YouTube video is 1 minute 14 seconds long: https://youtu.be/-NcNaK1Du_Q.
 
-The user confirmed playback with narration in a private window. This is a user-performed access check, not agent verification. No Moodle submission has yet been confirmed.
+The user confirmed playback with narration in a private window. This is a user-performed access check, not agent verification. No Moodle submission had yet been confirmed at the time of this entry.
+
+## Prototype submission and repository push — user-reported, 15 November 2026
+
+This later same-day report supersedes the preceding status note: the user confirmed that the prototype forum post was live in Moodle. Moodle's editor displayed 248 words. The submitted version was shortened from the earlier repository draft to meet the 300-word maximum; the exact submitted text is preserved in `PROTOTYPE_SUBMISSION.md`. This confirmation is user-reported and is not agent verification of Moodle.
+
+The submitted post linked to the YouTube demonstration at https://youtu.be/-NcNaK1Du_Q, which the user reported is 1 minute 14 seconds long, and to the repository at https://github.com/patwal-dev/hamk-ai-space-shooter. The user reported successfully pushing commit `e16891c80e38957b7288df9cdf33404712eea258` to `origin/main` from the VS Code terminal. The push is recorded as user-reported, not independently verified here.
 
 ## Local-model code review — 15 November 2026
 
@@ -57,10 +63,14 @@ Human assessment of the excerpt: listener registration is outside `restartGame()
 - The prototype uses HTML, CSS, vanilla JavaScript and Canvas, with no engine, backend, database, runtime AI, external assets or dependencies.
 - The player’s visible ship shape and its rectangular collision hitbox do not match exactly; hits near the corners of that rectangle may count. This specific edge case has not been separately tested.
 - The Perplexity review noted that winning takes priority over enemy-shot damage in the frame the last enemy is destroyed.
-- Three levels, upgrade choices and difficulty selection remain planned final-version work. Multiplayer, bosses, a shop, a skill tree, saved progress and mobile controls are out of scope.
+- At the time of the earlier project plan, three levels, upgrade choices and difficulty selection remained planned final-version work, while multiplayer, bosses, a shop, a skill tree, saved progress and mobile controls were out of scope.
 
 ## Evidence gaps
 
 - The initial prototype features were saved together, so Git cannot establish per-milestone implementation dates or intermediate commit IDs.
 - The original unnamed checks referred to by Milestone 3's former “newest checks pending” wording could not be identified. The user's later, specific enemy-shot observations are recorded, but they do not reconstruct or prove completion of that unknown checklist. The broader visual/gameplay regression report also does not specify individual checks. Milestone 5's restart checks were reported passed by the user on 15 November 2026.
 - The exact Perplexity model is not verified.
+
+## Current direction update — 15 November 2026
+
+The submitted post's current final-version direction includes a menu and keyboard-control review, three levels with a unique boss each, sound effects, particle effects, transitions, testing and balancing, and final documentation and demonstration. This supersedes the earlier scope note above where they conflict: bosses are now part of the submitted plan. Upgrade choices and difficulty settings will be reconsidered after the teacher's target features have been implemented.
