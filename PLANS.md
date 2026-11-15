@@ -13,18 +13,19 @@ Implementation status reflects code changes. Manual checks are recorded from my 
    **Manual checks passed (user report):** Space fires upward; holding it fires repeatedly at a controlled rate; shooting works while moving; shots disappear beyond the top edge; Space does not scroll the page.
    **Additional visual check (user report):** After refreshing the local game, the updated controls instruction appeared. This was not a full gameplay retest.
 
-3. **Enemies, enemy fire and collisions — Partially implemented; newest checks pending**  
+3. **Enemies, enemy fire and collisions — Partially implemented; documented enemy-shot manual checks passed (user report, 15 November 2026); original unnamed pending checks unresolved**  
    **Manual checks passed (user report):** Formation appears and moves side to side within the game area; player shots remove one enemy and are removed; the formation was cleared; movement and shooting were rechecked.  
    Implemented: living enemies fire occasional downward shots; shots leave the game area or hit the player, then disappear; a hit briefly flashes the player.  
    **Manual checks passed (user report):** Remaining enemies fire at a manageable rate; enemy shots leave the bottom; a hit removes the shot and briefly flashes the player; the player remains visible and controllable afterward; existing shooting and collision checks passed again.
+   **Additional manual checks passed (user report, 15 November 2026):** On an enemy-shot hit, the shot disappeared, lives dropped from 3 to 2, the player briefly flashed and remained visible, and movement and shooting still worked afterward. When not hit, several enemy shots travelled off the bottom and disappeared while lives stayed at 3. These observations are user-performed manual tests, not agent-run or automated tests. The original checks formerly called “newest checks pending” were not named in the records and cannot be identified; these additional checks do not reconstruct or prove completion of that unknown checklist.
 
 4. **Score and lives — Implemented; manual checks passed (user report)**  
    Start at 0 points and 3 lives. Award 10 points once per destroyed enemy. Each enemy-shot hit removes one life and the shot; one second of invulnerability flashes the player and prevents further life loss. At zero lives, freeze gameplay and show “Game over.”  
    **Manual checks passed (user report):** Initial values, scoring, life loss, one-second invulnerability, zero-life limit and game-over freeze.
 
-5. **Win/loss and restart — Implemented; manual checks pending**  
+5. **Win/loss and restart — Implemented; manual checks passed (user report, 15 November 2026)**  
    The last enemy triggers “You win” while the player is alive; zero lives triggers “Game over.” Both stop gameplay and show a Restart button. Restart resets the player, formation, score, lives, shots, timers, protection and held keys without starting another animation loop or input handler.  
-   **Manual checks pending:** Win and restart; lose and restart; confirm each restart restores score 0, lives 3, player starting position, full formation and no old shots; repeat restarts and confirm movement and firing do not speed up.
+   **Manual checks passed (user report):** Winning and restarting; losing and restarting repeated three times; score reset to 0 and lives to 3; player and full formation returned to their starting states; no old shots remained; no unexpected increase in movement or firing speed was observed. These were user-performed manual tests, not agent-run or automated tests.
 
 ## Final version
 
