@@ -4,9 +4,12 @@ const scoreDisplay = document.getElementById("score");
 const livesDisplay = document.getElementById("lives");
 const restartButton = document.getElementById("restart");
 
+const playerSpawnY = canvas.height - 52;
+const playerMinY = playerSpawnY - 60;
+const playerMaxY = playerSpawnY;
 const player = {
   x: canvas.width / 2,
-  y: canvas.height - 52,
+  y: playerSpawnY,
   width: 42,
   height: 34,
   speed: 300,
@@ -110,7 +113,7 @@ function restartGame() {
   livesDisplay.textContent = lives;
 
   player.x = canvas.width / 2;
-  player.y = canvas.height - 52;
+  player.y = playerSpawnY;
   shots.length = 0;
   enemyShots.length = 0;
   enemies.length = 0;
@@ -136,7 +139,7 @@ window.addEventListener("keydown", (event) => {
   if (event.code === "Space") {
     event.preventDefault();
     keysDown.add("space");
-  } else if (["arrowleft", "arrowright", "a", "d"].includes(key)) {
+  } else if (["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "d", "w", "s"].includes(key)) {
     event.preventDefault();
     keysDown.add(key);
   }
@@ -155,9 +158,17 @@ function updatePlayer(deltaSeconds) {
   if (keysDown.has("arrowleft") || keysDown.has("a")) direction -= 1;
   if (keysDown.has("arrowright") || keysDown.has("d")) direction += 1;
 
+  let verticalDirection = 0;
+  if (keysDown.has("arrowup") || keysDown.has("w")) verticalDirection -= 1;
+  if (keysDown.has("arrowdown") || keysDown.has("s")) verticalDirection += 1;
+
   player.x += direction * player.speed * deltaSeconds;
+  player.y += verticalDirection * player.speed * deltaSeconds;
   const halfWidth = player.width / 2;
+  const halfHeight = player.height / 2;
   player.x = Math.max(halfWidth, Math.min(canvas.width - halfWidth, player.x));
+  player.y = Math.max(playerMinY, Math.min(playerMaxY, player.y));
+  player.y = Math.max(halfHeight, Math.min(canvas.height - halfHeight, player.y));
 }
 
 function updateShots(deltaSeconds, frameTime) {

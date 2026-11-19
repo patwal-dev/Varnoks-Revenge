@@ -78,3 +78,7 @@ Human assessment of the excerpt: listener registration is outside `restartGame()
 ## Current direction update — 15 November 2026
 
 The submitted post's current final-version direction includes a menu and keyboard-control review, three levels with a unique boss each, sound effects, particle effects, transitions, testing and balancing, and final documentation and demonstration. This supersedes the earlier scope note above where they conflict: bosses are now part of the submitted plan. Upgrade choices and difficulty settings will be reconsidered after the teacher's target features have been implemented.
+
+## Limited vertical movement playtest — user-reported, 19 November 2026
+
+Patrik manually playtested limited vertical movement and reported that it worked great. He expects it to help with dodging future dive-bombers. The 60-pixel movement range remains in place for now. This report does not include individual test cases, and dive-bombers were not tested.
