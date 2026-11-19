@@ -54,7 +54,8 @@ This section records both the current single-level build and the planned final-g
 
 #### Level 1 — Learn the basics
 
-- Practice movement, shooting and dodging through straightforward enemy waves.
+- Use two straightforward enemy waves, followed by the unique Level 1 boss.
+- Leave the wave counts for Levels 2 and 3 undecided until their designs are developed.
 - No stationary barriers or dive-bombers in the final Level 1.
 - Keep the current gentle formation speed-up.
 - End with a unique boss whose attack pattern is easy to read.
@@ -76,6 +77,10 @@ This section records both the current single-level build and the planned final-g
 
 - Balance and test the game, verify progression, final victory and restart, then prepare the final demo and post-mortem.
 - Upgrade choices and difficulty settings from the earlier plan will be reconsidered after the teacher's target features have been implemented.
+
+### Late polish
+
+- Add a “3, 2, 1, FIGHT!” countdown at the start of each level, not between waves. Defer implementation until near the end so it does not slow development playtests.
 
 ## Earlier final-version plan — retained for history, subject to reconsideration
 

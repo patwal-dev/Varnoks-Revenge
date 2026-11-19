@@ -27,12 +27,17 @@ const enemyShotIntervalRange = 600;
 const enemySize = 30;
 const enemySpeed = 65;
 const maxEnemySpeedMultiplier = 1.75;
+const level1WaveCount = 2;
+const waveEntranceDuration = 0.8;
 const barrierWidth = 110;
 const barrierHeight = 28;
 const barrierHitPoints = 3;
 let startingEnemyCount = 0;
 let barriers = [];
 let enemyDirection = 1;
+let currentWave = 1;
+let waveEntranceElapsed = null;
+let waveEntrancePositions = null;
 let score = 0;
 let lives = 3;
 let nextShotTime = 0;
@@ -68,6 +73,38 @@ function createEnemies() {
     }
   }
   startingEnemyCount = enemies.length;
+}
+
+function startWaveEntrance() {
+  const lowestEdge = Math.max(...enemies.map((enemy) => enemy.y + enemy.height / 2));
+  const entranceOffset = -lowestEdge;
+  waveEntrancePositions = enemies.map((enemy) => {
+    const targetY = enemy.y;
+    const startY = targetY + entranceOffset;
+    enemy.y = startY;
+    return { startY, targetY };
+  });
+  waveEntranceElapsed = 0;
+}
+
+function updateWaveEntrance(deltaSeconds) {
+  waveEntranceElapsed = Math.min(
+    waveEntranceElapsed + deltaSeconds,
+    waveEntranceDuration,
+  );
+  const progress = waveEntranceElapsed / waveEntranceDuration;
+
+  enemies.forEach((enemy, index) => {
+    const { startY, targetY } = waveEntrancePositions[index];
+    enemy.y = progress === 1
+      ? targetY
+      : startY + (targetY - startY) * progress;
+  });
+
+  if (progress === 1) {
+    waveEntranceElapsed = null;
+    waveEntrancePositions = null;
+  }
 }
 
 function createBarriers() {
@@ -109,6 +146,7 @@ function finishGame(result) {
 function restartGame() {
   score = 0;
   lives = 3;
+  currentWave = 1;
   scoreDisplay.textContent = score;
   livesDisplay.textContent = lives;
 
@@ -121,6 +159,8 @@ function restartGame() {
   createBarriers();
 
   enemyDirection = 1;
+  waveEntranceElapsed = null;
+  waveEntrancePositions = null;
   nextShotTime = 0;
   nextEnemyShotTime = null;
   playerInvulnerableUntil = 0;
@@ -249,7 +289,19 @@ function handleShotCollisions() {
       score += 10;
       scoreDisplay.textContent = score;
       if (enemies.length === 0 && lives > 0) {
-        finishGame("win");
+        if (currentWave < level1WaveCount) {
+          currentWave += 1;
+          shots.length = 0;
+          enemyShots.length = 0;
+          enemies.length = 0;
+          createEnemies();
+          enemyDirection = 1;
+          nextEnemyShotTime = null;
+          startWaveEntrance();
+        } else {
+          finishGame("win");
+        }
+        return;
       }
     }
   }
@@ -448,11 +500,15 @@ function gameLoop(frameTime) {
 
   if (gameState === "playing") {
     updatePlayer(deltaSeconds);
-    updateShots(deltaSeconds, frameTime);
-    updateEnemies(deltaSeconds);
-    handleShotCollisions();
-    if (gameState === "playing") {
-      updateEnemyShots(deltaSeconds, frameTime);
+    if (waveEntranceElapsed !== null) {
+      updateWaveEntrance(deltaSeconds);
+    } else {
+      updateShots(deltaSeconds, frameTime);
+      updateEnemies(deltaSeconds);
+      handleShotCollisions();
+      if (gameState === "playing") {
+        updateEnemyShots(deltaSeconds, frameTime);
+      }
     }
   }
   drawFrame(frameTime);
