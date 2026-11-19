@@ -49,12 +49,14 @@ This section records both the current single-level build and the planned final-g
 #### Shared rules
 
 - All three levels will support WASD and arrow-key controls with limited vertical movement, multiple enemy waves, formation speed-up as enemies are cleared, and a unique end boss. Keep Level 1 gentle and tune later levels during playtesting.
+- Make Levels 2 and 3 longer experiences with distinct waves, escalating enemy patterns, pickups, and different boss fights. Consider adding an extra Level 2 wave; leave both later-level wave counts undecided until playtesting.
 - In Levels 2 and 3, a dive-bomber that misses will exit at the bottom, reappear at the top and rejoin the formation at a random position.
 - Game-wide additions: a start menu, sound effects, music, particles, and clear wave and level transitions.
 
 #### Level 1 — Learn the basics
 
-- Use two straightforward enemy waves, followed by the unique Level 1 boss.
+- Keep Level 1 as a short practice level with two waves and a boss.
+- **Pre-tuning playtime report (user-reported):** Patrik reported clearing the current Level 1 in roughly 30–40 seconds before this tuning change.
 - Leave the wave counts for Levels 2 and 3 undecided until their designs are developed.
 - No stationary barriers or dive-bombers in the final Level 1.
 - Keep the current gentle formation speed-up.

@@ -20,10 +20,16 @@ const shots = [];
 const enemyShots = [];
 const enemies = [];
 const shotSpeed = 420;
-const shotInterval = 0.22;
+const shotInterval = 0.80;
 const enemyShotSpeed = 210;
 const enemyShotIntervalMin = 900;
 const enemyShotIntervalRange = 600;
+const bossAttackInterval = 1600;
+const bossWideShotChance = 0.5;
+const bossChargeDuration = 0.5;
+const bossWideShotWidth = 24;
+const bossSpreadHorizontalSpeed = 150;
+const level1BossHealth = 15;
 const enemySize = 30;
 const enemySpeed = 65;
 const maxEnemySpeedMultiplier = 1.75;
@@ -38,6 +44,9 @@ let enemyDirection = 1;
 let currentWave = 1;
 let waveEntranceElapsed = null;
 let waveEntrancePositions = null;
+let boss = null;
+let bossChargeElapsed = null;
+let nextBossAttackTime = null;
 let score = 0;
 let lives = 3;
 let nextShotTime = 0;
@@ -107,6 +116,99 @@ function updateWaveEntrance(deltaSeconds) {
   }
 }
 
+function startBossFight() {
+  shots.length = 0;
+  enemyShots.length = 0;
+  boss = {
+    x: canvas.width / 2,
+    y: 100,
+    width: 112,
+    height: 58,
+    speed: 110,
+    direction: 1,
+    health: level1BossHealth,
+    maxHealth: level1BossHealth,
+  };
+  bossChargeElapsed = null;
+  nextBossAttackTime = null;
+}
+
+function fireBossWideShot() {
+  enemyShots.push({
+    x: boss.x,
+    y: boss.y + boss.height / 2,
+    width: bossWideShotWidth,
+    height: 24,
+    vy: enemyShotSpeed,
+    isBossShot: true,
+  });
+}
+
+function fireBossSpread() {
+  const shotY = boss.y + boss.height / 2;
+  const shotWidth = 7;
+  const shotHeight = 13;
+  enemyShots.push(
+    {
+      x: boss.x,
+      y: shotY,
+      width: shotWidth,
+      height: shotHeight,
+      vx: 0,
+      vy: enemyShotSpeed,
+      isBossShot: true,
+    },
+    {
+      x: boss.x,
+      y: shotY,
+      width: shotWidth,
+      height: shotHeight,
+      vx: -bossSpreadHorizontalSpeed,
+      vy: enemyShotSpeed,
+      isBossShot: true,
+      bounceAtWalls: true,
+    },
+    {
+      x: boss.x,
+      y: shotY,
+      width: shotWidth,
+      height: shotHeight,
+      vx: bossSpreadHorizontalSpeed,
+      vy: enemyShotSpeed,
+      isBossShot: true,
+      bounceAtWalls: true,
+    },
+  );
+}
+
+function updateBoss(deltaSeconds, frameTime) {
+  const halfWidth = boss.width / 2;
+  const minX = halfWidth;
+  const maxX = canvas.width - halfWidth;
+  const nextX = boss.x + boss.direction * boss.speed * deltaSeconds;
+  if (nextX < minX || nextX > maxX) boss.direction *= -1;
+  boss.x = Math.max(minX, Math.min(maxX, nextX));
+
+  if (bossChargeElapsed !== null) {
+    bossChargeElapsed = Math.min(bossChargeElapsed + deltaSeconds, bossChargeDuration);
+    if (bossChargeElapsed >= bossChargeDuration) {
+      fireBossSpread();
+      bossChargeElapsed = null;
+      nextBossAttackTime = frameTime + bossAttackInterval;
+    }
+  } else if (nextBossAttackTime === null) {
+    nextBossAttackTime = frameTime + bossAttackInterval;
+  } else if (frameTime >= nextBossAttackTime) {
+    if (Math.random() < bossWideShotChance) {
+      fireBossWideShot();
+      nextBossAttackTime = frameTime + bossAttackInterval;
+    } else {
+      bossChargeElapsed = 0;
+      nextBossAttackTime = null;
+    }
+  }
+}
+
 function createBarriers() {
   barriers = [0.2, 0.5, 0.8].map((position) => ({
     x: canvas.width * position,
@@ -155,6 +257,9 @@ function restartGame() {
   shots.length = 0;
   enemyShots.length = 0;
   enemies.length = 0;
+  boss = null;
+  bossChargeElapsed = null;
+  nextBossAttackTime = null;
   createEnemies();
   createBarriers();
 
@@ -299,33 +404,56 @@ function handleShotCollisions() {
           nextEnemyShotTime = null;
           startWaveEntrance();
         } else {
-          finishGame("win");
+          startBossFight();
         }
         return;
+      }
+    } else if (boss !== null) {
+      const bossLeft = boss.x - boss.width / 2;
+      const bossRight = boss.x + boss.width / 2;
+      const bossTop = boss.y - boss.height / 2;
+      const bossBottom = boss.y + boss.height / 2;
+      if (shotRight >= bossLeft && shotLeft <= bossRight
+        && shot.y <= bossBottom && shot.y + shot.height >= bossTop) {
+        shots.splice(shotIndex, 1);
+        boss.health -= 1;
+        score += 10;
+        scoreDisplay.textContent = score;
+        if (boss.health <= 0) {
+          boss = null;
+          enemyShots.length = 0;
+          bossChargeElapsed = null;
+          nextBossAttackTime = null;
+          finishGame("win");
+          return;
+        }
       }
     }
   }
 }
 
 function updateEnemyShots(deltaSeconds, frameTime) {
-  if (enemies.length === 0) {
-    nextEnemyShotTime = null;
-  } else if (nextEnemyShotTime === null) {
-    nextEnemyShotTime = frameTime + enemyShotIntervalMin;
-  } else if (frameTime >= nextEnemyShotTime) {
-    const shooter = enemies[Math.floor(Math.random() * enemies.length)];
-    enemyShots.push({
-      x: shooter.x,
-      y: shooter.y + shooter.height / 2,
-      width: 7,
-      height: 13,
-    });
-    nextEnemyShotTime = frameTime + enemyShotIntervalMin
-      + Math.random() * enemyShotIntervalRange;
+  if (boss === null) {
+    if (enemies.length === 0) {
+      nextEnemyShotTime = null;
+    } else if (nextEnemyShotTime === null) {
+      nextEnemyShotTime = frameTime + enemyShotIntervalMin;
+    } else if (frameTime >= nextEnemyShotTime) {
+      const shooter = enemies[Math.floor(Math.random() * enemies.length)];
+      enemyShots.push({
+        x: shooter.x,
+        y: shooter.y + shooter.height / 2,
+        width: 7,
+        height: 13,
+      });
+      nextEnemyShotTime = frameTime + enemyShotIntervalMin
+        + Math.random() * enemyShotIntervalRange;
+    }
   }
 
   for (const shot of enemyShots) {
-    shot.y += enemyShotSpeed * deltaSeconds;
+    shot.y += (shot.vy ?? enemyShotSpeed) * deltaSeconds;
+    if (shot.vx !== undefined) shot.x += shot.vx * deltaSeconds;
   }
 
   const playerLeft = player.x - player.width / 2;
@@ -335,7 +463,23 @@ function updateEnemyShots(deltaSeconds, frameTime) {
 
   for (let index = enemyShots.length - 1; index >= 0; index -= 1) {
     const shot = enemyShots[index];
-    if (shot.y > canvas.height) {
+    if (shot.bounceAtWalls) {
+      const halfWidth = shot.width / 2;
+      const minX = halfWidth;
+      const maxX = canvas.width - halfWidth;
+      if (shot.x < minX) {
+        shot.x = minX;
+        shot.vx = Math.abs(shot.vx);
+      } else if (shot.x > maxX) {
+        shot.x = maxX;
+        shot.vx = -Math.abs(shot.vx);
+      }
+    }
+
+    const isBelowCanvas = shot.isBossShot
+      ? shot.y >= canvas.height
+      : shot.y > canvas.height;
+    if (isBelowCanvas) {
       enemyShots.splice(index, 1);
     } else if (damageBarrierWithShot(shot)) {
       enemyShots.splice(index, 1);
@@ -425,6 +569,53 @@ function drawEnemy(enemy, index) {
   context.fill();
 }
 
+function drawBoss() {
+  if (boss === null) return;
+
+  if (bossChargeElapsed !== null) {
+    const chargeProgress = bossChargeElapsed / bossChargeDuration;
+    context.strokeStyle = `rgba(95, 231, 255, ${0.55 + chargeProgress * 0.4})`;
+    context.lineWidth = 4 + chargeProgress * 4;
+    context.beginPath();
+    context.ellipse(
+      boss.x,
+      boss.y,
+      boss.width * (0.58 + chargeProgress * 0.12),
+      boss.height * (0.75 + chargeProgress * 0.2),
+      0,
+      0,
+      Math.PI * 2,
+    );
+    context.stroke();
+  }
+
+  const left = boss.x - boss.width / 2;
+  const top = boss.y - boss.height / 2;
+  context.fillStyle = "#9d6be8";
+  context.beginPath();
+  context.moveTo(boss.x, top);
+  context.lineTo(left + boss.width, top + boss.height * 0.3);
+  context.lineTo(left + boss.width * 0.82, top + boss.height * 0.82);
+  context.lineTo(boss.x, top + boss.height);
+  context.lineTo(left + boss.width * 0.18, top + boss.height * 0.82);
+  context.lineTo(left, top + boss.height * 0.3);
+  context.closePath();
+  context.fill();
+
+  context.fillStyle = "#f5e6ff";
+  context.fillRect(left + boss.width * 0.27, top + boss.height * 0.38, boss.width * 0.46, 7);
+
+  const healthBarWidth = boss.width;
+  const healthBarY = top - 18;
+  context.fillStyle = "#26374d";
+  context.fillRect(left, healthBarY, healthBarWidth, 8);
+  context.fillStyle = "#e77bd5";
+  context.fillRect(left, healthBarY, healthBarWidth * (boss.health / boss.maxHealth), 8);
+  context.strokeStyle = "#f3d9ff";
+  context.lineWidth = 1;
+  context.strokeRect(left, healthBarY, healthBarWidth, 8);
+}
+
 function drawBarriers() {
   for (const barrier of barriers) {
     const left = barrier.x - barrier.width / 2;
@@ -455,6 +646,7 @@ function drawFrame(frameTime) {
   context.clearRect(0, 0, canvas.width, canvas.height);
   drawStarfield();
   enemies.forEach(drawEnemy);
+  drawBoss();
   drawBarriers();
   context.fillStyle = "#ffe08a";
   for (const shot of shots) {
@@ -504,7 +696,11 @@ function gameLoop(frameTime) {
       updateWaveEntrance(deltaSeconds);
     } else {
       updateShots(deltaSeconds, frameTime);
-      updateEnemies(deltaSeconds);
+      if (boss === null) {
+        updateEnemies(deltaSeconds);
+      } else {
+        updateBoss(deltaSeconds, frameTime);
+      }
       handleShotCollisions();
       if (gameState === "playing") {
         updateEnemyShots(deltaSeconds, frameTime);

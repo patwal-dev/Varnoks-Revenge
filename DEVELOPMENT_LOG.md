@@ -86,3 +86,7 @@ Patrik manually playtested limited vertical movement and reported that it worked
 ## Wave 2 entrance playtest — user-reported, 19 November 2026
 
 Patrik manually confirmed that Wave 2 spawns and reported that its 0.8-second descending entrance felt better than an instant spawn. This report confirms the spawn and entrance feel only; firing, score and lives carry-over, and restart were not individually reported as verified.
+
+## Level 1 autofire pace playtest — user-reported, 19 November 2026
+
+After the player autofire interval changed to 0.80 seconds, Patrik manually tried Level 1 and liked the new pace. He reported that holding autofire alone no longer made the game too easy. No new clear time was reported. This feedback does not establish that individual boss or restart checks passed.
