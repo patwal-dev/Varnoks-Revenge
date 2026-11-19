@@ -38,6 +38,10 @@ On 15 November 2026, the user manually checked the prototype's win/loss and rest
 
 Also on 15 November 2026, the user manually checked enemy-shot behavior. On a hit, the shot disappeared, lives dropped from 3 to 2, the player briefly flashed and remained visible, and movement and shooting still worked afterward. When the player was not hit, several enemy shots travelled off the bottom and disappeared while lives stayed at 3. These are user-performed manual observations, not agent-run or automated tests.
 
+In the Level 1 speed-up playtest, Patrik reported that enemies moved a little faster as their numbers fell and that this felt appropriate for a practice level. Patrik also reported completing the follow-up browser check for edge reversal, victory and restart. These are user-reported manual checks, not automated or Codex-run tests.
+
+Patrik manually tried the destructible barriers in the current single-level build and reported that they worked well. This was a user-reported browser playtest, not a Codex-run or automated test. Level 2-only placement is still planned.
+
 ## Prototype demonstration — user-reported, 15 November 2026
 
 The user reported screen-recording actual prototype gameplay. ElevenLabs generated the narration with the Roger voice and Eleven v4 model; its duration was 1 minute 11 seconds. The narration file, `ElevenLabs Prototype Narration.mp3`, was saved in the game project folder. iMovie was used to combine the gameplay footage and narration, and the exported demonstration was saved in the game project folder. The YouTube video is 1 minute 14 seconds long: https://youtu.be/-NcNaK1Du_Q.

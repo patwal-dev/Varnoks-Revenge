@@ -31,9 +31,51 @@ The user reports that the shortened 248-word prototype forum post is live in Moo
    The last enemy triggers “You win” while the player is alive; zero lives triggers “Game over.” Both stop gameplay and show a Restart button. Restart resets the player, formation, score, lives, shots, timers, protection and held keys without starting another animation loop or input handler.  
    **Manual checks passed (user report):** Winning and restarting; losing and restarting repeated three times; score reset to 0 and lives to 3; player and full formation returned to their starting states; no old shots remained; no unexpected increase in movement or firing speed was observed. These were user-performed manual tests, not agent-run or automated tests.
 
-## Current post-submission final-version direction — planned, not started
+## Final game — level design
 
-As listed in the submitted forum post: add a menu and review keyboard controls; extend gameplay to three levels with a unique boss in each; add sound effects, particle effects and transitions; test and balance the game; then complete final documentation and demonstration. These are plans, not completed work. Upgrade choices and difficulty settings will be reconsidered after the teacher's target features have been implemented.
+This section records both the current single-level build and the planned final-game design. Planned features are not marked implemented or tested.
+
+### Current single-level build
+
+- **Formation speed-up — implemented:** The formation speeds up gently as enemies are cleared. Patrik reported that it moved a little faster as enemy numbers fell and felt appropriate for a practice level. He also reported completing the follow-up browser check for edge reversal, victory and restart. These are user-reported manual checks, not automated or Codex-run tests.
+- **Stationary barriers — implemented in the current build:** Three destructible barriers are present and Patrik manually tried them. Their placement only in Level 2 of the final game is planned for when level progression exists.
+
+### Teacher feedback
+
+- The stationary barriers address the teacher's shield feedback. In the final game, barriers are planned for Level 2 only; Levels 1 and 3 will have no stationary barriers.
+
+### Patrik's gameplay additions
+
+#### Shared rules
+
+- All three levels will support WASD and arrow-key controls with limited vertical movement, multiple enemy waves, formation speed-up as enemies are cleared, and a unique end boss. Keep Level 1 gentle and tune later levels during playtesting.
+- In Levels 2 and 3, a dive-bomber that misses will exit at the bottom, reappear at the top and rejoin the formation at a random position.
+- Game-wide additions: a start menu, sound effects, music, particles, and clear wave and level transitions.
+
+#### Level 1 — Learn the basics
+
+- Practice movement, shooting and dodging through straightforward enemy waves.
+- No stationary barriers or dive-bombers in the final Level 1.
+- Keep the current gentle formation speed-up.
+- End with a unique boss whose attack pattern is easy to read.
+
+#### Level 2 — Learn to use cover
+
+- Introduce destructible stationary barriers; this is the only final level with barriers.
+- Introduce distinct aliens, a scrolling background, one dive-bomber at a time, and a collectible alternate weapon.
+- End with a different boss.
+
+#### Level 3 — Survive without cover
+
+- No stationary barriers. Keep the alternate weapon available.
+- Use distinct aliens and a different scrolling background. Allow two simultaneous dive-bombers and occasional harder paths such as loops.
+- Add Patrik's rare temporary shield pickup, dropped by defeated enemies. This pickup is separate from the stationary barriers proposed in response to the teacher's feedback.
+- End with a unique final boss.
+
+### Balance and delivery
+
+- Balance and test the game, verify progression, final victory and restart, then prepare the final demo and post-mortem.
+- Upgrade choices and difficulty settings from the earlier plan will be reconsidered after the teacher's target features have been implemented.
 
 ## Earlier final-version plan — retained for history, subject to reconsideration
 

@@ -23,6 +23,12 @@ const enemyShotIntervalMin = 900;
 const enemyShotIntervalRange = 600;
 const enemySize = 30;
 const enemySpeed = 65;
+const maxEnemySpeedMultiplier = 1.75;
+const barrierWidth = 110;
+const barrierHeight = 28;
+const barrierHitPoints = 3;
+let startingEnemyCount = 0;
+let barriers = [];
 let enemyDirection = 1;
 let score = 0;
 let lives = 3;
@@ -58,6 +64,37 @@ function createEnemies() {
       });
     }
   }
+  startingEnemyCount = enemies.length;
+}
+
+function createBarriers() {
+  barriers = [0.2, 0.5, 0.8].map((position) => ({
+    x: canvas.width * position,
+    y: canvas.height * 0.62,
+    width: barrierWidth,
+    height: barrierHeight,
+    hitPoints: barrierHitPoints,
+  }));
+}
+
+function damageBarrierWithShot(shot) {
+  const shotLeft = shot.x - shot.width / 2;
+  const shotRight = shot.x + shot.width / 2;
+  const shotBottom = shot.y + shot.height;
+  const barrierIndex = barriers.findIndex((barrier) => (
+    shotRight >= barrier.x - barrier.width / 2
+    && shotLeft <= barrier.x + barrier.width / 2
+    && shotBottom >= barrier.y - barrier.height / 2
+    && shot.y <= barrier.y + barrier.height / 2
+  ));
+
+  if (barrierIndex === -1) return false;
+
+  barriers[barrierIndex].hitPoints -= 1;
+  if (barriers[barrierIndex].hitPoints === 0) {
+    barriers.splice(barrierIndex, 1);
+  }
+  return true;
 }
 
 function finishGame(result) {
@@ -78,6 +115,7 @@ function restartGame() {
   enemyShots.length = 0;
   enemies.length = 0;
   createEnemies();
+  createBarriers();
 
   enemyDirection = 1;
   nextShotTime = 0;
@@ -90,6 +128,7 @@ function restartGame() {
 }
 
 createEnemies();
+createBarriers();
 restartButton.addEventListener("click", restartGame);
 
 window.addEventListener("keydown", (event) => {
@@ -144,13 +183,19 @@ function updateShots(deltaSeconds, frameTime) {
 }
 
 function updateEnemies(deltaSeconds) {
+  const destroyedFraction = startingEnemyCount > 0
+    ? 1 - enemies.length / startingEnemyCount
+    : 0;
+  const formationSpeed = enemySpeed * (
+    1 + destroyedFraction * (maxEnemySpeedMultiplier - 1)
+  );
   const nextLeftEdge = enemies.length
     ? Math.min(...enemies.map((enemy) => enemy.x - enemy.width / 2))
-      + enemyDirection * enemySpeed * deltaSeconds
+      + enemyDirection * formationSpeed * deltaSeconds
     : 0;
   const nextRightEdge = enemies.length
     ? Math.max(...enemies.map((enemy) => enemy.x + enemy.width / 2))
-      + enemyDirection * enemySpeed * deltaSeconds
+      + enemyDirection * formationSpeed * deltaSeconds
     : canvas.width;
 
   if (nextLeftEdge < 0 || nextRightEdge > canvas.width) {
@@ -158,7 +203,7 @@ function updateEnemies(deltaSeconds) {
   }
 
   for (const enemy of enemies) {
-    enemy.x += enemyDirection * enemySpeed * deltaSeconds;
+    enemy.x += enemyDirection * formationSpeed * deltaSeconds;
   }
 }
 
@@ -168,6 +213,11 @@ function handleShotCollisions() {
     const shotLeft = shot.x - shot.width / 2;
     const shotRight = shot.x + shot.width / 2;
     let hitEnemyIndex = -1;
+
+    if (damageBarrierWithShot(shot)) {
+      shots.splice(shotIndex, 1);
+      continue;
+    }
 
     for (let enemyIndex = enemies.length - 1; enemyIndex >= 0; enemyIndex -= 1) {
       const enemy = enemies[enemyIndex];
@@ -223,6 +273,8 @@ function updateEnemyShots(deltaSeconds, frameTime) {
   for (let index = enemyShots.length - 1; index >= 0; index -= 1) {
     const shot = enemyShots[index];
     if (shot.y > canvas.height) {
+      enemyShots.splice(index, 1);
+    } else if (damageBarrierWithShot(shot)) {
       enemyShots.splice(index, 1);
     } else if (shot.x + shot.width / 2 >= playerLeft
       && shot.x - shot.width / 2 <= playerRight
@@ -310,10 +362,37 @@ function drawEnemy(enemy, index) {
   context.fill();
 }
 
+function drawBarriers() {
+  for (const barrier of barriers) {
+    const left = barrier.x - barrier.width / 2;
+    const top = barrier.y - barrier.height / 2;
+    context.fillStyle = barrier.hitPoints === 3
+      ? "#65bd83"
+      : barrier.hitPoints === 2 ? "#c5b95d" : "#d98258";
+    context.fillRect(left, top, barrier.width, barrier.height);
+
+    if (barrier.hitPoints < 3) {
+      context.strokeStyle = "#253847";
+      context.lineWidth = 2;
+      context.beginPath();
+      context.moveTo(left + barrier.width * 0.34, top);
+      context.lineTo(left + barrier.width * 0.43, top + barrier.height * 0.45);
+      context.lineTo(left + barrier.width * 0.35, top + barrier.height);
+      if (barrier.hitPoints === 1) {
+        context.moveTo(left + barrier.width * 0.72, top);
+        context.lineTo(left + barrier.width * 0.64, top + barrier.height * 0.52);
+        context.lineTo(left + barrier.width * 0.78, top + barrier.height);
+      }
+      context.stroke();
+    }
+  }
+}
+
 function drawFrame(frameTime) {
   context.clearRect(0, 0, canvas.width, canvas.height);
   drawStarfield();
   enemies.forEach(drawEnemy);
+  drawBarriers();
   context.fillStyle = "#ffe08a";
   for (const shot of shots) {
     context.fillRect(shot.x - shot.width / 2, shot.y, shot.width, shot.height);
