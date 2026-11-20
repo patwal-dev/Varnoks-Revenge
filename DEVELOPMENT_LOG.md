@@ -40,7 +40,7 @@ Also on 15 November 2026, the user manually checked enemy-shot behavior. On a hi
 
 In the Level 1 speed-up playtest, Patrik reported that enemies moved a little faster as their numbers fell and that this felt appropriate for a practice level. Patrik also reported completing the follow-up browser check for edge reversal, victory and restart. These are user-reported manual checks, not automated or Codex-run tests.
 
-Patrik manually tried the destructible barriers in the current single-level build and reported that they worked well. This was a user-reported browser playtest, not a Codex-run or automated test. Level 2-only placement is still planned.
+Patrik manually tried the destructible barriers in the current build and reported that they worked well. This was a user-reported browser playtest, not a Codex-run or automated test. The current plan places barriers in Level 1 only.
 
 ## Prototype demonstration — user-reported, 15 November 2026
 
@@ -90,3 +90,27 @@ Patrik manually confirmed that Wave 2 spawns and reported that its 0.8-second de
 ## Level 1 autofire pace playtest — user-reported, 19 November 2026
 
 After the player autofire interval changed to 0.80 seconds, Patrik manually tried Level 1 and liked the new pace. He reported that holding autofire alone no longer made the game too easy. No new clear time was reported. This feedback does not establish that individual boss or restart checks passed.
+
+## Level 1 acceptance and next priorities — user-reported checkpoint, 19 November 2026
+
+Level 1 is accepted as-is for now. After Wave 2, Xal’Gorath the Devourer slides into place and speaks in a bubble before combat. Boss hits award 10 points; defeating him awards a separate 100-point bonus once. The paused clear screen shows “But reinforcements are closing in.” The Level 2 button carries the total score and remaining lives forward. Patrik reported that the Level 1 clear screen and transition to Level 2 passed manual playtesting. No separate boss combat or restart check is claimed from this report.
+
+The Level 2 transition exists, but later bosses and the surprise encounter are planned, not implemented. Next priorities are to build playable Level 2, starting with the first dive-bomber and building toward Lord Kaezar Vhul; build playable Level 3, ending with Zhur-Kai, Matriarch of the Swarm; then stage the surprise Varnok Dral, the Hollow Emperor encounter after Zhur-Kai. It is not a fourth level, and true victory follows Varnok's defeat. Prioritize gameplay, progression, scoring and win/loss behavior; use placeholder visuals and defer cosmetic polish unless it makes playtesting hard to read.
+
+## Level 2 and Kaezar checkpoint — 20 November 2026
+
+The following describes the current implementation in `game.js`; it is a code-status record, not a claim that every behavior passed broad regression testing:
+
+- Living Level 2 formation aliens are randomly selected to dive. Only one can be diving or returning at a time. A surviving diver that misses returns from above into a reserved, unoccupied formation slot; its released slot remains eligible as a fallback.
+- Successful dive-bomber contact removes one life, clears all shield charges, and consumes the attacker without collision points. The existing invulnerability rules apply. A formation-boundary drift issue was corrected; Patrik later reported that normal Level 2 play looked good.
+- The rare crossing bonus ship awards 50 points when destroyed and drops exactly one random pickup: shield or rapid-fire weapon, selected at 50/50 odds.
+- Shield pickups refill to two charges. The HUD renders two, one or no concentric rings rather than a numeric counter.
+- The rapid-fire pickup doubles the normal firing rate for 10 seconds of active gameplay. Another pickup refreshes that duration. Collection displays “Machine gun baby!” for two seconds of active gameplay.
+- Lord Kaezar Vhul has 20 HP; each projectile hit awards 10 points and defeat awards a separate 200-point bonus once. His former beam has been replaced by a warning lane and a fixed-path physical ram, followed by a smooth retreat. He is shootable during preparation, charge and retreat. A successful ram costs one life, clears all shields and does not consume Kaezar. The boss name is not drawn; the health bar remains.
+- Bonus ships and pickups stay active during the boss encounter. Defeating Kaezar currently uses the temporary Level 2 win endpoint. Level 3 progression has not been implemented.
+
+**User-reported normal-play checks:** Patrik reports the dive/return cycle worked; shield collection showed two rings; rapid fire looked good in initial play; formation movement looked good after its boundary fix; and Kaezar's final ram was “spot on.” These reports do not verify every listed mechanic or edge case.
+
+**Agent-run controlled Chrome checks:** Earlier controlled tests exercised boss charge/retreat, fixed targeting and edge bounds, ram contact with/without shields and during invulnerability, shot damage during attack phases, boss win/loss cleanup, and bonus ship/pickup interactions. These controlled checks are distinct from normal play and do not establish broad regression, balance, or completion of every requested check. Some manual and edge-case checks remain pending.
+
+The current local work is not committed or pushed. No actual hours are recorded.

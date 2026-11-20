@@ -35,14 +35,16 @@ The user reports that the shortened 248-word prototype forum post is live in Moo
 
 This section records both the current single-level build and the planned final-game design. Planned features are not marked implemented or tested.
 
-### Current single-level build
+### Current build
 
 - **Formation speed-up — implemented:** The formation speeds up gently as enemies are cleared. Patrik reported that it moved a little faster as enemy numbers fell and felt appropriate for a practice level. He also reported completing the follow-up browser check for edge reversal, victory and restart. These are user-reported manual checks, not automated or Codex-run tests.
-- **Stationary barriers — implemented in the current build:** Three destructible barriers are present and Patrik manually tried them. Their placement only in Level 2 of the final game is planned for when level progression exists.
+- **Stationary barriers — implemented in the current build:** Three destructible barriers are present and Patrik manually tried them. In the final game, they are planned for Level 1 only.
+- **Level 1 — accepted as-is for now (user-reported playtest):** After Wave 2, Xal’Gorath the Devourer slides into position and speaks in a bubble before combat. Boss hits award 10 points each; defeating him gives a separate 100-point bonus once. The paused clear screen shows “But reinforcements are closing in.” and the Level 2 button carries the total score and remaining lives forward. Patrik reported that the Level 1 clear screen and transition to Level 2 passed manual playtesting.
+- **Level 2 — playable through its current boss endpoint:** The Level 2 button starts the transition, removes the Level 1 barriers, and starts a 12-alien formation. The level includes random single dive-bombers, a rare crossing bonus ship that drops one random shield or rapid-fire pickup, and Lord Kaezar Vhul. Kaezar has 20 HP; shots award 10 points and his defeat awards a separate 200-point bonus. His fixed-path warning-lane ram replaces the beam. Defeating him reaches the current Level 2 win endpoint. Level 3 progression is not implemented. Manual-check evidence and limits are recorded in `DEVELOPMENT_LOG.md`.
 
 ### Teacher feedback
 
-- The stationary barriers address the teacher's shield feedback. In the final game, barriers are planned for Level 2 only; Levels 1 and 3 will have no stationary barriers.
+- The stationary barriers address the teacher's shield feedback. In the final game, barriers are planned for Level 1 only; Levels 2 and 3 will have no stationary barriers.
 
 ### Patrik's gameplay additions
 
@@ -53,32 +55,40 @@ This section records both the current single-level build and the planned final-g
 - In Levels 2 and 3, a dive-bomber that misses will exit at the bottom, reappear at the top and rejoin the formation at a random position.
 - Game-wide additions: a start menu, sound effects, music, particles, and clear wave and level transitions.
 
-#### Level 1 — Learn the basics
+#### Level 1 — Learn the basics with cover
 
-- Keep Level 1 as a short practice level with two waves and a boss.
+- Teach the basics of movement, shooting and dodging with stationary barrier cover. Keep Level 1 as a short practice level with two waves and a boss.
 - **Pre-tuning playtime report (user-reported):** Patrik reported clearing the current Level 1 in roughly 30–40 seconds before this tuning change.
 - Leave the wave counts for Levels 2 and 3 undecided until their designs are developed.
-- No stationary barriers or dive-bombers in the final Level 1.
+- No dive-bombers in the final Level 1.
 - Keep the current gentle formation speed-up.
-- End with a unique boss whose attack pattern is easy to read.
+- End with Xal’Gorath the Devourer, a unique boss whose attack pattern is easy to read.
 
-#### Level 2 — Learn to use cover
+#### Level 2 — Learn to dodge without cover
 
-- Introduce destructible stationary barriers; this is the only final level with barriers.
+- Introduce dodging without stationary barriers.
 - Introduce distinct aliens, a scrolling background, one dive-bomber at a time, and a collectible alternate weapon.
-- End with a different boss.
+- End with Lord Kaezar Vhul, a different boss.
 
 #### Level 3 — Survive without cover
 
 - No stationary barriers. Keep the alternate weapon available.
 - Use distinct aliens and a different scrolling background. Allow two simultaneous dive-bombers and occasional harder paths such as loops.
 - Add Patrik's rare temporary shield pickup, dropped by defeated enemies. This pickup is separate from the stationary barriers proposed in response to the teacher's feedback.
-- End with a unique final boss.
+- End with Zhur-Kai, Matriarch of the Swarm. After Zhur-Kai is defeated, the player briefly thinks they have won; then reveal Varnok Dral, the Hollow Emperor, who has come to take care of the player personally. This surprise encounter follows the Level 3 boss and is not a fourth level. True victory follows Varnok's defeat.
 
 ### Balance and delivery
 
 - Balance and test the game, verify progression, final victory and restart, then prepare the final demo and post-mortem.
 - Upgrade choices and difficulty settings from the earlier plan will be reconsidered after the teacher's target features have been implemented.
+- Prioritize gameplay, progression, scoring and win/loss behavior. Use placeholder visuals where needed; defer graphics and cosmetic polish unless a visual issue makes the game hard to read or test.
+
+### Next development priorities
+
+1. Build Level 3 one small, testable gameplay step at a time, ending with Zhur-Kai, Matriarch of the Swarm.
+2. After Zhur-Kai falls, let the player briefly think they have won. Then reveal Varnok Dral, the Hollow Emperor, who has come to deal with the player personally. This is a surprise encounter, not a fourth level. Show true victory only after Varnok is defeated.
+
+The Level 3 ideas above remain planned. More challenging dive paths, possible loops and occasional paired dives are not implemented or newly approved details. Finish the base game before menu screens, dialogue, colours or graphics improvements; use placeholder visuals as needed and defer cosmetics.
 
 ### Late polish
 
