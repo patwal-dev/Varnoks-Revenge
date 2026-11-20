@@ -21,6 +21,10 @@ main {
   text-align: center;
 }
 
+main.developer-mode {
+  width: min(100%, 1040px);
+}
+
 h1 {
   margin: 0 0 8px;
   color: #d9f6ff;
@@ -68,6 +72,60 @@ canvas {
   box-shadow: 0 16px 42px rgba(0, 0, 0, 0.35);
 }
 
+.game-stage {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.game-stage canvas {
+  flex: 1;
+  min-width: 0;
+}
+
+.developer-panel {
+  flex: 0 0 160px;
+  padding: 12px;
+  border: 1px solid #263a54;
+  border-radius: 8px;
+  background: #0c1726;
+  text-align: left;
+}
+
+.developer-panel[hidden] {
+  display: none;
+}
+
+.developer-panel h2 {
+  margin: 0 0 10px;
+  color: #c8d8ea;
+  font-size: 0.9rem;
+}
+
+.developer-level-buttons {
+  display: grid;
+  gap: 8px;
+}
+
+.developer-level-buttons button {
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+}
+
+.developer-boss-buttons {
+  display: grid;
+  gap: 8px;
+}
+
+.developer-boss-buttons button {
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+}
+
 button {
   margin-top: 12px;
   padding: 10px 22px;
@@ -92,4 +150,19 @@ button:focus-visible {
 
 button[hidden] {
   display: none;
+}
+
+@media (max-width: 760px) {
+  .game-stage {
+    flex-direction: column;
+  }
+
+  .developer-panel {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .developer-level-buttons {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }

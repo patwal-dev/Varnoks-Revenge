@@ -1,41 +1,34 @@
 # Next Session Handover
 
-## Current state
+## Current implementation
 
-- The one-level prototype and visual polish are complete; the prototype forum post is reported live in Moodle as of 15 November 2026. This is user-reported confirmation, not agent verification.
-- Moodle's editor displayed 248 words for the shortened post. Its exact text is preserved in `PROTOTYPE_SUBMISSION.md`; the earlier repository draft was longer.
-- Demonstration: [YouTube](https://youtu.be/-NcNaK1Du_Q), 1 minute 14 seconds. User-reported private-window playback with narration succeeded; this was not agent verification.
-- Repository: https://github.com/patwal-dev/hamk-ai-space-shooter. The user reported pushing `e16891c80e38957b7288df9cdf33404712eea258` to `origin/main` from VS Code.
-- `DEVELOPMENT_LOG.md` records user-reported manual checks, local-model review, demonstration production and submission evidence.
-- Level 1 is accepted as-is for now. The current sequence is two waves, then Xal’Gorath the Devourer’s slide-in and speech bubble before combat. Hits award 10 points; defeating him awards a separate 100-point bonus once. The paused clear screen shows “But reinforcements are closing in.” and the Level 2 button carries score and remaining lives forward. Patrik reported that the clear screen and Level 2 transition passed manual playtesting; this does not assert separate boss combat or restart checks.
-- Level 2 is playable through its 12-alien formation and Lord Kaezar Vhul encounter. The current Level 2 win endpoint follows Kaezar's defeat; progression into Level 3 is not implemented.
-- Level 2 includes randomly selected dive-bombers (only one diving or returning at once), a rare crossing bonus ship, shield and rapid-fire pickups, and Kaezar. See the current implementation notes in `PLANS.md` and evidence in `DEVELOPMENT_LOG.md`.
-- Kaezar's beam has been replaced by the accepted warning-lane, locked-path ram with a smooth retreat. Patrik tested the ram in normal play and described it as “spot on.” Preserve this behavior as-is.
+- The project is a single-player HTML/CSS/vanilla JavaScript Canvas game. Level 1 remains accepted as-is: two waves, then Xal’Gorath, a separate 100-point defeat bonus, and a paused clear screen before Level 2. Preserve the accepted gameplay.
+- Level 2 has two regular waves of 18 aliens each (3 × 6), followed by Lord Kaezar Vhul. The supply ship drops shield or rapid-fire pickups. Kaezar’s accepted warning-lane, locked-path ram and smooth retreat remain in place; the forward charge speed is 616 px/s. His separate defeat bonus is 200 points. Defeat leads to a paused Level 2 clear screen and Level 3 button.
+- Level 3 has two waves of 24 aliens each (4 × 6), with a 1.15 Wave 2 horizontal formation multiplier, gradual destruction-based acceleration, 55 px smooth descent on every distinct right-edge contact, and actual individual-formation-alien contact loss. It has one diver at a time, supply ship and pickups. Wave 2 leads to Zhur-Kai.
+- Zhur-Kai is accepted for now; later balancing may happen. She has smooth randomized X/Y movement, smooth opening/closing armour and core damage only when shots physically pass the animated gap. Shots can damage during opening, fully open and closing when unobstructed. Her attacks are twin streams and a telegraphed aimed burst. Movement is 15% faster at or below 25% HP. The invisible-body projectile-blocking bug was fixed. The temporary diagnostic text and hit counter were removed; developer collision outlines remain.
+- Player projectile hits each remove one life despite the preceding hit-flash interval. Temporary shields remain protective, and boss ram/contact cooldowns remain separate. The user confirmed the projectile-damage fix worked.
+- Varnok is a separate encounter reachable through developer-only **Test Boss 4**; normal progression still stops at Zhur-Kai’s temporary checkpoint. Varnok has a 200 × 110 px placeholder body, smooth randomized X/Y movement, and two 30 × 26 px eye hitboxes sharing 30 HP. The 45 px passages and visible eyelids use shared geometry; the 2s closed / 0.5s opening / 3s open / 0.5s closing cycle controls physical access during opening and closing. A successful hit deals 1 HP and 10 points; defeat gives a separate 300-point bonus once. The user accepted eye targeting, wider passages and reduced HP for now.
+- Varnok launches one batch of four aliens after 2 seconds, 0.3 seconds apart. They launch upward at 180 px/s, fully leave the screen, wait 0.5 seconds, return at 180 px/s, then settle. Their lifecycle states are explicit; only settled aliens are targetable. The user observed four aliens settled in the upper-left and confirmed that they stay independent of Varnok. Do not claim the user checked every launch timing, scoring, cleanup or defeat case.
+- No Varnok formation movement, downward stepping, shooting or diving is implemented. The most recent prompt to implement Varnok formation movement was not authorized; the user chose to stop and save instead. No aliens spawn in repeated batches, and Varnok has no dive or bomb barrage yet. Varnok is not connected to normal progression; final victory is not implemented.
 
-## Remaining final-version work
+## Next implementation step
 
-1. Start Level 3, building it one small, testable gameplay step at a time and ending with Zhur-Kai, Matriarch of the Swarm.
-2. After Zhur-Kai, briefly let the player think they have won, then reveal Varnok Dral, the Hollow Emperor. This surprise encounter follows Level 3; it is not a fourth level, and true victory follows Varnok's defeat.
+Add independent sideways formation movement and downward stepping for Varnok’s settled aliens. Inspect and reuse earlier-level behavior without invoking normal wave progression. Add alien shooting and diving later, as separate testable steps. Revisit repeated spawning and balance only after approval. Varnok’s planned dive/bomb barrage and normal progression connection are later work; do not invent their settings.
 
-Prioritize gameplay, progression, scoring and win/loss behavior. Use placeholder visuals when useful. Defer graphics and cosmetic polish unless an issue makes the game hard to read or test. The submitted menu, audio, particles, transitions, testing, balancing and final delivery work remains planned. Upgrade choices and difficulty options will be reconsidered after the teacher's target features have been implemented.
+## Graphics workshop direction
 
-## Unresolved checks and evidence limits
+- Finish gameplay first. Use Perplexity Computer as a separate visual workshop, starting with player-ship concepts enlarged and at in-game size.
+- Get the user’s approval before broader redesign. Keep experiments outside the working game.
+- Integrate approved art incrementally while preserving gameplay and hitboxes. Prepare separate animated body, eye and mouth parts where needed.
+- Record tools, prompts, outputs and user decisions. Record the exact Codex model/reasoning only if known. Perplexity uses Best/automatic selection; do not attribute its discussions to a specific model.
 
-- The original unnamed checks behind Milestone 3's former “newest checks pending” label could not be identified. Later enemy-shot observations are recorded but do not prove completion of that unknown checklist.
-- The reported user manual checks and private-window video access check are not agent-run tests or verification. No additional test results or actual hours are recorded.
-- No submission or external state beyond the user's reports has been independently verified.
+## Working and verification preferences
 
-## Resume guidance
+- Implement one small gameplay step at a time. The user manually tests in the browser. Do not run browser tests unless specifically authorized.
+- Keep code checks, simulations, user-reported checks and unverified behavior distinct. No broad regression or acceptance should be inferred from a focused check.
+- Preserve accepted bosses and unrelated work. Prioritize gameplay, progression, scoring and win/loss behavior; defer cosmetics.
+- Do not commit or push without a direct request. This handover update is part of the user-requested local save and commit.
 
-1. Read this handover and the relevant requirements in `PLANS.md` and the submitted plan.
-2. Inspect the actual current code before proposing Level 3 changes.
-3. Build Level 3 one small, testable step at a time. Keep more challenging dive paths, possible loops and occasional paired dives as planned ideas, not implemented or newly approved details.
-4. Finish the base game before working on menu screens, dialogue, colours or graphics improvements. Use placeholder visuals when useful; defer cosmetics unless readability blocks gameplay or testing.
+## Historical context
 
-Keep confirmed results, user reports, controlled browser checks and unresolved checks distinct. Do not infer unreported checks or record hours unless known.
-
-## Evidence limits
-
-- The user reports that Kaezar's final ram attack was tested in normal play and was “spot on.”
-- Earlier agent-run Chrome checks used controlled browser setup; they do not constitute broad regression or balance testing. Some edge-case/manual checks remain pending.
-- The work is saved in the local working tree but has not been committed or pushed.
+The prototype demonstration and Moodle submission were reported by the user on 15 November 2026; details and earlier user-reported checks remain in `DEVELOPMENT_LOG.md`. Level 1 is accepted as-is. The current status above supersedes older planning notes that describe Levels 2–3 or their bosses as unimplemented.

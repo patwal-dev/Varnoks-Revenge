@@ -14,9 +14,27 @@
       <span>Score: <strong id="score">0</strong></span>
       <span>Lives: <strong id="lives">3</strong></span>
     </div>
-    <canvas id="game" width="800" height="600" aria-label="Space game area"></canvas>
+    <div class="game-stage">
+      <canvas id="game" width="800" height="600" aria-label="Space game area"></canvas>
+      <aside id="developer-testing" class="developer-panel" aria-labelledby="developer-testing-title" hidden>
+        <h2 id="developer-testing-title">Developer testing</h2>
+        <div class="developer-level-buttons">
+          <button type="button" data-developer-level="1">Level 1</button>
+          <button type="button" data-developer-level="2">Level 2</button>
+          <button type="button" data-developer-level="3">Level 3</button>
+        </div>
+        <h2>Boss tests</h2>
+        <div class="developer-boss-buttons">
+          <button type="button" data-developer-boss="1">Test Boss 1</button>
+          <button type="button" data-developer-boss="2">Test Boss 2</button>
+          <button type="button" data-developer-boss="3">Test Boss 3</button>
+          <button type="button" data-developer-boss="4">Test Boss 4</button>
+        </div>
+      </aside>
+    </div>
     <button id="restart" type="button" hidden>Restart</button>
     <button id="level-2" type="button" hidden>Level 2</button>
+    <button id="level-3" type="button" hidden>Level 3</button>
   </main>
   <script src="game.js"></script>
 </body>

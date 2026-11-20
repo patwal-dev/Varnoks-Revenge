@@ -113,4 +113,32 @@ The following describes the current implementation in `game.js`; it is a code-st
 
 **Agent-run controlled Chrome checks:** Earlier controlled tests exercised boss charge/retreat, fixed targeting and edge bounds, ram contact with/without shields and during invulnerability, shot damage during attack phases, boss win/loss cleanup, and bonus ship/pickup interactions. These controlled checks are distinct from normal play and do not establish broad regression, balance, or completion of every requested check. Some manual and edge-case checks remain pending.
 
-The current local work is not committed or pushed. No actual hours are recorded.
+At the time of this Kaezar checkpoint, local work was uncommitted and not pushed; the later Level 3/Varnok checkpoint follows below. No actual hours are recorded.
+
+## Level 3 and Varnok development checkpoint — 20 November 2026
+
+This section records the current local implementation and the user's reported checks. Code presence is not a claim that every behavior has passed gameplay testing.
+
+### Level 3 and Zhur-Kai
+
+- Level 3 has two 4 × 6 regular-enemy waves. Wave 2 formation movement is 1.15 times Wave 1 at the same remaining-enemy count. The formation accelerates as aliens are destroyed and descends 55 pixels smoothly at each distinct right-edge contact. Its loss rule checks actual overlap with an individual living formation alien and the player; same-height alignment alone is safe.
+- Single-alien dive/return behavior and the supply ship with existing pickups are enabled. Wave 2 leads to Zhur-Kai. Her defeat still reaches a temporary checkpoint; it does not start Varnok through normal progression.
+- Zhur-Kai is accepted for now, with later balance changes possible. She has smooth randomized X/Y movement, smooth armour opening and closing, and physical shot access through the animated gap. Shots that pass unobstructed can damage the core during opening, fully open and closing. The twin-stream and telegraphed aimed-burst attacks remain. Movement speed rises 15% at or below 25% HP.
+- The invisible-body obstruction that prevented shots reaching the inset core was fixed. The temporary collision diagnostic text and hit counter were removed; developer collision outlines remain.
+- The user confirmed the separate-projectile player-damage fix: each enemy projectile hit costs a life despite the visual flash from a prior hit. Temporary shields remain protective, and ram/contact cooldown behavior is separate.
+
+### Varnok test encounter
+
+- Varnok is implemented as a dedicated encounter available from developer-only **Test Boss 4**. Normal progression remains unchanged and does not connect Varnok after Zhur-Kai's checkpoint.
+- His placeholder body is 200 × 110 px. He has smooth randomized X/Y movement and two 30 × 26 px eye hitboxes sharing a 30 HP pool. Eye passages were widened from 30 to 45 px, with visible lids and collision based on shared geometry. His eye cycle is 2 seconds closed, 0.5 seconds opening, 3 seconds open and 0.5 seconds closing; the actual gap permits damage during opening/closing when unobstructed. Successful hits remove 1 HP and award 10 points; defeat awards a separate 300-point bonus once.
+- The user accepted eye targeting, the wider passages and reduced HP for now. This is acceptance, not a claim that all browser test cases passed.
+- One batch of four aliens starts after 2 seconds and launches at 0.3-second intervals. They launch upward at 180 px/s, wait 0.5 seconds after fully leaving the screen, return at 180 px/s and settle into slots. Only settled aliens are targetable; deaths do not advance regular waves. There is no repeated batch, formation movement, downward stepping, alien shooting or diving yet.
+- The user observed four aliens settled in the upper-left and confirmed they stayed independent of Varnok. The user did not report verifying all launch timings, scoring, cleanup or defeat checks.
+- The latest request to add sideways movement and downward stepping for settled Varnok aliens was not authorized; the user chose to stop gameplay work and save the current state. Implement that as the next step, reusing earlier-level movement carefully without invoking regular wave progression. Add shooting and diving separately later. Repeated spawning, balance, the planned Varnok dive/bomb barrage and normal progression connection remain later decisions; do not invent settings.
+
+### Verification evidence
+
+- `node --check game.js` and `git diff --check` passed after the current gameplay edits. These are static checks, not browser tests.
+- A focused Node simulation used production boss movement, eye-cycle, shot movement and collision functions in game-loop order. It showed well-aligned shots hitting both eyes during horizontal and diagonal movement; shots near a moving passage edge were consumed by the overlapping solid armour. This is a controlled code simulation, not browser gameplay or user acceptance.
+- The user manually tested Varnok aliens sufficiently to observe four settling in the upper-left and remaining independent of Varnok. Other launch, collision, scoring, cleanup and defeat cases remain unverified by user report.
+- No browser tests were run for the current alien-launch step. No full playthrough or broad regression coverage is claimed.

@@ -4,6 +4,13 @@ const scoreDisplay = document.getElementById("score");
 const livesDisplay = document.getElementById("lives");
 const restartButton = document.getElementById("restart");
 const level2Button = document.getElementById("level-2");
+const level3Button = document.getElementById("level-3");
+const developerTestingPanel = document.getElementById("developer-testing");
+const developerLevelButtons = document.querySelectorAll("[data-developer-level]");
+const developerBossButtons = document.querySelectorAll("[data-developer-boss]");
+const gameMain = document.querySelector("main");
+const DEVELOPER_MODE = true;
+let developerBossTestLevel = null;
 
 const playerSpawnY = canvas.height - 52;
 const playerMinY = playerSpawnY - 60;
@@ -39,10 +46,52 @@ const level1BossHealth = 15;
 const level1BossDefeatBonus = 100;
 const level2BossHealth = 20;
 const level2BossDefeatBonus = 200;
+const level3BossHealth = level2BossHealth;
+const level3BossDefeatBonus = 300;
+const level3BossClosedDuration = 2;
+const level3BossOpeningDuration = 0.5;
+const level3BossVulnerableDuration = 2;
+const level3BossClosingDuration = 0.5;
+const level3BossCoreWidth = 36;
+const level3BossCoreHeight = 30;
+const level3BossVolleyInterval = 0.6;
+const level3BossVolleyCount = 3;
+const level3BossAimedShotInterval = 0.3;
+const level3BossAimedShotCount = 3;
+const level3BossProjectileOffset = 50;
+const level3BossProjectileWidth = 7;
+const level3BossHorizontalMargin = 18;
+const level3BossTopMargin = 44;
+const level3BossBottomMargin = 12;
+const level3BossMinMoveDuration = 2;
+const level3BossMaxMoveDuration = 4;
+const level3BossLowHealthThreshold = 0.25;
+const level3BossLowHealthMovementMultiplier = 1.15;
+const varnokBossHealth = 30;
+const varnokBossDefeatBonus = 300;
+const varnokBossWidth = 200;
+const varnokBossHeight = 110;
+const varnokAlienBatchSize = 4;
+const varnokAlienLaunchDelay = 2;
+const varnokAlienLaunchInterval = 0.3;
+const varnokAlienReturnDelay = 0.5;
+const varnokAlienLaunchSpeed = 180;
+const varnokAlienReturnSpeed = 180;
+const varnokFormationSideOffset = 130;
+const varnokFormationRowOffset = 24;
+const varnokEyeWidth = 30;
+const varnokEyeHeight = 26;
+const varnokEyePassageWidth = varnokEyeWidth * 1.5;
+const varnokEyeOffsetX = 52;
+const varnokEyeOffsetY = -14;
+const varnokEyeClosedDuration = 2;
+const varnokEyeOpeningDuration = 0.5;
+const varnokEyeOpenDuration = 3;
+const varnokEyeClosingDuration = 0.5;
 const level2BossMoveDuration = 2;
 const level2BossPrepareDuration = 0.8;
 const level2BossMovementSpeed = 150;
-const level2BossChargeSpeed = 560;
+const level2BossChargeSpeed = 616;
 const level2BossPullbackDistance = 28;
 const level2BossOvershootDistance = 20;
 const level2BossRetreatDuration = 0.8;
@@ -50,26 +99,40 @@ const level2BossLaneOpacity = 0.12;
 const level2BossLaneFadeDuration = 0.2;
 const enemySize = 30;
 const enemySpeed = 65;
+const formationColumns = 6;
+const defaultFormationRows = 2;
+const level2FormationRows = 3;
+const level3FormationRows = 4;
+const level3FormationDescentStep = 55;
+const level3FormationDescentDuration = 0.35;
+const level3DestructionBonusMultiplier = 1.15;
+const wave2SpeedMultiplier = 1.15;
 const level2BomberDelay = 2.5;
 const level2BomberCooldown = 2;
 const level2BomberSpeed = 260;
-const level2BonusShipDelayMin = 20;
-const level2BonusShipDelayMax = 35;
-const level2BonusShipSpeed = 180;
-const level2BonusShipWidth = 48;
-const level2BonusShipHeight = 24;
+const level2BonusShipDelayMin = 15;
+const level2BonusShipDelayMax = 26.25;
+const level2BonusShipSpeed = 162;
+const level2BonusShipWidth = 52.8;
+const level2BonusShipHeight = 26.4;
 const level2ShieldPickupSpeed = 150;
 const level2ShieldChargesMax = 2;
 const maxEnemySpeedMultiplier = 1.75;
 const level1WaveCount = 2;
+const level2WaveCount = 2;
+const level3WaveCount = 2;
 const waveEntranceDuration = 0.8;
 const barrierWidth = 110;
 const barrierHeight = 28;
 const barrierHitPoints = 3;
 let startingEnemyCount = 0;
 let level2FormationOffsetX = 0;
+let level3FormationDescentOffset = 0;
+let level3RightBoundaryContacts = 0;
+let level3DescentAnimation = null;
 let level2Bomber = null;
 let level2BomberTimer = 0;
+let varnokAlienBatch = null;
 let level2BonusShip = null;
 let level2BonusShipTimer = 0;
 const level2Pickups = [];
@@ -93,6 +156,7 @@ let lives = 3;
 let nextShotTime = 0;
 let nextEnemyShotTime = null;
 let playerInvulnerableUntil = 0;
+let playerShieldProtectedUntil = 0;
 let gameState = "playing";
 let previousFrameTime = 0;
 const stars = [];
@@ -112,21 +176,37 @@ for (let index = 0; index < 90; index += 1) {
 }
 
 function createEnemies() {
-  for (let row = 0; row < 2; row += 1) {
-    for (let column = 0; column < 6; column += 1) {
+  const formationRows = getFormationRowCount();
+  if (currentLevel === 3) {
+    resetLevel3Descent();
+  }
+  for (let row = 0; row < formationRows; row += 1) {
+    for (let column = 0; column < formationColumns; column += 1) {
       const enemy = {
         x: 230 + column * 65,
         y: 90 + row * 55,
         width: enemySize,
         height: enemySize,
       };
-      if (currentLevel === 2) {
-        enemy.formationSlot = row * 6 + column;
+      if (currentLevel === 2 || currentLevel === 3) {
+        enemy.formationSlot = row * formationColumns + column;
       }
       enemies.push(enemy);
     }
   }
   startingEnemyCount = enemies.length;
+}
+
+function resetLevel3Descent() {
+  level3FormationDescentOffset = 0;
+  level3RightBoundaryContacts = 0;
+  level3DescentAnimation = null;
+}
+
+function getFormationRowCount() {
+  if (currentLevel === 2) return level2FormationRows;
+  if (currentLevel === 3) return level3FormationRows;
+  return defaultFormationRows;
 }
 
 function startWaveEntrance() {
@@ -209,6 +289,141 @@ function startLevel2BossFight() {
   keysDown.clear();
 }
 
+function startLevel3BossFight() {
+  if (currentLevel !== 3 || currentWave !== level3WaveCount || enemies.length !== 0
+    || lives <= 0 || gameState !== "playing") return;
+
+  clearDiveBomberState();
+  enemies.length = 0;
+  shots.length = 0;
+  enemyShots.length = 0;
+  barriers = [];
+  level2BonusShip = null;
+  level2BonusShipTimer = 0;
+  level2Pickups.length = 0;
+  level2ShieldCharges = 0;
+  playerShieldProtectedUntil = 0;
+  level2WeaponTimeRemaining = 0;
+  level2WeaponMessageTimeRemaining = 0;
+  level2FormationOffsetX = 0;
+  resetLevel3Descent();
+  enemyDirection = 1;
+  nextEnemyShotTime = null;
+  waveEntranceElapsed = null;
+  waveEntrancePositions = null;
+  bossChargeElapsed = null;
+  nextBossAttackTime = null;
+  bossIntroElapsed = null;
+  bossIntroStartY = null;
+  bossIntroTargetY = null;
+  boss = {
+    level: 3,
+    x: canvas.width / 2,
+    y: 120,
+    width: 132,
+    height: 68,
+    health: level3BossHealth,
+    maxHealth: level3BossHealth,
+    armorPhase: "closed",
+    armorPhaseElapsed: 0,
+    openingAmount: 0,
+    vulnerable: false,
+    attackType: null,
+    nextAttackShotIndex: 0,
+    targetMarker: null,
+    movement: null,
+  };
+  chooseNextLevel3BossDestination();
+  nextShotTime = 0;
+  keysDown.clear();
+  gameState = "playing";
+  restartButton.hidden = true;
+  level2Button.hidden = true;
+  level3Button.hidden = true;
+  previousFrameTime = 0;
+}
+
+function startVarnokBossFight() {
+  if (currentLevel !== 3 || lives <= 0) return;
+
+  clearVarnokAlienBatch();
+  clearDiveBomberState();
+  enemies.length = 0;
+  startingEnemyCount = 0;
+  shots.length = 0;
+  enemyShots.length = 0;
+  barriers = [];
+  level2BonusShip = null;
+  level2BonusShipTimer = 0;
+  level2Pickups.length = 0;
+  level2ShieldCharges = 0;
+  playerShieldProtectedUntil = 0;
+  level2WeaponTimeRemaining = 0;
+  level2WeaponMessageTimeRemaining = 0;
+  level2FormationOffsetX = 0;
+  resetLevel3Descent();
+  enemyDirection = 1;
+  nextEnemyShotTime = null;
+  waveEntranceElapsed = null;
+  waveEntrancePositions = null;
+  bossChargeElapsed = null;
+  nextBossAttackTime = null;
+  bossIntroElapsed = null;
+  bossIntroStartY = null;
+  bossIntroTargetY = null;
+  boss = {
+    type: "varnok",
+    level: 4,
+    x: canvas.width / 2,
+    y: 150,
+    width: varnokBossWidth,
+    height: varnokBossHeight,
+    health: varnokBossHealth,
+    maxHealth: varnokBossHealth,
+    eyePhase: "closed",
+    eyePhaseElapsed: 0,
+    eyeOpeningAmount: 0,
+    movement: null,
+  };
+  varnokAlienBatch = {
+    elapsed: 0,
+    launchedCount: 0,
+    nextLaunchTime: varnokAlienLaunchDelay,
+    slots: null,
+    aliens: [],
+  };
+  chooseNextRandomizedBossDestination(boss);
+  nextShotTime = 0;
+  currentWave = level3WaveCount;
+  keysDown.clear();
+  gameState = "playing";
+  restartButton.hidden = true;
+  level2Button.hidden = true;
+  level3Button.hidden = true;
+  previousFrameTime = 0;
+}
+
+function advanceLevel2Formation() {
+  if (currentLevel !== 2 || enemies.length !== 0 || lives <= 0
+    || gameState !== "playing") return;
+
+  if (currentWave < level2WaveCount) {
+    currentWave += 1;
+    shots.length = 0;
+    enemyShots.length = 0;
+    enemies.length = 0;
+    level2FormationOffsetX = 0;
+    level2Bomber = null;
+    level2BomberTimer = level2BomberDelay;
+    enemyDirection = 1;
+    nextEnemyShotTime = null;
+    createEnemies();
+    return;
+  }
+
+  startLevel2BossFight();
+}
+
 function startBossIntro() {
   startBossFight();
   bossIntroElapsed = 0;
@@ -241,6 +456,7 @@ function updateBossIntro(deltaSeconds) {
 }
 
 function startLevel2() {
+  developerBossTestLevel = null;
   currentLevel = 2;
   currentWave = 1;
   barriers = [];
@@ -263,6 +479,7 @@ function startLevel2() {
   level2BonusShipTimer = randomLevel2BonusShipDelay();
   level2Pickups.length = 0;
   level2ShieldCharges = 0;
+  playerShieldProtectedUntil = 0;
   level2WeaponTimeRemaining = 0;
   level2WeaponMessageTimeRemaining = 0;
   nextEnemyShotTime = null;
@@ -270,6 +487,45 @@ function startLevel2() {
   gameState = "playing";
   restartButton.hidden = true;
   level2Button.hidden = true;
+  level3Button.hidden = true;
+  previousFrameTime = 0;
+  createEnemies();
+}
+
+function startLevel3() {
+  developerBossTestLevel = null;
+  currentLevel = 3;
+  currentWave = 1;
+  resetLevel3Descent();
+  barriers = [];
+  shots.length = 0;
+  enemyShots.length = 0;
+  enemies.length = 0;
+  boss = null;
+  bossChargeElapsed = null;
+  nextBossAttackTime = null;
+  bossIntroElapsed = null;
+  bossIntroStartY = null;
+  bossIntroTargetY = null;
+  waveEntranceElapsed = null;
+  waveEntrancePositions = null;
+  enemyDirection = 1;
+  level2FormationOffsetX = 0;
+  level2Bomber = null;
+  level2BomberTimer = level2BomberDelay;
+  level2BonusShip = null;
+  level2BonusShipTimer = randomLevel2BonusShipDelay();
+  level2Pickups.length = 0;
+  level2ShieldCharges = 0;
+  playerShieldProtectedUntil = 0;
+  level2WeaponTimeRemaining = 0;
+  level2WeaponMessageTimeRemaining = 0;
+  nextEnemyShotTime = null;
+  keysDown.clear();
+  gameState = "playing";
+  restartButton.hidden = true;
+  level2Button.hidden = true;
+  level3Button.hidden = true;
   previousFrameTime = 0;
   createEnemies();
 }
@@ -284,6 +540,102 @@ function showLevel1ClearedScreen() {
   nextBossAttackTime = null;
   restartButton.hidden = false;
   level2Button.hidden = false;
+  level3Button.hidden = true;
+}
+
+function showLevel2ClearedScreen() {
+  gameState = "level2Cleared";
+  keysDown.clear();
+  shots.length = 0;
+  enemyShots.length = 0;
+  boss = null;
+  bossChargeElapsed = null;
+  nextBossAttackTime = null;
+  level2BonusShip = null;
+  level2BonusShipTimer = 0;
+  level2Pickups.length = 0;
+  level2ShieldCharges = 0;
+  playerShieldProtectedUntil = 0;
+  level2WeaponTimeRemaining = 0;
+  level2WeaponMessageTimeRemaining = 0;
+  restartButton.hidden = false;
+  level2Button.hidden = true;
+  level3Button.hidden = false;
+}
+
+function showLevel3BossDefeatedScreen() {
+  gameState = "level3BossDefeated";
+  boss = null;
+  clearDiveBomberState();
+  level2BonusShip = null;
+  level2BonusShipTimer = 0;
+  level2Pickups.length = 0;
+  level2ShieldCharges = 0;
+  playerShieldProtectedUntil = 0;
+  level2WeaponTimeRemaining = 0;
+  level2WeaponMessageTimeRemaining = 0;
+  keysDown.clear();
+  shots.length = 0;
+  enemyShots.length = 0;
+  restartButton.hidden = false;
+  level2Button.hidden = true;
+  level3Button.hidden = true;
+}
+
+function showVarnokDefeatedScreen() {
+  gameState = "varnokBossDefeated";
+  clearVarnokAlienBatch();
+  clearVarnokBossEncounterState();
+  boss = null;
+  clearDiveBomberState();
+  level2BonusShip = null;
+  level2BonusShipTimer = 0;
+  level2Pickups.length = 0;
+  level2ShieldCharges = 0;
+  playerShieldProtectedUntil = 0;
+  level2WeaponTimeRemaining = 0;
+  level2WeaponMessageTimeRemaining = 0;
+  keysDown.clear();
+  shots.length = 0;
+  enemyShots.length = 0;
+  restartButton.hidden = false;
+  level2Button.hidden = true;
+  level3Button.hidden = true;
+}
+
+function advanceLevel3Formation() {
+  if (currentLevel !== 3 || enemies.length !== 0 || lives <= 0
+    || gameState !== "playing") return;
+
+  if (currentWave < level3WaveCount) {
+    currentWave += 1;
+    shots.length = 0;
+    enemyShots.length = 0;
+    enemies.length = 0;
+    clearDiveBomberState();
+    level2FormationOffsetX = 0;
+    level2BomberTimer = level2BomberDelay;
+    enemyDirection = 1;
+    nextEnemyShotTime = null;
+    waveEntranceElapsed = null;
+    waveEntrancePositions = null;
+    previousFrameTime = 0;
+    createEnemies();
+    return;
+  }
+
+  startLevel3BossFight();
+}
+
+function clearDiveBomberState() {
+  if (level2Bomber !== null) {
+    delete level2Bomber.bomberState;
+    delete level2Bomber.diveVelocityX;
+    delete level2Bomber.diveVelocityY;
+    delete level2Bomber.contactingPlayer;
+  }
+  level2Bomber = null;
+  level2BomberTimer = 0;
 }
 
 function fireBossWideShot() {
@@ -335,6 +687,17 @@ function fireBossSpread() {
 }
 
 function updateBoss(deltaSeconds, frameTime) {
+  if (boss.level === 3) {
+    updateLevel3BossMovement(deltaSeconds);
+    updateLevel3BossArmor(deltaSeconds);
+    return;
+  }
+  if (boss.level === 4) {
+    updateVarnokBossMovement(deltaSeconds);
+    updateVarnokEyeCycle(deltaSeconds);
+    updateVarnokAlienBatch(deltaSeconds);
+    return;
+  }
   if (boss.level === 2) {
     updateLevel2Boss(deltaSeconds, frameTime);
     return;
@@ -365,6 +728,488 @@ function updateBoss(deltaSeconds, frameTime) {
       nextBossAttackTime = null;
     }
   }
+}
+
+function chooseNextLevel3BossDestination() {
+  chooseNextRandomizedBossDestination(boss);
+}
+
+function chooseNextRandomizedBossDestination(targetBoss) {
+  const bounds = getRandomizedBossMovementBounds(targetBoss);
+  const currentX = targetBoss.x;
+  const currentY = targetBoss.y;
+  let destination = null;
+
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    if (Math.random() < 0.5) {
+      const distance = 80 + Math.random() * 100;
+      const angle = Math.random() * Math.PI * 2;
+      const candidate = {
+        x: Math.max(bounds.minX, Math.min(bounds.maxX, currentX + Math.cos(angle) * distance)),
+        y: Math.max(bounds.minY, Math.min(bounds.maxY, currentY + Math.sin(angle) * distance)),
+      };
+      if (Math.hypot(candidate.x - currentX, candidate.y - currentY) >= 80) {
+        destination = candidate;
+        break;
+      }
+    } else {
+      const candidate = {
+        x: bounds.minX + Math.random() * (bounds.maxX - bounds.minX),
+        y: bounds.minY + Math.random() * (bounds.maxY - bounds.minY),
+      };
+      if (Math.hypot(candidate.x - currentX, candidate.y - currentY) >= 180) {
+        destination = candidate;
+        break;
+      }
+    }
+  }
+
+  if (destination === null) {
+    destination = [
+      { x: bounds.minX, y: bounds.minY },
+      { x: bounds.minX, y: bounds.maxY },
+      { x: bounds.maxX, y: bounds.minY },
+      { x: bounds.maxX, y: bounds.maxY },
+    ].reduce((farthest, candidate) => (
+      Math.hypot(candidate.x - currentX, candidate.y - currentY)
+        > Math.hypot(farthest.x - currentX, farthest.y - currentY)
+        ? candidate
+        : farthest
+    ));
+  }
+  targetBoss.movement = {
+    startX: currentX,
+    startY: currentY,
+    destinationX: destination.x,
+    destinationY: destination.y,
+    elapsed: 0,
+    duration: level3BossMinMoveDuration
+      + Math.random() * (level3BossMaxMoveDuration - level3BossMinMoveDuration),
+  };
+}
+
+function getRandomizedBossMovementBounds(targetBoss) {
+  return {
+    minX: targetBoss.width / 2 + level3BossHorizontalMargin,
+    maxX: canvas.width - targetBoss.width / 2 - level3BossHorizontalMargin,
+    minY: targetBoss.height / 2 + level3BossTopMargin,
+    maxY: canvas.height / 2 - targetBoss.height / 2 - level3BossBottomMargin,
+  };
+}
+
+function updateLevel3BossMovement(deltaSeconds) {
+  const healthRatio = boss.health / boss.maxHealth;
+  const speedMultiplier = healthRatio <= level3BossLowHealthThreshold
+    ? level3BossLowHealthMovementMultiplier
+    : 1;
+  updateRandomizedBossMovement(deltaSeconds, boss, speedMultiplier);
+}
+
+function updateVarnokBossMovement(deltaSeconds) {
+  updateRandomizedBossMovement(deltaSeconds, boss, 1);
+}
+
+function updateRandomizedBossMovement(deltaSeconds, targetBoss, speedMultiplier) {
+  if (targetBoss.movement === null || deltaSeconds <= 0) return;
+  const movement = targetBoss.movement;
+  movement.elapsed = Math.min(
+    movement.elapsed + deltaSeconds * speedMultiplier,
+    movement.duration,
+  );
+  const progress = movement.elapsed / movement.duration;
+  const easedProgress = progress * progress * (3 - 2 * progress);
+  targetBoss.x = movement.startX + (movement.destinationX - movement.startX) * easedProgress;
+  targetBoss.y = movement.startY + (movement.destinationY - movement.startY) * easedProgress;
+  if (progress >= 1) {
+    targetBoss.x = movement.destinationX;
+    targetBoss.y = movement.destinationY;
+    chooseNextRandomizedBossDestination(targetBoss);
+  }
+}
+
+function updateVarnokEyeCycle(deltaSeconds) {
+  const phaseDurations = {
+    closed: varnokEyeClosedDuration,
+    opening: varnokEyeOpeningDuration,
+    open: varnokEyeOpenDuration,
+    closing: varnokEyeClosingDuration,
+  };
+  const nextPhases = {
+    closed: "opening",
+    opening: "open",
+    open: "closing",
+    closing: "closed",
+  };
+  let remainingTime = deltaSeconds;
+  while (remainingTime > 0) {
+    const phaseDuration = phaseDurations[boss.eyePhase];
+    const elapsedThisStep = Math.min(
+      remainingTime,
+      phaseDuration - boss.eyePhaseElapsed,
+    );
+    boss.eyePhaseElapsed += elapsedThisStep;
+    remainingTime -= elapsedThisStep;
+    if (boss.eyePhaseElapsed >= phaseDuration) {
+      boss.eyePhase = nextPhases[boss.eyePhase];
+      boss.eyePhaseElapsed = 0;
+    }
+  }
+
+  const progress = Math.min(
+    1,
+    boss.eyePhaseElapsed / (phaseDurations[boss.eyePhase] || 1),
+  );
+  const easedProgress = progress * progress * (3 - 2 * progress);
+  if (boss.eyePhase === "opening") boss.eyeOpeningAmount = easedProgress;
+  else if (boss.eyePhase === "open") boss.eyeOpeningAmount = 1;
+  else if (boss.eyePhase === "closing") boss.eyeOpeningAmount = 1 - easedProgress;
+  else boss.eyeOpeningAmount = 0;
+}
+
+function updateVarnokAlienBatch(deltaSeconds) {
+  if (boss?.level !== 4 || varnokAlienBatch === null) return;
+
+  const batch = varnokAlienBatch;
+  batch.elapsed += deltaSeconds;
+  while (batch.launchedCount < varnokAlienBatchSize
+    && batch.elapsed >= batch.nextLaunchTime) {
+    if (batch.slots === null) batch.slots = getVarnokFormationSlots(boss.x, boss.y);
+    const body = getLevel3BossBodyBounds(boss);
+    const slot = batch.slots[batch.launchedCount];
+    const alien = {
+      x: boss.x,
+      y: body.top,
+      width: enemySize,
+      height: enemySize,
+      isVarnokAlien: true,
+      varnokState: "launching",
+      returnWait: 0,
+      launchX: boss.x,
+      formationTargetX: slot.x,
+      formationTargetY: slot.y,
+    };
+    batch.aliens.push(alien);
+    enemies.push(alien);
+    batch.launchedCount += 1;
+    batch.nextLaunchTime += varnokAlienLaunchInterval;
+  }
+
+  for (const alien of batch.aliens) {
+    if (alien.varnokState === "launching") {
+      alien.y -= varnokAlienLaunchSpeed * deltaSeconds;
+      if (alien.y + alien.height / 2 < 0) {
+        alien.varnokState = "waitingToReturn";
+        alien.returnWait = varnokAlienReturnDelay;
+      }
+    } else if (alien.varnokState === "waitingToReturn") {
+      alien.returnWait = Math.max(0, alien.returnWait - deltaSeconds);
+      if (alien.returnWait === 0) {
+        alien.x = alien.launchX;
+        alien.y = -alien.height / 2;
+        alien.varnokState = "returning";
+      }
+    } else if (alien.varnokState === "returning") {
+      const dx = alien.formationTargetX - alien.x;
+      const dy = alien.formationTargetY - alien.y;
+      const distance = Math.hypot(dx, dy);
+      const step = varnokAlienReturnSpeed * deltaSeconds;
+      if (distance <= step || distance === 0) {
+        alien.x = alien.formationTargetX;
+        alien.y = alien.formationTargetY;
+        alien.varnokState = "formation";
+      } else {
+        alien.x += dx / distance * step;
+        alien.y += dy / distance * step;
+      }
+    }
+  }
+}
+
+function getVarnokFormationSlots(centerX, centerY) {
+  const halfSize = enemySize / 2;
+  const minX = halfSize;
+  const maxX = canvas.width - halfSize;
+  const minY = halfSize;
+  const maxY = canvas.height / 2 - halfSize;
+  const bodyTop = centerY - varnokBossHeight / 2;
+  const compactFormationFitsAboveBoss = bodyTop >= halfSize + 72;
+  const horizontalOffsets = compactFormationFitsAboveBoss
+    ? [-halfSize - 6, halfSize + 6]
+    : [-varnokFormationSideOffset, varnokFormationSideOffset];
+  const verticalOffsets = compactFormationFitsAboveBoss
+    ? [bodyTop - 37 - centerY, bodyTop - 72 - centerY]
+    : [-varnokFormationRowOffset, varnokFormationRowOffset];
+  return [
+    { x: centerX + horizontalOffsets[0], y: centerY + verticalOffsets[0] },
+    { x: centerX + horizontalOffsets[1], y: centerY + verticalOffsets[0] },
+    { x: centerX + horizontalOffsets[0], y: centerY + verticalOffsets[1] },
+    { x: centerX + horizontalOffsets[1], y: centerY + verticalOffsets[1] },
+  ].map((slot) => ({
+    x: Math.max(minX, Math.min(maxX, slot.x)),
+    y: Math.max(minY, Math.min(maxY, slot.y)),
+  }));
+}
+
+function clearVarnokAlienBatch() {
+  for (let index = enemies.length - 1; index >= 0; index -= 1) {
+    if (enemies[index].isVarnokAlien) enemies.splice(index, 1);
+  }
+  varnokAlienBatch = null;
+}
+
+function updateLevel3BossArmor(deltaSeconds) {
+  const phaseDurations = {
+    closed: level3BossClosedDuration,
+    opening: level3BossOpeningDuration,
+    vulnerable: level3BossVulnerableDuration,
+    closing: level3BossClosingDuration,
+  };
+  const nextPhases = {
+    closed: "opening",
+    opening: "vulnerable",
+    vulnerable: "closing",
+    closing: "closed",
+  };
+  let remainingTime = deltaSeconds;
+
+  while (remainingTime > 0) {
+    const phaseDuration = phaseDurations[boss.armorPhase];
+    const phaseTimeLeft = phaseDuration - boss.armorPhaseElapsed;
+    const elapsedThisStep = Math.min(remainingTime, phaseTimeLeft);
+    boss.armorPhaseElapsed += elapsedThisStep;
+    remainingTime -= elapsedThisStep;
+    if (boss.armorPhaseElapsed >= phaseDuration) {
+      boss.armorPhase = nextPhases[boss.armorPhase];
+      boss.armorPhaseElapsed = 0;
+      if (boss.armorPhase === "opening") {
+        boss.attackType = boss.attackType === null
+          ? (Math.random() < 0.5 ? "twinStreams" : "aimedBurst")
+          : boss.attackType === "twinStreams" ? "aimedBurst" : "twinStreams";
+        boss.nextAttackShotIndex = 0;
+        boss.targetMarker = boss.attackType === "aimedBurst"
+          ? { x: player.x, y: player.y, locked: false }
+          : null;
+      } else if (boss.armorPhase === "vulnerable") {
+        boss.nextAttackShotIndex = 0;
+        if (boss.attackType === "aimedBurst" && boss.targetMarker !== null) {
+          boss.targetMarker.x = player.x;
+          boss.targetMarker.y = player.y;
+          boss.targetMarker.locked = true;
+        }
+      }
+    }
+  }
+
+  if (boss.armorPhase === "opening" && boss.targetMarker !== null
+    && !boss.targetMarker.locked) {
+    boss.targetMarker.x = player.x;
+    boss.targetMarker.y = player.y;
+  }
+  boss.vulnerable = boss.armorPhase === "vulnerable";
+  const attackShotCount = boss.attackType === "aimedBurst"
+    ? level3BossAimedShotCount
+    : level3BossVolleyCount;
+  const attackShotInterval = boss.attackType === "aimedBurst"
+    ? level3BossAimedShotInterval
+    : level3BossVolleyInterval;
+  while (boss.vulnerable && boss.nextAttackShotIndex < attackShotCount
+    && boss.armorPhaseElapsed >= boss.nextAttackShotIndex * attackShotInterval) {
+    if (boss.attackType === "aimedBurst") fireLevel3BossAimedShot();
+    else fireLevel3BossVolley();
+    boss.nextAttackShotIndex += 1;
+    if (boss.attackType === "aimedBurst"
+      && boss.nextAttackShotIndex >= level3BossAimedShotCount) {
+      boss.targetMarker = null;
+    }
+  }
+  const phaseProgress = Math.min(
+    1,
+    boss.armorPhaseElapsed / (phaseDurations[boss.armorPhase] || 1),
+  );
+  const easedProgress = phaseProgress * phaseProgress * (3 - 2 * phaseProgress);
+  if (boss.armorPhase === "opening") boss.openingAmount = easedProgress;
+  else if (boss.armorPhase === "vulnerable") boss.openingAmount = 1;
+  else if (boss.armorPhase === "closing") boss.openingAmount = 1 - easedProgress;
+  else boss.openingAmount = 0;
+}
+
+function fireLevel3BossVolley() {
+  const shotY = boss.y + boss.height / 2 - 4;
+  enemyShots.push(
+    {
+      x: boss.x - level3BossProjectileOffset,
+      y: shotY,
+      width: level3BossProjectileWidth,
+      height: 13,
+      vy: enemyShotSpeed,
+      isBossShot: true,
+    },
+    {
+      x: boss.x + level3BossProjectileOffset,
+      y: shotY,
+      width: level3BossProjectileWidth,
+      height: 13,
+      vy: enemyShotSpeed,
+      isBossShot: true,
+    },
+  );
+}
+
+function fireLevel3BossAimedShot() {
+  if (boss.targetMarker === null) return;
+  const shotX = boss.x;
+  const shotY = boss.y + boss.height / 2 - 4;
+  const dx = boss.targetMarker.x - shotX;
+  const dy = boss.targetMarker.y - shotY;
+  const distance = Math.hypot(dx, dy) || 1;
+  enemyShots.push({
+    x: shotX,
+    y: shotY,
+    width: level3BossProjectileWidth,
+    height: 13,
+    vx: dx / distance * enemyShotSpeed,
+    vy: dy / distance * enemyShotSpeed,
+    isBossShot: true,
+  });
+}
+
+function getLevel3BossCoreBounds(targetBoss) {
+  return {
+    left: targetBoss.x - level3BossCoreWidth / 2,
+    right: targetBoss.x + level3BossCoreWidth / 2,
+    top: targetBoss.y + 6 - level3BossCoreHeight / 2,
+    bottom: targetBoss.y + 6 + level3BossCoreHeight / 2,
+  };
+}
+
+function getLevel3BossBodyBounds(targetBoss) {
+  return {
+    left: targetBoss.x - targetBoss.width / 2,
+    right: targetBoss.x + targetBoss.width / 2,
+    top: targetBoss.y - targetBoss.height / 2,
+    bottom: targetBoss.y + targetBoss.height / 2,
+  };
+}
+
+function getPlayerShotBounds(shot) {
+  return {
+    left: shot.x - shot.width / 2,
+    right: shot.x + shot.width / 2,
+    top: shot.y,
+    bottom: shot.y + shot.height,
+  };
+}
+
+function getLevel3BossPanelGap(targetBoss) {
+  return targetBoss.openingAmount * (level3BossCoreWidth + 16);
+}
+
+function getLevel3BossProjectilePassageBounds(targetBoss) {
+  const panelGap = getLevel3BossPanelGap(targetBoss);
+  if (panelGap <= 0) return null;
+  const body = getLevel3BossBodyBounds(targetBoss);
+  const halfGap = panelGap / 2;
+  return {
+    left: targetBoss.x - halfGap,
+    right: targetBoss.x + halfGap,
+    top: body.top,
+    bottom: body.bottom,
+  };
+}
+
+function getLevel3BossArmorCollisionRegions(targetBoss) {
+  const body = getLevel3BossBodyBounds(targetBoss);
+  const passage = getLevel3BossProjectilePassageBounds(targetBoss);
+  if (passage === null) return [body];
+  return [
+    { left: body.left, right: passage.left, top: body.top, bottom: body.bottom },
+    { left: passage.right, right: body.right, top: body.top, bottom: body.bottom },
+  ];
+}
+
+function collisionBoundsOverlap(first, second) {
+  return first.right >= second.left && first.left <= second.right
+    && first.bottom >= second.top && first.top <= second.bottom;
+}
+
+function getVarnokEyeGeometry(targetBoss) {
+  const body = getLevel3BossBodyBounds(targetBoss);
+  const openingAmount = Math.max(0, Math.min(1, targetBoss.eyeOpeningAmount));
+  return [-varnokEyeOffsetX, varnokEyeOffsetX].map((offsetX) => {
+    const centerX = targetBoss.x + offsetX;
+    const centerY = targetBoss.y + varnokEyeOffsetY;
+    const bounds = {
+      left: centerX - varnokEyeWidth / 2,
+      right: centerX + varnokEyeWidth / 2,
+      top: centerY - varnokEyeHeight / 2,
+      bottom: centerY + varnokEyeHeight / 2,
+    };
+    const openingWidth = varnokEyePassageWidth * openingAmount;
+    const exposedHeight = varnokEyeHeight * openingAmount;
+    const opening = {
+      left: centerX - openingWidth / 2,
+      right: centerX + openingWidth / 2,
+      top: bounds.bottom - exposedHeight,
+      bottom: bounds.bottom,
+    };
+    const exposed = {
+      left: Math.max(bounds.left, opening.left),
+      right: Math.min(bounds.right, opening.right),
+      top: opening.top,
+      bottom: opening.bottom,
+    };
+    const passage = openingAmount > 0
+      ? { left: opening.left, right: opening.right, top: opening.top, bottom: body.bottom }
+      : null;
+    return { bounds, opening, exposed, passage };
+  });
+}
+
+function getVarnokProjectilePassages(targetBoss) {
+  return getVarnokEyeGeometry(targetBoss)
+    .map((eye) => eye.passage)
+    .filter((passage) => passage !== null);
+}
+
+function subtractCollisionBounds(source, hole) {
+  const left = Math.max(source.left, hole.left);
+  const right = Math.min(source.right, hole.right);
+  const top = Math.max(source.top, hole.top);
+  const bottom = Math.min(source.bottom, hole.bottom);
+  if (right <= left || bottom <= top) return [source];
+
+  const regions = [];
+  if (source.top < top) regions.push({ left: source.left, right: source.right, top: source.top, bottom: top });
+  if (bottom < source.bottom) regions.push({ left: source.left, right: source.right, top: bottom, bottom: source.bottom });
+  if (source.left < left) regions.push({ left: source.left, right: left, top, bottom });
+  if (right < source.right) regions.push({ left: right, right: source.right, top, bottom });
+  return regions;
+}
+
+function getVarnokArmorCollisionRegions(targetBoss) {
+  return getVarnokProjectilePassages(targetBoss).reduce((regions, passage) => (
+    regions.flatMap((region) => subtractCollisionBounds(region, passage))
+  ), [getLevel3BossBodyBounds(targetBoss)]);
+}
+
+function clearLevel3BossEncounterState() {
+  if (boss?.level !== 3) return;
+  boss.armorPhase = null;
+  boss.armorPhaseElapsed = 0;
+  boss.openingAmount = 0;
+  boss.vulnerable = false;
+  boss.attackType = null;
+  boss.nextAttackShotIndex = 0;
+  boss.targetMarker = null;
+  boss.movement = null;
+}
+
+function clearVarnokBossEncounterState() {
+  if (boss?.level !== 4) return;
+  boss.eyePhase = null;
+  boss.eyePhaseElapsed = 0;
+  boss.eyeOpeningAmount = 0;
+  boss.movement = null;
 }
 
 function prepareLevel2BossCharge(bossState) {
@@ -545,6 +1390,11 @@ function damageBarrierWithShot(shot) {
 
 function finishGame(result) {
   gameState = result;
+  resetLevel3Descent();
+  clearDiveBomberState();
+  clearVarnokAlienBatch();
+  clearLevel3BossEncounterState();
+  clearVarnokBossEncounterState();
   if (currentLevel === 2) {
     boss = null;
     bossChargeElapsed = null;
@@ -557,11 +1407,13 @@ function finishGame(result) {
   level2BonusShipTimer = 0;
   level2Pickups.length = 0;
   level2ShieldCharges = 0;
+  playerShieldProtectedUntil = 0;
   level2WeaponTimeRemaining = 0;
   level2WeaponMessageTimeRemaining = 0;
   keysDown.clear();
   restartButton.hidden = false;
   level2Button.hidden = true;
+  level3Button.hidden = true;
 }
 
 function damagePlayer(frameTime) {
@@ -573,17 +1425,35 @@ function damagePlayer(frameTime) {
   return true;
 }
 
+function damagePlayerFromProjectile(frameTime) {
+  if (frameTime < playerShieldProtectedUntil) return false;
+  if ((currentLevel === 2 || currentLevel === 3) && level2ShieldCharges > 0) {
+    level2ShieldCharges -= 1;
+    playerShieldProtectedUntil = frameTime + 1000;
+    playerInvulnerableUntil = Math.max(playerInvulnerableUntil, playerShieldProtectedUntil);
+    return false;
+  }
+
+  lives = Math.max(0, lives - 1);
+  livesDisplay.textContent = lives;
+  playerInvulnerableUntil = frameTime + 1000;
+  if (lives === 0) finishGame("loss");
+  return true;
+}
+
 function restartGame() {
+  developerBossTestLevel = null;
   score = 0;
   lives = 3;
   currentLevel = 1;
   level2FormationOffsetX = 0;
-  level2Bomber = null;
-  level2BomberTimer = 0;
+  resetLevel3Descent();
+  clearDiveBomberState();
   level2BonusShip = null;
   level2BonusShipTimer = 0;
   level2Pickups.length = 0;
   level2ShieldCharges = 0;
+  playerShieldProtectedUntil = 0;
   level2WeaponTimeRemaining = 0;
   level2WeaponMessageTimeRemaining = 0;
   currentWave = 1;
@@ -595,6 +1465,7 @@ function restartGame() {
   shots.length = 0;
   enemyShots.length = 0;
   enemies.length = 0;
+  clearVarnokAlienBatch();
   boss = null;
   bossChargeElapsed = null;
   nextBossAttackTime = null;
@@ -610,18 +1481,82 @@ function restartGame() {
   nextShotTime = 0;
   nextEnemyShotTime = null;
   playerInvulnerableUntil = 0;
+  playerShieldProtectedUntil = 0;
   keysDown.clear();
   gameState = "playing";
   restartButton.hidden = true;
   level2Button.hidden = true;
+  level3Button.hidden = true;
+  previousFrameTime = 0;
+}
+
+function startDeveloperTestLevel(level) {
+  if (!DEVELOPER_MODE) return;
+  restartGame();
+  if (level === 2) startLevel2();
+  else if (level === 3) startLevel3();
+}
+
+function startDeveloperTestBoss(level) {
+  if (!DEVELOPER_MODE || level < 1 || level > 4) return;
+
+  restartGame();
+  if (level === 2) startLevel2();
+  else if (level === 3 || level === 4) startLevel3();
+
+  enemies.length = 0;
+  clearDiveBomberState();
+  shots.length = 0;
+  enemyShots.length = 0;
+  level2BonusShip = null;
+  level2BonusShipTimer = Number.POSITIVE_INFINITY;
+  level2Pickups.length = 0;
+  level2ShieldCharges = 0;
+  playerShieldProtectedUntil = 0;
+  level2WeaponTimeRemaining = 0;
+  level2WeaponMessageTimeRemaining = 0;
+  nextEnemyShotTime = null;
+  waveEntranceElapsed = null;
+  waveEntrancePositions = null;
+  currentWave = level === 1 ? level1WaveCount
+    : level === 2 ? level2WaveCount : level3WaveCount;
+
+  if (level === 1) {
+    startBossFight();
+    gameState = "playing";
+  } else if (level === 2) {
+    startLevel2BossFight();
+  } else if (level === 3) {
+    startLevel3BossFight();
+  } else {
+    startVarnokBossFight();
+  }
+  developerBossTestLevel = level;
   previousFrameTime = 0;
 }
 
 createEnemies();
 createBarriers();
 restartButton.addEventListener("click", restartGame);
+if (DEVELOPER_MODE) {
+  gameMain.classList.add("developer-mode");
+  developerTestingPanel.hidden = false;
+  developerLevelButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      startDeveloperTestLevel(Number(button.dataset.developerLevel));
+    });
+  });
+  developerBossButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      startDeveloperTestBoss(Number(button.dataset.developerBoss));
+    });
+  });
+}
 level2Button.addEventListener("click", () => {
   if (gameState === "level1Cleared") startLevel2();
+});
+level3Button.addEventListener("click", () => {
+  if (gameState === "level2Cleared") startLevel3();
 });
 
 window.addEventListener("keydown", (event) => {
@@ -669,7 +1604,8 @@ function updateShots(deltaSeconds, frameTime) {
       width: 5,
       height: 14,
     });
-    const firingInterval = currentLevel === 2 && level2WeaponTimeRemaining > 0
+    const firingInterval = (currentLevel === 2 || currentLevel === 3)
+      && level2WeaponTimeRemaining > 0
       ? shotInterval / rapidFireRateMultiplier
       : shotInterval;
     nextShotTime = frameTime + firingInterval * 1000;
@@ -686,19 +1622,83 @@ function updateShots(deltaSeconds, frameTime) {
   }
 }
 
+function level3FormationCollidesWithPlayer(formationEnemies = enemies, movementPaths = null) {
+  if (currentLevel !== 3) return false;
+  const playerHalfWidth = player.width / 2;
+  const playerHalfHeight = player.height / 2;
+  return formationEnemies.some((enemy) => {
+    if (enemy.bomberState !== undefined && enemy.bomberState !== "formation") return false;
+    const movementPath = movementPaths?.get(enemy) ?? [enemy];
+    const bounds = {
+      left: player.x - playerHalfWidth - enemy.width / 2,
+      right: player.x + playerHalfWidth + enemy.width / 2,
+      top: player.y - playerHalfHeight - enemy.height / 2,
+      bottom: player.y + playerHalfHeight + enemy.height / 2,
+    };
+    let previousX = enemy.x;
+    let previousY = enemy.y;
+    for (const position of movementPath) {
+      if (segmentIntersectsRectangle(
+        previousX,
+        previousY,
+        position.x,
+        position.y,
+        bounds.left,
+        bounds.right,
+        bounds.top,
+        bounds.bottom,
+      )) return true;
+      previousX = position.x;
+      previousY = position.y;
+    }
+    return false;
+  });
+}
+
 function updateEnemies(deltaSeconds, frameTime) {
-  if (currentLevel === 2) {
+  if (level3FormationCollidesWithPlayer()) {
+    finishGame("loss");
+    return true;
+  }
+
+  let level3DescentThisFrame = 0;
+  if (currentLevel === 3 && level3DescentAnimation !== null) {
+    const animation = level3DescentAnimation;
+    const previousOffset = level3FormationDescentOffset;
+    animation.elapsed = Math.min(
+      animation.elapsed + deltaSeconds,
+      level3FormationDescentDuration,
+    );
+    const progress = animation.elapsed / level3FormationDescentDuration;
+    level3FormationDescentOffset = animation.startOffset
+      + (animation.targetOffset - animation.startOffset) * progress;
+    level3DescentThisFrame = level3FormationDescentOffset - previousOffset;
+    if (progress >= 1) level3DescentAnimation = null;
+  }
+
+  const hasDiveBombers = currentLevel === 2 || currentLevel === 3;
+  if (hasDiveBombers) {
     updateLevel2Bomber(deltaSeconds, frameTime);
   }
-  const formationEnemies = currentLevel === 2
+  if (currentLevel === 3 && gameState !== "playing") return true;
+  const formationEnemies = hasDiveBombers
     ? enemies.filter((enemy) => enemy.bomberState === undefined || enemy.bomberState === "formation")
     : enemies;
+  if (level3FormationCollidesWithPlayer(formationEnemies)) {
+    finishGame("loss");
+    return true;
+  }
   const destroyedFraction = startingEnemyCount > 0
     ? 1 - enemies.length / startingEnemyCount
     : 0;
-  const formationSpeed = enemySpeed * (
-    1 + destroyedFraction * (maxEnemySpeedMultiplier - 1)
-  );
+  const waveSpeedMultiplier = currentWave === 2
+    && (currentLevel === 1 || currentLevel === 2 || currentLevel === 3)
+    ? wave2SpeedMultiplier
+    : 1;
+  const destructionSpeedBonus = (maxEnemySpeedMultiplier - 1)
+    * (currentLevel === 3 ? level3DestructionBonusMultiplier : 1);
+  const formationSpeed = enemySpeed * waveSpeedMultiplier
+    * (1 + destroyedFraction * destructionSpeedBonus);
   // Keep Level 2's full slot grid inside the screen, including vacant return slots.
   const nextLeftEdge = currentLevel === 2
     ? 215 + level2FormationOffsetX + enemyDirection * formationSpeed * deltaSeconds
@@ -713,16 +1713,58 @@ function updateEnemies(deltaSeconds, frameTime) {
         + enemyDirection * formationSpeed * deltaSeconds
       : canvas.width;
 
-  if (nextLeftEdge < 0 || nextRightEdge > canvas.width) {
+  const hitLeftBoundary = formationEnemies.length > 0 && nextLeftEdge < 0;
+  const hitRightBoundary = formationEnemies.length > 0 && (currentLevel === 3
+    ? nextRightEdge >= canvas.width
+    : nextRightEdge > canvas.width);
+  if (hitLeftBoundary || hitRightBoundary) {
     enemyDirection *= -1;
+    if (currentLevel === 3 && hitRightBoundary && formationEnemies.length > 0) {
+      level3RightBoundaryContacts += 1;
+      if (level3DescentAnimation === null) {
+        const maximumDescent = canvas.height
+          - (90 + (level3FormationRows - 1) * level3FormationDescentStep + enemySize / 2);
+        const targetOffset = level3FormationDescentOffset + Math.min(
+          level3FormationDescentStep,
+          Math.max(0, maximumDescent - level3FormationDescentOffset),
+        );
+        if (targetOffset > level3FormationDescentOffset) {
+          level3DescentAnimation = {
+            startOffset: level3FormationDescentOffset,
+            targetOffset,
+            elapsed: 0,
+          };
+        }
+      }
+    }
   }
 
-  for (const enemy of formationEnemies) {
-    enemy.x += enemyDirection * formationSpeed * deltaSeconds;
+  if (currentLevel === 3) {
+    const movementPaths = new Map(formationEnemies.map((enemy) => {
+      const horizontalDestination = {
+        x: enemy.x + enemyDirection * formationSpeed * deltaSeconds,
+        y: enemy.y + level3DescentThisFrame,
+      };
+      return [enemy, [horizontalDestination]];
+    }));
+    if (level3FormationCollidesWithPlayer(formationEnemies, movementPaths)) {
+      finishGame("loss");
+      return true;
+    }
+    for (const [enemy, movementPath] of movementPaths) {
+      const destination = movementPath[movementPath.length - 1];
+      enemy.x = destination.x;
+      enemy.y = destination.y;
+    }
+  } else {
+    for (const enemy of formationEnemies) {
+      enemy.x += enemyDirection * formationSpeed * deltaSeconds;
+    }
   }
-  if (currentLevel === 2 && formationEnemies.length > 0) {
+  if (hasDiveBombers && formationEnemies.length > 0) {
     level2FormationOffsetX += enemyDirection * formationSpeed * deltaSeconds;
   }
+  return false;
 }
 
 function updateLevel2Bomber(deltaSeconds, frameTime) {
@@ -763,8 +1805,11 @@ function updateLevel2Bomber(deltaSeconds, frameTime) {
       level2ShieldCharges = 0;
       enemies.splice(enemies.indexOf(bomber), 1);
       level2Bomber = null;
-      level2BomberTimer = level2BomberCooldown;
-      if (enemies.length === 0 && lives > 0) startLevel2BossFight();
+      level2BomberTimer = gameState === "playing" ? level2BomberCooldown : 0;
+      if (enemies.length === 0 && lives > 0) {
+        if (currentLevel === 2) advanceLevel2Formation();
+        else if (currentLevel === 3) advanceLevel3Formation();
+      }
       return;
     }
     bomber.contactingPlayer = touchingPlayer;
@@ -772,18 +1817,24 @@ function updateLevel2Bomber(deltaSeconds, frameTime) {
       const occupiedSlots = new Set(enemies
         .filter((enemy) => enemy !== bomber && enemy.formationSlot !== null)
         .map((enemy) => enemy.formationSlot));
-      const availableSlots = Array.from({ length: 12 }, (_, slot) => slot)
+      const formationRows = getFormationRowCount();
+      const availableSlots = Array.from(
+        { length: formationRows * formationColumns },
+        (_, slot) => slot,
+      )
         .filter((slot) => !occupiedSlots.has(slot));
       const selectedSlot = availableSlots[Math.floor(Math.random() * availableSlots.length)];
       bomber.formationSlot = selectedSlot;
-      bomber.x = 230 + (selectedSlot % 6) * 65 + level2FormationOffsetX;
+      bomber.x = 230 + (selectedSlot % formationColumns) * 65 + level2FormationOffsetX;
       bomber.y = -bomber.height / 2;
       bomber.bomberState = "return";
       bomber.contactingPlayer = false;
     }
   } else if (bomber.bomberState === "return") {
-    const targetX = 230 + (bomber.formationSlot % 6) * 65 + level2FormationOffsetX;
-    const targetY = 90 + Math.floor(bomber.formationSlot / 6) * 55;
+    const targetX = 230 + (bomber.formationSlot % formationColumns) * 65 + level2FormationOffsetX;
+    const level3DescentOffset = currentLevel === 3 ? level3FormationDescentOffset : 0;
+    const targetY = 90 + Math.floor(bomber.formationSlot / formationColumns) * 55
+      + level3DescentOffset;
     const dx = targetX - bomber.x;
     const dy = targetY - bomber.y;
     const distance = Math.hypot(dx, dy);
@@ -824,7 +1875,7 @@ function updateLevel2Pickups(deltaSeconds) {
 }
 
 function updateLevel2WeaponTimers(deltaSeconds) {
-  if (currentLevel !== 2) return;
+  if (currentLevel !== 2 && currentLevel !== 3) return;
   level2WeaponTimeRemaining = Math.max(0, level2WeaponTimeRemaining - deltaSeconds);
   if (level2WeaponTimeRemaining < 0.000001) level2WeaponTimeRemaining = 0;
   level2WeaponMessageTimeRemaining = Math.max(
@@ -870,8 +1921,9 @@ function updateLevel2BonusShip(deltaSeconds) {
 function handleShotCollisions() {
   for (let shotIndex = shots.length - 1; shotIndex >= 0; shotIndex -= 1) {
     const shot = shots[shotIndex];
-    const shotLeft = shot.x - shot.width / 2;
-    const shotRight = shot.x + shot.width / 2;
+    const shotBounds = getPlayerShotBounds(shot);
+    const shotLeft = shotBounds.left;
+    const shotRight = shotBounds.right;
     let hitEnemyIndex = -1;
 
     if (damageBarrierWithShot(shot)) {
@@ -881,6 +1933,7 @@ function handleShotCollisions() {
 
     for (let enemyIndex = enemies.length - 1; enemyIndex >= 0; enemyIndex -= 1) {
       const enemy = enemies[enemyIndex];
+      if (enemy.isVarnokAlien && enemy.varnokState !== "formation") continue;
       const enemyLeft = enemy.x - enemy.width / 2;
       const enemyRight = enemy.x + enemy.width / 2;
       const enemyTop = enemy.y - enemy.height / 2;
@@ -897,11 +1950,16 @@ function handleShotCollisions() {
         level2Bomber = null;
         level2BomberTimer = level2BomberCooldown;
       }
+      const destroyedEnemy = enemies[hitEnemyIndex];
       enemies.splice(hitEnemyIndex, 1);
+      if (destroyedEnemy.isVarnokAlien && varnokAlienBatch !== null) {
+        const batchIndex = varnokAlienBatch.aliens.indexOf(destroyedEnemy);
+        if (batchIndex !== -1) varnokAlienBatch.aliens.splice(batchIndex, 1);
+      }
       shots.splice(shotIndex, 1);
       score += 10;
       scoreDisplay.textContent = score;
-      if (enemies.length === 0 && lives > 0) {
+      if (enemies.length === 0 && lives > 0 && boss?.level !== 4) {
         if (currentLevel === 1 && currentWave < level1WaveCount) {
           currentWave += 1;
           shots.length = 0;
@@ -913,12 +1971,14 @@ function handleShotCollisions() {
           startWaveEntrance();
         } else if (currentLevel === 1) {
           startBossIntro();
+        } else if (currentLevel === 2) {
+          advanceLevel2Formation();
         } else {
-          startLevel2BossFight();
+          advanceLevel3Formation();
         }
         return;
       }
-    } else if (currentLevel === 2 && level2BonusShip !== null
+    } else if ((currentLevel === 2 || currentLevel === 3) && level2BonusShip !== null
       && shotRight >= level2BonusShip.x - level2BonusShip.width / 2
       && shotLeft <= level2BonusShip.x + level2BonusShip.width / 2
       && shot.y <= level2BonusShip.y + level2BonusShip.height / 2
@@ -945,15 +2005,53 @@ function handleShotCollisions() {
         });
       }
     } else if (boss !== null) {
-      const hitWidth = boss.level === 2 ? boss.width * 0.58 : boss.width;
-      const hitHeight = boss.level === 2 ? boss.height * 0.62 : boss.height;
-      const bossLeft = boss.x - hitWidth / 2;
-      const bossRight = boss.x + hitWidth / 2;
-      const bossTop = boss.y - hitHeight / 2;
-      const bossBottom = boss.y + hitHeight / 2;
-      if (shotRight >= bossLeft && shotLeft <= bossRight
-        && shot.y <= bossBottom && shot.y + shot.height >= bossTop) {
-        shots.splice(shotIndex, 1);
+      const bossBounds = boss.level === 3
+        ? getLevel3BossBodyBounds(boss)
+        : {
+          left: boss.x - boss.width / 2,
+          right: boss.x + boss.width / 2,
+          top: boss.y - boss.height / 2,
+          bottom: boss.y + boss.height / 2,
+        };
+      let damagesBoss = false;
+      if (boss.level === 3) {
+        if (collisionBoundsOverlap(shotBounds, bossBounds)) {
+          const core = getLevel3BossCoreBounds(boss);
+          const hitsArmour = getLevel3BossArmorCollisionRegions(boss)
+            .some((region) => collisionBoundsOverlap(shotBounds, region));
+          damagesBoss = !hitsArmour && collisionBoundsOverlap(shotBounds, core);
+          if (hitsArmour || damagesBoss) {
+            shots.splice(shotIndex, 1);
+          }
+        }
+      } else if (boss.level === 4) {
+        if (collisionBoundsOverlap(shotBounds, bossBounds)) {
+          const hitsArmour = getVarnokArmorCollisionRegions(boss)
+            .some((region) => collisionBoundsOverlap(shotBounds, region));
+          const hitsEye = getVarnokEyeGeometry(boss)
+            .some((eye) => collisionBoundsOverlap(shotBounds, eye.bounds)
+              && collisionBoundsOverlap(shotBounds, eye.exposed));
+          damagesBoss = !hitsArmour && hitsEye;
+          if (hitsArmour || damagesBoss) shots.splice(shotIndex, 1);
+        }
+      } else {
+        const { left: bossLeft, right: bossRight, top: bossTop, bottom: bossBottom } = bossBounds;
+        const shotHitsBossBody = shotRight >= bossLeft && shotLeft <= bossRight
+          && shot.y <= bossBottom && shot.y + shot.height >= bossTop;
+        if (shotHitsBossBody) {
+          const hitWidth = boss.level === 2 ? boss.width * 0.58 : boss.width;
+          const hitHeight = boss.level === 2 ? boss.height * 0.62 : boss.height;
+          const hitLeft = boss.x - hitWidth / 2;
+          const hitRight = boss.x + hitWidth / 2;
+          const hitTop = boss.y - hitHeight / 2;
+          const hitBottom = boss.y + hitHeight / 2;
+          damagesBoss = shotRight >= hitLeft && shotLeft <= hitRight
+            && shot.y <= hitBottom && shot.y + shot.height >= hitTop;
+          if (damagesBoss) shots.splice(shotIndex, 1);
+        }
+      }
+
+      if (damagesBoss) {
         boss.health -= 1;
         score += 10;
         scoreDisplay.textContent = score;
@@ -961,7 +2059,15 @@ function handleShotCollisions() {
           if (boss.level === 2) {
             score += level2BossDefeatBonus;
             scoreDisplay.textContent = score;
-            finishGame("win");
+            showLevel2ClearedScreen();
+          } else if (boss.level === 3) {
+            score += level3BossDefeatBonus;
+            scoreDisplay.textContent = score;
+            showLevel3BossDefeatedScreen();
+          } else if (boss.level === 4) {
+            score += varnokBossDefeatBonus;
+            scoreDisplay.textContent = score;
+            showVarnokDefeatedScreen();
           } else {
             score += level1BossDefeatBonus;
             scoreDisplay.textContent = score;
@@ -1029,20 +2135,14 @@ function updateEnemyShots(deltaSeconds, frameTime) {
       && shot.x - shot.width / 2 <= playerRight
       && shot.y + shot.height >= playerTop && shot.y <= playerBottom) {
       enemyShots.splice(index, 1);
-      if (currentLevel === 2 && level2ShieldCharges > 0) {
-        if (frameTime >= playerInvulnerableUntil) {
-          level2ShieldCharges -= 1;
-          playerInvulnerableUntil = frameTime + 1000;
-        }
-      } else {
-        damagePlayer(frameTime);
-      }
+      damagePlayerFromProjectile(frameTime);
+      if (gameState !== "playing") break;
     }
   }
 }
 
 function drawPlayer(frameTime) {
-  if (currentLevel === 2 && level2ShieldCharges > 0) {
+  if ((currentLevel === 2 || currentLevel === 3) && level2ShieldCharges > 0) {
     context.lineWidth = 3;
     if (level2ShieldCharges >= 2) {
       context.strokeStyle = "rgba(112, 232, 255, 0.9)";
@@ -1130,7 +2230,7 @@ function drawLevel2BonusShip() {
   if (level2BonusShip === null) return;
   context.save();
   context.translate(level2BonusShip.x, level2BonusShip.y);
-  context.scale(level2BonusShip.direction, 1);
+  context.scale(level2BonusShip.direction * 1.1, 1.1);
   context.fillStyle = "#72d9ed";
   context.beginPath();
   context.moveTo(24, 0);
@@ -1181,7 +2281,7 @@ function drawLevel2Pickups() {
 }
 
 function drawLevel2WeaponMessage() {
-  if (currentLevel !== 2 || level2WeaponMessageTimeRemaining <= 0) return;
+  if ((currentLevel !== 2 && currentLevel !== 3) || level2WeaponMessageTimeRemaining <= 0) return;
   context.save();
   context.textAlign = "center";
   context.textBaseline = "middle";
@@ -1225,6 +2325,44 @@ function drawLevel2BossChargeLane() {
 
 function drawBoss() {
   if (boss === null) return;
+
+  if (boss.level === 4) {
+    drawVarnokBoss();
+    return;
+  }
+
+  if (boss.level === 3) {
+    const left = boss.x - boss.width / 2;
+    const top = boss.y - boss.height / 2;
+    const core = getLevel3BossCoreBounds(boss);
+    const panelGap = getLevel3BossPanelGap(boss);
+
+    context.fillStyle = "#663b91";
+    context.fillRect(left, top, boss.width, boss.height);
+    context.fillStyle = boss.vulnerable ? "#ffb347" : "#a65d5d";
+    context.fillRect(core.left, core.top, level3BossCoreWidth, level3BossCoreHeight);
+    context.fillStyle = "#39264f";
+    context.fillRect(core.left + 7, core.top + 6, level3BossCoreWidth - 14, level3BossCoreHeight - 12);
+
+    context.fillStyle = "#8959b2";
+    const panelWidth = (boss.width - panelGap) / 2;
+    context.fillRect(left, top, panelWidth, boss.height);
+    context.fillRect(boss.x + panelGap / 2, top, panelWidth, boss.height);
+    context.strokeStyle = "#d3a4e8";
+    context.lineWidth = 2;
+    context.strokeRect(left, top, panelWidth, boss.height);
+    context.strokeRect(boss.x + panelGap / 2, top, panelWidth, boss.height);
+
+    const healthBarY = top - 18;
+    context.fillStyle = "#26374d";
+    context.fillRect(left, healthBarY, boss.width, 8);
+    context.fillStyle = "#e77bd5";
+    context.fillRect(left, healthBarY, boss.width * (boss.health / boss.maxHealth), 8);
+    context.strokeStyle = "#f3d9ff";
+    context.lineWidth = 1;
+    context.strokeRect(left, healthBarY, boss.width, 8);
+    return;
+  }
 
   if (boss.level === 2) {
     const left = boss.x - boss.width / 2;
@@ -1297,6 +2435,163 @@ function drawBoss() {
   context.strokeRect(left, healthBarY, healthBarWidth, 8);
 }
 
+function drawVarnokBoss() {
+  const body = getLevel3BossBodyBounds(boss);
+  const eyeGeometry = getVarnokEyeGeometry(boss);
+  const passages = getVarnokProjectilePassages(boss);
+
+  context.fillStyle = "#4b293e";
+  context.fillRect(body.left, body.top, boss.width, boss.height);
+  context.strokeStyle = "#c18aa8";
+  context.lineWidth = 3;
+  context.strokeRect(body.left, body.top, boss.width, boss.height);
+
+  context.fillStyle = "#170f23";
+  context.strokeStyle = "#a75d7d";
+  context.lineWidth = 2;
+  for (const passage of passages) {
+    context.fillRect(
+      passage.left,
+      passage.top,
+      passage.right - passage.left,
+      passage.bottom - passage.top,
+    );
+    context.strokeRect(
+      passage.left,
+      passage.top,
+      passage.right - passage.left,
+      passage.bottom - passage.top,
+    );
+  }
+
+  for (const eye of eyeGeometry) {
+    const eyeWidth = eye.exposed.right - eye.exposed.left;
+    const eyeHeight = eye.exposed.bottom - eye.exposed.top;
+    const centerX = (eye.exposed.left + eye.exposed.right) / 2;
+    const centerY = (eye.exposed.top + eye.exposed.bottom) / 2;
+
+    context.fillStyle = "#160e1d";
+    context.fillRect(
+      eye.bounds.left,
+      eye.bounds.top,
+      eye.bounds.right - eye.bounds.left,
+      eye.bounds.bottom - eye.bounds.top,
+    );
+    if (eyeWidth > 0 && eyeHeight > 0) {
+      context.fillStyle = "#fff0df";
+      context.beginPath();
+      context.ellipse(centerX, centerY, eyeWidth / 2, eyeHeight / 2, 0, 0, Math.PI * 2);
+      context.fill();
+      if (eyeWidth >= 8 && eyeHeight >= 8) {
+        const pupilRadius = Math.min(eyeWidth, eyeHeight) * 0.2;
+        context.fillStyle = "#22101b";
+        context.beginPath();
+        context.arc(centerX, centerY, pupilRadius, 0, Math.PI * 2);
+        context.fill();
+      }
+    }
+
+    context.fillStyle = "#704052";
+    const coveredHeight = Math.max(0, eye.exposed.top - eye.bounds.top);
+    context.fillRect(
+      eye.bounds.left,
+      eye.bounds.top,
+      eye.bounds.right - eye.bounds.left,
+      coveredHeight,
+    );
+    if (eyeHeight > 0) {
+      context.fillRect(eye.bounds.left, eye.exposed.top, eye.exposed.left - eye.bounds.left, eyeHeight);
+      context.fillRect(eye.exposed.right, eye.exposed.top, eye.bounds.right - eye.exposed.right, eyeHeight);
+    }
+    context.strokeStyle = "#e1a6bb";
+    context.lineWidth = 2;
+    context.strokeRect(
+      eye.bounds.left,
+      eye.bounds.top,
+      eye.bounds.right - eye.bounds.left,
+      eye.bounds.bottom - eye.bounds.top,
+    );
+  }
+
+  const healthBarY = body.top - 18;
+  context.fillStyle = "#26374d";
+  context.fillRect(body.left, healthBarY, boss.width, 8);
+  context.fillStyle = "#e77bd5";
+  context.fillRect(body.left, healthBarY, boss.width * (boss.health / boss.maxHealth), 8);
+  context.strokeStyle = "#f3d9ff";
+  context.lineWidth = 1;
+  context.strokeRect(body.left, healthBarY, boss.width, 8);
+}
+
+function drawLevel3BossTargetMarker() {
+  if (boss?.level !== 3 || boss.targetMarker === null) return;
+  context.save();
+  context.strokeStyle = "#67f4ff";
+  context.fillStyle = "#67f4ff";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.arc(boss.targetMarker.x, boss.targetMarker.y, 12, 0, Math.PI * 2);
+  context.moveTo(boss.targetMarker.x - 18, boss.targetMarker.y);
+  context.lineTo(boss.targetMarker.x - 7, boss.targetMarker.y);
+  context.moveTo(boss.targetMarker.x + 7, boss.targetMarker.y);
+  context.lineTo(boss.targetMarker.x + 18, boss.targetMarker.y);
+  context.moveTo(boss.targetMarker.x, boss.targetMarker.y - 18);
+  context.lineTo(boss.targetMarker.x, boss.targetMarker.y - 7);
+  context.moveTo(boss.targetMarker.x, boss.targetMarker.y + 7);
+  context.lineTo(boss.targetMarker.x, boss.targetMarker.y + 18);
+  context.stroke();
+  context.beginPath();
+  context.arc(boss.targetMarker.x, boss.targetMarker.y, 2, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
+function drawLevel3BossCollisionDebugOverlay() {
+  if (!DEVELOPER_MODE || developerBossTestLevel !== 3 || boss?.level !== 3) return;
+
+  const body = getLevel3BossBodyBounds(boss);
+  const core = getLevel3BossCoreBounds(boss);
+  const armorRegions = getLevel3BossArmorCollisionRegions(boss);
+  const passage = getLevel3BossProjectilePassageBounds(boss);
+  context.save();
+  context.lineWidth = 2;
+  context.strokeStyle = "#53e6ff";
+  context.strokeRect(body.left, body.top, body.right - body.left, body.bottom - body.top);
+  context.fillStyle = "rgba(255, 93, 135, 0.14)";
+  context.strokeStyle = "#ff5d87";
+  for (const region of armorRegions) {
+    context.fillRect(region.left, region.top, region.right - region.left, region.bottom - region.top);
+    context.strokeRect(region.left, region.top, region.right - region.left, region.bottom - region.top);
+  }
+  if (passage !== null) {
+    context.fillStyle = "rgba(83, 255, 131, 0.12)";
+    context.fillRect(
+      passage.left,
+      passage.top,
+      passage.right - passage.left,
+      passage.bottom - passage.top,
+    );
+    context.strokeStyle = "#53ff83";
+    context.setLineDash([5, 4]);
+    context.strokeRect(
+      passage.left,
+      passage.top,
+      passage.right - passage.left,
+      passage.bottom - passage.top,
+    );
+    context.setLineDash([]);
+  }
+  context.strokeStyle = boss.openingAmount > 0 ? "#53ff83" : "#ff5d87";
+  context.strokeRect(core.left, core.top, core.right - core.left, core.bottom - core.top);
+  context.strokeStyle = "#ffe66d";
+  for (const shot of shots) {
+    const bounds = getPlayerShotBounds(shot);
+    context.strokeRect(bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
+  }
+
+  context.restore();
+}
+
 function drawBarriers() {
   for (const barrier of barriers) {
     const left = barrier.x - barrier.width / 2;
@@ -1341,7 +2636,9 @@ function drawFrame(frameTime) {
     context.fillRect(shot.x - shot.width / 2, shot.y, shot.width, shot.height);
   }
   drawPlayer(frameTime);
+  drawLevel3BossTargetMarker();
   drawLevel2WeaponMessage();
+  drawLevel3BossCollisionDebugOverlay();
 
   if (gameState === "bossIntro" && boss.level === 1) {
     if (bossIntroElapsed >= bossIntroSlideDuration) {
@@ -1436,6 +2733,68 @@ function drawFrame(frameTime) {
     context.fillText(`Boss defeat bonus: +${level1BossDefeatBonus} points`, canvas.width / 2, panelY + 210);
     context.fillStyle = "#ffffff";
     context.fillText(`Score: ${score}     Lives: ${lives}`, canvas.width / 2, panelY + 242);
+  } else if (gameState === "level2Cleared") {
+    context.fillStyle = "rgba(0, 0, 0, 0.65)";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    const panelWidth = 640;
+    const panelHeight = 300;
+    const panelX = (canvas.width - panelWidth) / 2;
+    const panelY = (canvas.height - panelHeight) / 2;
+    context.fillStyle = "#0d1b2d";
+    context.fillRect(panelX, panelY, panelWidth, panelHeight);
+    context.strokeStyle = "#48c9ef";
+    context.lineWidth = 2;
+    context.strokeRect(panelX, panelY, panelWidth, panelHeight);
+    context.fillStyle = "#ffffff";
+    context.textAlign = "center";
+    context.font = "bold 32px Arial, sans-serif";
+    context.fillText("Level 2 cleared", canvas.width / 2, panelY + 55);
+    context.fillStyle = "#bfd0e3";
+    context.font = "17px Arial, sans-serif";
+    context.fillText("You defeated Lord Kaezar Vhul!", canvas.width / 2, panelY + 108);
+    context.fillText("get ready for the final battle!", canvas.width / 2, panelY + 136);
+    context.fillText(`Boss defeat bonus: +${level2BossDefeatBonus} points`, canvas.width / 2, panelY + 160);
+    context.fillStyle = "#ffffff";
+    context.font = "bold 19px Arial, sans-serif";
+    context.fillText(`Score: ${score}     Lives: ${lives}`, canvas.width / 2, panelY + 220);
+    context.font = "16px Arial, sans-serif";
+    context.fillText("Choose Level 3 to continue", canvas.width / 2, panelY + 258);
+  } else if (gameState === "level3BossDefeated") {
+    context.fillStyle = "rgba(0, 0, 0, 0.65)";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    const panelWidth = 600;
+    const panelHeight = 150;
+    const panelX = (canvas.width - panelWidth) / 2;
+    const panelY = (canvas.height - panelHeight) / 2;
+    context.fillStyle = "#0d1b2d";
+    context.fillRect(panelX, panelY, panelWidth, panelHeight);
+    context.strokeStyle = "#48c9ef";
+    context.lineWidth = 2;
+    context.strokeRect(panelX, panelY, panelWidth, panelHeight);
+    context.fillStyle = "#ffffff";
+    context.textAlign = "center";
+    context.font = "bold 24px Arial, sans-serif";
+    context.fillText("Zhur-Kai defeated — boss foundation complete", canvas.width / 2, panelY + 58);
+    context.font = "16px Arial, sans-serif";
+    context.fillText("Choose Restart to play again", canvas.width / 2, panelY + 104);
+  } else if (gameState === "varnokBossDefeated") {
+    context.fillStyle = "rgba(0, 0, 0, 0.65)";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    const panelWidth = 640;
+    const panelHeight = 150;
+    const panelX = (canvas.width - panelWidth) / 2;
+    const panelY = (canvas.height - panelHeight) / 2;
+    context.fillStyle = "#0d1b2d";
+    context.fillRect(panelX, panelY, panelWidth, panelHeight);
+    context.strokeStyle = "#48c9ef";
+    context.lineWidth = 2;
+    context.strokeRect(panelX, panelY, panelWidth, panelHeight);
+    context.fillStyle = "#ffffff";
+    context.textAlign = "center";
+    context.font = "bold 25px Arial, sans-serif";
+    context.fillText("Varnok defeated — encounter foundation complete", canvas.width / 2, panelY + 58);
+    context.font = "16px Arial, sans-serif";
+    context.fillText("Choose Restart to play again", canvas.width / 2, panelY + 104);
   } else if (gameState !== "playing" && gameState !== "bossIntro") {
     context.fillStyle = "rgba(0, 0, 0, 0.65)";
     context.fillRect(0, 0, canvas.width, canvas.height);
@@ -1478,11 +2837,16 @@ function gameLoop(frameTime) {
     } else {
       updateShots(deltaSeconds, frameTime);
       if (boss === null) {
-        updateEnemies(deltaSeconds, frameTime);
+        const formationBreached = updateEnemies(deltaSeconds, frameTime);
+        if (formationBreached) {
+          drawFrame(frameTime);
+          requestAnimationFrame(gameLoop);
+          return;
+        }
       } else {
         updateBoss(deltaSeconds, frameTime);
       }
-      if (gameState === "playing" && currentLevel === 2) {
+      if (gameState === "playing" && (currentLevel === 2 || (currentLevel === 3 && boss === null))) {
         updateLevel2BonusShip(deltaSeconds);
         updateLevel2Pickups(deltaSeconds);
       }
