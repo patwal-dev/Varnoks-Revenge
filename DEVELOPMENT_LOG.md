@@ -240,3 +240,89 @@ Review the saved checkpoint with the user and agree on one small gameplay task b
 ### Next session
 
 Start a separate visual workshop with player-ship concepts. No player-ship direction has been selected. Show concepts enlarged and at actual in-game size and obtain approval before integration. Integrate approved artwork incrementally while preserving gameplay, weapon positions and collision hitboxes. Keep pending browser checks visible. Focus on one scoped change and user browser test at a time, and fix small gameplay issues as discovered.
+
+## Kestrel player artwork — 21 November 2026
+
+- Perplexity Computer was used in a separate chat to create the SVG concepts and comparison workshop. The user selected Kestrel for the player and Vesper for a later supply-ship change. The user did not select Bastion.
+- This step integrates Kestrel only. The player drawing uses `ship-workshop/assets/kestrel.svg`, centered at approximately 38.67 × 34 px. The previous drawing serves as a fallback while the SVG loads or if it fails to load. Kestrel uses a white silhouette on the existing hit-flash cadence. The shield visuals, developer collision outlines, 42 × 34 px player hitbox, movement, projectile size and spawn coordinates, firing cadence and scoring retain their existing code.
+- **Agent-run source checks.** `node --check game.js` and `git diff --check` passed.
+- **User-reported browser feedback.** The user accepted Kestrel’s in-game appearance. Firing, the hit flash and shield behavior remain unverified in the browser.
+- **Tool record.** OpenAI Codex implemented the integration. The exact model identifier and reasoning setting were unavailable.
+
+## Vesper supply-ship artwork — 21 November 2026
+
+- The user selected Vesper for the supply ship and explicitly approved the larger artwork and shot hitbox to make the ship easier to hit.
+- The shared supply-ship drawing uses `ship-workshop/assets/vesper.svg` in Levels 2 and 3. The centered artwork rotates 90° clockwise for rightward travel and 90° counterclockwise for leftward travel. After rotation, the artwork is **49.5 × (49.5 × 232 / 248) px**, or approximately **49.5 × 46.306452 px**. The centered shot hitbox is **52.8 × (49.5 × 232 / 248) px**, or approximately **52.8 × 46.306452 px**. The Developer Mode outline reads the ship’s live hitbox dimensions.
+- The original hull and cockpit serve as the loading and error fallback. The existing ship position, speed, spawn timing, scoring and pickup drop logic retain their code.
+- **Agent-run source checks.** `node --check game.js` and `git diff --check` passed.
+- **User browser check pending.** Check that Vesper faces its travel direction, the developer outline surrounds the taller hitbox, and a hit still awards 50 points and drops a pickup.
+- **Tool record.** OpenAI Codex implemented the integration. The exact model identifier and reasoning setting were unavailable.
+
+## Supply ships in boss fights and larger shield rings — 21 November 2026
+
+- **User-reported browser feedback.** The supply ship still showed the original graphic, and the shield looked too small after collection. The user requested larger player shield rings and supply ships during Level 2 and 3 regular waves and the Lord Kaezar Vhul, Zhur-Kai and Varnok encounters, including their standalone developer tests.
+- A failed Vesper load now logs the resolved asset URL once. The original hull remains the loading and error fallback. The asset check found that both wing references and all gradient references resolve within the SVG. The artwork dimensions, rotation and hitbox retain their approved values. The cause of the reported missing artwork remains unconfirmed.
+- The shield rings around the player now measure **54 × 50 px** (inner) and **74 × 66 px** (outer). Both appear with two charges, and the inner ring remains with one charge. The falling diamond, shield protection and **42 × 34 px** player hitbox retain their existing code.
+- The shared supply-ship update runs during active combat in Levels 2 and 3, including Bosses 2–4. Normal Boss 2 keeps the existing ship and countdown. Test Boss 2 and both entry routes into Bosses 3 and 4 start a fresh **15–26.25 second** countdown. Intros and wave entrances pause the countdown. The existing single-ship limit, collision priority, **50-point** reward, pickup selection and cleanup remain in place.
+- **Agent-run checks.** JavaScript syntax, diff whitespace and local SVG reference checks passed. A focused Node simulation with stubbed DOM, Canvas and image events checked regular waves, normal and developer boss routes, paused countdowns, movement, rewards and drops, defeat and restart cleanup, shield ring dimensions and protection, and the one-time load error and fallback paths.
+- **Browser checks pending.** Confirm that Vesper renders and faces its travel direction, supply ships appear during active combat in each requested encounter, hits still award 50 points and drop a pickup, and the larger shield rings surround Kestrel as charges are spent.
+- **Tool record.** OpenAI Codex implemented and checked the changes. The exact model identifier and reasoning setting were unavailable.
+
+## Supply-ship interval shortened to 7–15 seconds — 21 November 2026
+
+- **User-reported browser check.** No supply ship appeared during Test Boss 2. The user requested a shorter spawn interval.
+- **Diagnosis.** The Test Boss 2 button calls the Level 2 setup, which seeds the countdown. Boss setup keeps that value, and the countdown starts advancing after the intro. There was no timer overwrite on entry. With a controlled random value of 0.5, the old countdown was 20.625 seconds. In the Node simulation, a stationary player lost after 12.52 seconds of active combat and game-over cleanup cleared the timer before a ship could spawn. A moving player survived and the ship spawned at 20.66 seconds. This confirms how the old delay could prevent a ship from appearing during a short attempt. The cause of the user’s specific browser result and the separate missing Vesper artwork remain unconfirmed.
+- The shared random delay is now **7–15 seconds** for initial spawns and rescheduling after a hit or an offscreen exit. It applies throughout Level 2 and 3 waves and Bosses 2–4, including the developer tests. The existing combat guards, ship limit, rewards, pickups and cleanup retain their code.
+- **Agent-run checks.** JavaScript syntax and diff whitespace checks passed. A focused Node simulation invoked the registered boss buttons and advanced the scheduled game frames through natural intro completion and spawning. With random fixed at 0.5, Test Boss 2 spawned at 11.04 seconds of combat, including in a stationary run. In a separate moving-player run, it drew the ship through the full crossing and scheduled another spawn after exit. The simulation also checked normal and developer Bosses 3 and 4 with extra lives to isolate the spawn logic, normal Boss 2, the delay bounds, wave-entrance pauses and credits cleanup. Canvas and image loading were stubbed.
+- **Browser verification pending.** Reload the game, start Test Boss 2 and stay in active combat. Look for a supply ship entering after the 7–15 second countdown, plus the short time it takes to enter from offscreen. Confirm whether it shows Vesper artwork.
+- **Tool record.** OpenAI Codex implemented and checked the change. The exact model identifier and reasoning setting were unavailable.
+
+## Vesper debug outline removed — 21 November 2026
+
+- **User-reported browser check.** A supply ship spawned in Test Boss 2 and displayed the Vesper artwork. A cyan rectangle surrounded the ship.
+- The shared frame renderer drew the cyan supply-ship hitbox outline whenever Developer Mode was enabled. Removed that drawing from all encounters, including developer boss tests. The actual supply-ship hitbox and the other developer collision overlays retain their existing code.
+- **Agent-run checks.** `node --check game.js` and `git diff --check` passed.
+- **Browser checks pending.** Confirm that Vesper appears without the cyan rectangle. Supply-ship checks in other encounters, the 50-point reward and pickup drops, and shield behavior remain pending.
+
+## Pickup notification wording — 21 November 2026
+
+- **User-reported browser feedback.** The user accepted Vesper’s appearance after the cyan outline was removed. Rewards, pickup effects and shield behavior remain unverified in the browser.
+- Rapid-fire collection now displays **Machinegun!** in place of **Machine gun baby!**. Shield collection displays **Shield!** using the same two-second timing and styling. Both messages use the shared pickup path.
+- **Agent-run checks.** `node --check game.js` and `git diff --check` passed. The new wording is pending a user browser check.
+
+## Clack Level 1 artwork — 21 November 2026
+
+- Perplexity Computer created six SVG alien concepts and a separate turning preview. The user approved all six designs and the workshop motion preview.
+- This step integrates Clack only, using `alien-workshop/Alien Art Workshop (complete ZIP)/assets/level-1-clack.svg`. The shared Level 1 renderer draws Clack centered at **30 × 30 px** in its downward-facing pose in both waves, during the Wave 2 entrance, and in developer Level 1 starts. The original drawing serves as the loading and error fallback, and a load failure logs the resolved URL once.
+- **Agent-run checks.** `node --check game.js` and `git diff --check` passed.
+- **User-reported browser feedback.** The user said Clack “works perfect” and accepted its in-game appearance. This feedback covers the artwork and does not establish a gameplay regression test.
+
+## Anvil Level 2 artwork and turning — 21 November 2026
+
+- Level 2 regular aliens use `alien-workshop/Alien Art Workshop (complete ZIP)/assets/level-2-anvil.svg` at **30 × 30 px** in both waves, during the Wave 2 entrance and in developer Level 2 starts. The original drawing serves as the loading and error fallback. A load failure logs the resolved URL once.
+- Anvil faces down in formation. Its sprite turns toward the locked dive direction and the moving return slot, resets its heading during the offscreen wrap, and eases back to the formation pose when it settles. A separate visual angle updates with elapsed time along the shortest turn. The draw call only reads that angle. Flight paths, firing, collisions and other enemies retain their gameplay code.
+- **Agent-run checks.** `node --check game.js` and `git diff --check` passed. A focused Node simulation with stubbed Canvas and image events matched the previous gameplay state through a dive and return. It also checked shortest-angle smoothing, equivalent elapsed time across different step sizes, wrap and settling, image fallback, Wave 2 rendering, and Clack and Level 3 drawing.
+- **User-reported browser feedback.** The user tested Anvil’s appearance and its dive and return turning and reported “works.” This was a focused check.
+
+## Rift Level 3 artwork and turning — 21 November 2026
+
+- Level 3 regular aliens use `alien-workshop/Alien Art Workshop (complete ZIP)/assets/level-3-rift.svg` at **30 × 30 px** in both waves, during the Wave 2 entrance and in developer Level 3 starts. The original drawing serves as the loading and error fallback. A load failure logs the resolved URL once.
+- Rift shares Anvil’s visual angle update. It turns toward the locked dive velocity and the moving return slot, resets its pose offscreen, and eases back to facing down in formation. The renderer only reads the angle. Varnok’s spawned aliens and all bosses keep their existing drawing paths.
+- **Agent-run checks.** `node --check game.js` and `git diff --check` passed. A focused Node simulation with stubbed Canvas and image events matched the previous Level 3 gameplay state through formation descent, firing, a dive and its return. It also checked Rift’s turning, fallback, Wave 2 entrance, and the existing Clack, Anvil and Varnok drawing paths.
+- **User-reported browser feedback.** The user tested Rift’s appearance and turning and reported “yeap, works.” This is focused visual acceptance. Wave 2 was not specifically verified and no full gameplay regression test was reported.
+
+## Varnok hatchling artwork and turning — 21 November 2026
+
+- Perplexity Computer’s Bud, Hook and Crown designs and the motion preview were approved in the workshop. The game now uses the three hatchling SVGs from `alien-workshop/Alien Art Workshop (complete ZIP)/assets/` in normal Varnok progression and Test Boss 4.
+- Each hatchling, including reinforcements, gets one visual variant at creation from a random source independent of gameplay. Its choice persists through launch, offscreen wait, return, formation, dive and slot changes. Sprites draw centered at **30 × 30 px**. The original drawing serves as a loading and error fallback, with one resolved-URL error per failed asset.
+- Hatchlings face up on launch, follow their actual flight direction on returns and dives, and settle facing down. The shared visual angle update resets the pose at offscreen wraps and keeps the turning separate from movement, firing and collision.
+- **Agent-run checks.** `node --check game.js` and `git diff --check` passed. A focused Node simulation compared both entry routes against the prior game code and matched the gameplay state and gameplay random draw count. It checked variant persistence through all lifecycle states and a forced vacant-slot return, reinforcement assignments, launch and return angles, fallback, resolved error URLs and encounter cleanup. Image and Canvas APIs were stubbed.
+- **User-reported browser feedback.** The user said Varnok’s hatchling visuals “looks good” and accepted their appearance. This is focused visual acceptance. Full lifecycle and reinforcement coverage, normal progression and gameplay regression remain separate checks.
+
+## Artwork and supply-ship checkpoint — 21 November 2026
+
+- Perplexity Computer produced the Kestrel, Vesper and Bastion ship concepts, plus Clack, Anvil, Rift, Bud, Hook and Crown and a separate alien turning preview. Kestrel and Vesper were selected. Bastion remains in the ship comparison workshop. The extracted alien workshop retains its tools and prompt log and its separate motion preview.
+- The game now draws Kestrel, Vesper, the three regular-alien designs and Varnok’s three hatchlings. Level 2 and 3 regular aliens and hatchlings turn visually during flight. A hatchling keeps its independently selected artwork through its entire lifecycle. The user accepted the in-game appearance of all integrated artwork. Those reports are focused visual checks.
+- Vesper draws at **49.5 × 46.306452 px** after rotation and uses a **52.8 × 46.306452 px** shot hitbox. The cyan debug rectangle was removed. Supply ships use a shared **7–15 second** active-combat delay for first and repeat spawns in Level 2 and 3 waves and Bosses 2–4, including their developer tests. The user confirmed a spawn and Vesper artwork in Test Boss 2. Browser coverage of the other encounter routes remains pending.
+- The shield rings are **54 × 50 px** and **74 × 66 px**. Shield protection and the player hitbox retain their original behavior. The pickup messages are **Machinegun!** and **Shield!**. The 50-point supply-ship reward, pickup effects and messages, protection, remaining encounter coverage and normal progression still need browser checks. The pending checks are listed in `NEXT_SESSION.md`.
+- The Xal’Gorath workshop prompt was prepared. Execution in Perplexity Computer has yet to be confirmed. All four bosses retain their existing artwork.

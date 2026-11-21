@@ -30,6 +30,79 @@ const player = {
   speed: 300,
 };
 
+const kestrelImage = new Image();
+let kestrelFlashImage = null;
+kestrelImage.addEventListener("load", () => {
+  const flashCanvas = document.createElement("canvas");
+  flashCanvas.width = 232;
+  flashCanvas.height = 204;
+  const flashContext = flashCanvas.getContext("2d");
+  if (flashContext === null) return;
+
+  flashContext.drawImage(kestrelImage, 0, 0, flashCanvas.width, flashCanvas.height);
+  // Color only the visible parts of the ship for the existing white hit flash.
+  flashContext.globalCompositeOperation = "source-in";
+  flashContext.fillStyle = "#ffffff";
+  flashContext.fillRect(0, 0, flashCanvas.width, flashCanvas.height);
+  kestrelFlashImage = flashCanvas;
+});
+kestrelImage.src = "ship-workshop/assets/kestrel.svg";
+
+const vesperImage = new Image();
+let vesperImageReady = false;
+vesperImage.addEventListener("load", () => {
+  vesperImageReady = true;
+});
+vesperImage.addEventListener("error", () => {
+  console.error("Could not load the Vesper supply-ship artwork:", vesperImage.src);
+}, { once: true });
+vesperImage.src = "ship-workshop/assets/vesper.svg";
+
+const clackImage = new Image();
+let clackImageReady = false;
+clackImage.addEventListener("load", () => {
+  clackImageReady = true;
+});
+clackImage.addEventListener("error", () => {
+  console.error("Could not load the Clack alien artwork:", clackImage.src);
+}, { once: true });
+clackImage.src = "alien-workshop/Alien Art Workshop (complete ZIP)/assets/level-1-clack.svg";
+
+const anvilImage = new Image();
+let anvilImageReady = false;
+anvilImage.addEventListener("load", () => {
+  anvilImageReady = true;
+});
+anvilImage.addEventListener("error", () => {
+  console.error("Could not load the Anvil alien artwork:", anvilImage.src);
+}, { once: true });
+anvilImage.src = "alien-workshop/Alien Art Workshop (complete ZIP)/assets/level-2-anvil.svg";
+
+const riftImage = new Image();
+let riftImageReady = false;
+riftImage.addEventListener("load", () => {
+  riftImageReady = true;
+});
+riftImage.addEventListener("error", () => {
+  console.error("Could not load the Rift alien artwork:", riftImage.src);
+}, { once: true });
+riftImage.src = "alien-workshop/Alien Art Workshop (complete ZIP)/assets/level-3-rift.svg";
+
+const hatchlingArtwork = ["bud", "hook", "crown"].map((name) => {
+  const image = new Image();
+  const artwork = { image, ready: false };
+  image.addEventListener("load", () => {
+    artwork.ready = true;
+  });
+  image.addEventListener("error", () => {
+    console.error("Could not load the hatchling alien artwork:", image.src);
+  }, { once: true });
+  image.src = `alien-workshop/Alien Art Workshop (complete ZIP)/assets/hatchling-${name}.svg`;
+  return artwork;
+});
+const hatchlingVisualChoices = new WeakMap();
+const alienAngles = new WeakMap();
+
 const keysDown = new Set();
 const shots = [];
 const enemyShots = [];
@@ -38,7 +111,7 @@ const shotSpeed = 420;
 const shotInterval = 0.80;
 const rapidFireRateMultiplier = 2;
 const level2WeaponDuration = 10;
-const level2WeaponMessageDuration = 2;
+const level2PickupMessageDuration = 2;
 const enemyShotSpeed = 210;
 const enemyShotIntervalMin = 900;
 const enemyShotIntervalRange = 600;
@@ -123,11 +196,14 @@ const wave2SpeedMultiplier = 1.15;
 const level2BomberDelay = 2.5;
 const level2BomberCooldown = 2;
 const level2BomberSpeed = 260;
-const level2BonusShipDelayMin = 15;
-const level2BonusShipDelayMax = 26.25;
+const level2BonusShipDelayMin = 7;
+const level2BonusShipDelayMax = 15;
 const level2BonusShipSpeed = 162;
 const level2BonusShipWidth = 52.8;
-const level2BonusShipHeight = 26.4;
+const vesperArtWidth = 49.5;
+// The rotated 232 × 248 SVG uses its original width as the on-screen height.
+const vesperArtHeight = vesperArtWidth * 232 / 248;
+const level2BonusShipHeight = vesperArtHeight;
 const level2ShieldPickupSpeed = 150;
 const level2ShieldChargesMax = 2;
 const maxEnemySpeedMultiplier = 1.75;
@@ -154,7 +230,8 @@ let level2BonusShipTimer = 0;
 const level2Pickups = [];
 let level2ShieldCharges = 0;
 let level2WeaponTimeRemaining = 0;
-let level2WeaponMessageTimeRemaining = 0;
+let level2PickupMessageText = "";
+let level2PickupMessageTimeRemaining = 0;
 let barriers = [];
 let enemyDirection = 1;
 let currentLevel = 1;
@@ -322,12 +399,12 @@ function startLevel3BossFight() {
   enemyShots.length = 0;
   barriers = [];
   level2BonusShip = null;
-  level2BonusShipTimer = 0;
+  level2BonusShipTimer = randomLevel2BonusShipDelay();
   level2Pickups.length = 0;
   level2ShieldCharges = 0;
   playerShieldProtectedUntil = 0;
   level2WeaponTimeRemaining = 0;
-  level2WeaponMessageTimeRemaining = 0;
+  level2PickupMessageTimeRemaining = 0;
   level2FormationOffsetX = 0;
   resetLevel3Descent();
   enemyDirection = 1;
@@ -377,13 +454,13 @@ function startVarnokBossFight(showIntro = false) {
   enemyShots.length = 0;
   barriers = [];
   level2BonusShip = null;
-  level2BonusShipTimer = 0;
+  level2BonusShipTimer = randomLevel2BonusShipDelay();
   level2Pickups.length = 0;
   level2ShieldCharges = 0;
   playerInvulnerableUntil = 0;
   playerShieldProtectedUntil = 0;
   level2WeaponTimeRemaining = 0;
-  level2WeaponMessageTimeRemaining = 0;
+  level2PickupMessageTimeRemaining = 0;
   level2FormationOffsetX = 0;
   resetLevel3Descent();
   enemyDirection = 1;
@@ -509,7 +586,7 @@ function startLevel2() {
   level2ShieldCharges = 0;
   playerShieldProtectedUntil = 0;
   level2WeaponTimeRemaining = 0;
-  level2WeaponMessageTimeRemaining = 0;
+  level2PickupMessageTimeRemaining = 0;
   nextEnemyShotTime = null;
   keysDown.clear();
   gameState = "playing";
@@ -547,7 +624,7 @@ function startLevel3() {
   level2ShieldCharges = 0;
   playerShieldProtectedUntil = 0;
   level2WeaponTimeRemaining = 0;
-  level2WeaponMessageTimeRemaining = 0;
+  level2PickupMessageTimeRemaining = 0;
   nextEnemyShotTime = null;
   keysDown.clear();
   gameState = "playing";
@@ -585,7 +662,7 @@ function showLevel2ClearedScreen() {
   level2ShieldCharges = 0;
   playerShieldProtectedUntil = 0;
   level2WeaponTimeRemaining = 0;
-  level2WeaponMessageTimeRemaining = 0;
+  level2PickupMessageTimeRemaining = 0;
   restartButton.hidden = false;
   level2Button.hidden = true;
   level3Button.hidden = false;
@@ -601,7 +678,7 @@ function showLevel3BossDefeatedScreen() {
   level2ShieldCharges = 0;
   playerShieldProtectedUntil = 0;
   level2WeaponTimeRemaining = 0;
-  level2WeaponMessageTimeRemaining = 0;
+  level2PickupMessageTimeRemaining = 0;
   keysDown.clear();
   shots.length = 0;
   enemyShots.length = 0;
@@ -625,7 +702,7 @@ function finishVarnokEncounter() {
   level2ShieldCharges = 0;
   playerShieldProtectedUntil = 0;
   level2WeaponTimeRemaining = 0;
-  level2WeaponMessageTimeRemaining = 0;
+  level2PickupMessageTimeRemaining = 0;
   keysDown.clear();
   shots.length = 0;
   enemyShots.length = 0;
@@ -931,6 +1008,9 @@ function updateVarnokAlienFormation(deltaSeconds, frameTime) {
       launchX: boss.x,
       formationSlot: formation.nextLaunchSlot,
     };
+    // Choose artwork independently of the random draws that control combat.
+    const visualRandom = crypto.getRandomValues(new Uint32Array(1))[0] / 0x100000000;
+    hatchlingVisualChoices.set(alien, hatchlingArtwork[Math.floor(visualRandom * hatchlingArtwork.length)]);
     formation.aliens.push(alien);
     enemies.push(alien);
     formation.nextLaunchSlot += 1;
@@ -978,6 +1058,7 @@ function updateVarnokAlienFormation(deltaSeconds, frameTime) {
     updateVarnokFormation(formation, deltaSeconds);
     updateLevel2Bomber(deltaSeconds, frameTime);
   }
+  updateAlienAngles(formation.aliens, deltaSeconds, formation);
 }
 
 function reserveVarnokAlienBatch(formation) {
@@ -1607,7 +1688,7 @@ function finishGame(result) {
   level2ShieldCharges = 0;
   playerShieldProtectedUntil = 0;
   level2WeaponTimeRemaining = 0;
-  level2WeaponMessageTimeRemaining = 0;
+  level2PickupMessageTimeRemaining = 0;
   keysDown.clear();
   restartButton.hidden = false;
   level2Button.hidden = true;
@@ -1654,7 +1735,7 @@ function restartGame() {
   level2ShieldCharges = 0;
   playerShieldProtectedUntil = 0;
   level2WeaponTimeRemaining = 0;
-  level2WeaponMessageTimeRemaining = 0;
+  level2PickupMessageTimeRemaining = 0;
   currentWave = 1;
   scoreDisplay.textContent = score;
   livesDisplay.textContent = lives;
@@ -1710,12 +1791,11 @@ function startDeveloperTestBoss(level) {
   shots.length = 0;
   enemyShots.length = 0;
   level2BonusShip = null;
-  level2BonusShipTimer = Number.POSITIVE_INFINITY;
   level2Pickups.length = 0;
   level2ShieldCharges = 0;
   playerShieldProtectedUntil = 0;
   level2WeaponTimeRemaining = 0;
-  level2WeaponMessageTimeRemaining = 0;
+  level2PickupMessageTimeRemaining = 0;
   nextEnemyShotTime = null;
   waveEntranceElapsed = null;
   waveEntrancePositions = null;
@@ -1987,7 +2067,43 @@ function updateEnemies(deltaSeconds, frameTime) {
   if (hasDiveBombers && formationEnemies.length > 0) {
     level2FormationOffsetX += enemyDirection * formationSpeed * deltaSeconds;
   }
+  if (hasDiveBombers) updateAlienAngles(enemies, deltaSeconds);
   return false;
+}
+
+function updateAlienAngles(aliens, deltaSeconds, formation = null) {
+  const turnFraction = 1 - Math.exp(-12 * deltaSeconds);
+  for (const enemy of aliens) {
+    if (enemy.varnokState === "launching" || enemy.varnokState === "waitingToReturn") {
+      alienAngles.set(enemy, Math.PI);
+      continue;
+    }
+
+    const currentAngle = alienAngles.get(enemy) ?? 0;
+    let targetAngle = 0;
+    if (enemy.bomberState === "dive") {
+      targetAngle = Math.atan2(-enemy.diveVelocityX, enemy.diveVelocityY);
+    } else if (enemy.bomberState === "return" || enemy.varnokState === "returning") {
+      const slot = getDiveBomberReturnPosition(enemy.formationSlot, formation);
+      targetAngle = Math.atan2(enemy.x - slot.x, slot.y - enemy.y);
+      if (enemy.y <= -enemy.height / 2) {
+        // Reset the pose while the returning sprite is still above the canvas.
+        alienAngles.set(enemy, targetAngle);
+        continue;
+      }
+    } else if (currentAngle === 0) {
+      continue;
+    }
+
+    const difference = targetAngle - currentAngle;
+    const shortestTurn = Math.atan2(Math.sin(difference), Math.cos(difference));
+    const angle = currentAngle + shortestTurn * turnFraction;
+    if (targetAngle === 0 && Math.abs(angle) < 0.001) {
+      alienAngles.delete(enemy);
+    } else {
+      alienAngles.set(enemy, angle);
+    }
+  }
 }
 
 function updateLevel2Bomber(deltaSeconds, frameTime) {
@@ -2120,9 +2236,12 @@ function updateLevel2Pickups(deltaSeconds) {
     if (touchingPlayer) {
       if (pickup.type === "shield") {
         level2ShieldCharges = level2ShieldChargesMax;
+        level2PickupMessageText = "Shield!";
+        level2PickupMessageTimeRemaining = level2PickupMessageDuration;
       } else if (pickup.type === "weapon") {
         level2WeaponTimeRemaining = level2WeaponDuration;
-        level2WeaponMessageTimeRemaining = level2WeaponMessageDuration;
+        level2PickupMessageText = "Machinegun!";
+        level2PickupMessageTimeRemaining = level2PickupMessageDuration;
       }
       level2Pickups.splice(index, 1);
     } else if (pickup.y - pickup.height / 2 > canvas.height) {
@@ -2131,16 +2250,16 @@ function updateLevel2Pickups(deltaSeconds) {
   }
 }
 
-function updateLevel2WeaponTimers(deltaSeconds) {
+function updateLevel2PickupTimers(deltaSeconds) {
   if (currentLevel !== 2 && currentLevel !== 3) return;
   level2WeaponTimeRemaining = Math.max(0, level2WeaponTimeRemaining - deltaSeconds);
   if (level2WeaponTimeRemaining < 0.000001) level2WeaponTimeRemaining = 0;
-  level2WeaponMessageTimeRemaining = Math.max(
+  level2PickupMessageTimeRemaining = Math.max(
     0,
-    level2WeaponMessageTimeRemaining - deltaSeconds,
+    level2PickupMessageTimeRemaining - deltaSeconds,
   );
-  if (level2WeaponMessageTimeRemaining < 0.000001) {
-    level2WeaponMessageTimeRemaining = 0;
+  if (level2PickupMessageTimeRemaining < 0.000001) {
+    level2PickupMessageTimeRemaining = 0;
   }
 }
 
@@ -2416,16 +2535,24 @@ function drawPlayer(frameTime) {
     if (level2ShieldCharges >= 2) {
       context.strokeStyle = "rgba(112, 232, 255, 0.9)";
       context.beginPath();
-      context.ellipse(player.x, player.y, player.width * 0.82, player.height * 0.88, 0, 0, Math.PI * 2);
+      context.ellipse(player.x, player.y, 37, 33, 0, 0, Math.PI * 2);
       context.stroke();
     }
     context.strokeStyle = "rgba(220, 250, 255, 0.95)";
     context.beginPath();
-    context.ellipse(player.x, player.y, player.width * 0.58, player.height * 0.64, 0, 0, Math.PI * 2);
+    context.ellipse(player.x, player.y, 27, 25, 0, 0, Math.PI * 2);
     context.stroke();
   }
   const isFlashing = frameTime < playerInvulnerableUntil
     && Math.floor(frameTime / 75) % 2 === 0;
+  if (kestrelFlashImage !== null) {
+    const height = 34;
+    const width = height * kestrelFlashImage.width / kestrelFlashImage.height;
+    context.drawImage(isFlashing ? kestrelFlashImage : kestrelImage,
+      player.x - width / 2, player.y - height / 2, width, height);
+    return;
+  }
+
   context.fillStyle = isFlashing ? "#ffffff" : "#48c9ef";
   context.beginPath();
   context.moveTo(player.x, player.y - player.height / 2);
@@ -2470,6 +2597,28 @@ function drawEnemy(enemy, index) {
   const halfHeight = enemy.height / 2;
   const x = enemy.x;
   const y = enemy.y;
+  if (currentLevel === 1 && clackImageReady) {
+    context.drawImage(clackImage, x - halfWidth, y - halfHeight, enemy.width, enemy.height);
+    return;
+  }
+  let alienImage = null;
+  if (enemy.isVarnokAlien) {
+    const artwork = hatchlingVisualChoices.get(enemy);
+    if (artwork?.ready) alienImage = artwork.image;
+  } else if (currentLevel === 2 && anvilImageReady) {
+    alienImage = anvilImage;
+  } else if (currentLevel === 3 && riftImageReady) {
+    alienImage = riftImage;
+  }
+  if (alienImage !== null) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(alienAngles.get(enemy) ?? 0);
+    context.drawImage(alienImage, -halfWidth, -halfHeight, enemy.width, enemy.height);
+    context.restore();
+    return;
+  }
+
   const warmVariant = index % 2 === 0;
 
   context.fillStyle = warmVariant ? "#df6685" : "#ef8b63";
@@ -2499,6 +2648,14 @@ function drawLevel2BonusShip() {
   if (level2BonusShip === null) return;
   context.save();
   context.translate(level2BonusShip.x, level2BonusShip.y);
+  if (vesperImageReady) {
+    context.rotate(level2BonusShip.direction * Math.PI / 2);
+    context.drawImage(vesperImage, -vesperArtHeight / 2, -vesperArtWidth / 2,
+      vesperArtHeight, vesperArtWidth);
+    context.restore();
+    return;
+  }
+
   context.scale(level2BonusShip.direction * 1.1, 1.1);
   context.fillStyle = "#72d9ed";
   context.beginPath();
@@ -2549,8 +2706,8 @@ function drawLevel2Pickups() {
   }
 }
 
-function drawLevel2WeaponMessage() {
-  if ((currentLevel !== 2 && currentLevel !== 3) || level2WeaponMessageTimeRemaining <= 0) return;
+function drawLevel2PickupMessage() {
+  if ((currentLevel !== 2 && currentLevel !== 3) || level2PickupMessageTimeRemaining <= 0) return;
   context.save();
   context.textAlign = "center";
   context.textBaseline = "middle";
@@ -2558,10 +2715,9 @@ function drawLevel2WeaponMessage() {
   context.lineWidth = 4;
   context.strokeStyle = "rgba(5, 11, 21, 0.95)";
   context.fillStyle = "#ffe08a";
-  const message = "Machine gun baby!";
   const messageY = canvas.height - 18;
-  context.strokeText(message, canvas.width / 2, messageY);
-  context.fillText(message, canvas.width / 2, messageY);
+  context.strokeText(level2PickupMessageText, canvas.width / 2, messageY);
+  context.fillText(level2PickupMessageText, canvas.width / 2, messageY);
   context.restore();
 }
 
@@ -2910,7 +3066,7 @@ function drawFrame(frameTime) {
     context.fillRect(shot.x - shot.width / 2, shot.y, shot.width, shot.height);
   }
   drawPlayer(frameTime);
-  drawLevel2WeaponMessage();
+  drawLevel2PickupMessage();
   drawLevel3BossCollisionDebugOverlay();
 
   if (gameState === "bossIntro" && (boss.level === 1 || boss.level === 4)) {
@@ -3097,7 +3253,7 @@ function gameLoop(frameTime) {
     updateBossIntro(deltaSeconds);
   } else if (gameState === "playing") {
     updatePlayer(deltaSeconds);
-    updateLevel2WeaponTimers(deltaSeconds);
+    updateLevel2PickupTimers(deltaSeconds);
     if (waveEntranceElapsed !== null) {
       updateWaveEntrance(deltaSeconds, frameTime);
     } else {
@@ -3112,7 +3268,7 @@ function gameLoop(frameTime) {
       } else {
         updateBoss(deltaSeconds, frameTime);
       }
-      if (gameState === "playing" && (currentLevel === 2 || (currentLevel === 3 && boss === null))) {
+      if (gameState === "playing" && (currentLevel === 2 || currentLevel === 3)) {
         updateLevel2BonusShip(deltaSeconds);
         updateLevel2Pickups(deltaSeconds);
       }

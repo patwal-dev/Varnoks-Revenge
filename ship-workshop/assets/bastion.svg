@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 232 159">
+  <defs>
+    <linearGradient id="armour" x2=".3" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#e4cdb5"/><stop offset=".55" stop-color="#a08c79"/><stop offset="1" stop-color="#695953"/>
+    </linearGradient>
+    <g id="pod">
+      <path fill="#483f42" d="M0 74 20 35H58l18 23 18 4v69l-22 14H50l-9 14H20L0 131Z"/>
+      <path fill="url(#armour)" d="M2 74 23 35h33l18 26 14 5-2 53-16 18H46l-10 13H23L2 127Z"/>
+      <path fill="#eed4b3" d="m23 35 33 0 8 12H26L12 75H2Z"/>
+      <path fill="#723e2b" d="M4 79h32l18-22h15l8 11-11 26-23 13H4Z"/>
+      <path fill="#e28a4b" d="M4 80h33l17-22h15l5 8-18 2-17 21H4Z"/>
+      <path fill="#b5764d" d="M4 91h36l16-14h13L58 93l-16 8H4Z"/>
+      <path fill="#746458" d="M9 112h36l18-10-8 17-17 12H15Z"/>
+      <path fill="#4a3d3c" d="M16 116h17v4H16Zm3 7h13v4H19Z"/>
+      <path fill="#dbc4a9" d="m58 126 17-18 7-21v28l-15 19H50Z"/>
+      <path fill="#332c32" d="M22 139h23l-7 20H25Z"/>
+      <path fill="#f8af66" d="M26 147h13l-3 8h-8Z"/>
+    </g>
+  </defs>
+  <use href="#pod"/><use href="#pod" transform="translate(232 0) scale(-1 1)"/>
+  <path fill="#483e42" d="M85 40h62l17 43-9 53-15 16H92l-15-16-9-53Z"/>
+  <path fill="#cebaa6" d="M89 41h54l14 43-9 44-12 17H96l-12-17-9-44Z"/>
+  <path fill="#9a8676" d="m116 55 22-11 16 40-8 43-13 15h-17Z"/>
+  <path fill="#f2d8b9" d="m89 42 12 9-18 37-6-4Z"/>
+  <path fill="#5a4845" d="M98 22h36l7 39-11 21h-28L91 61Z"/>
+  <path fill="#c9b29a" d="M100 26h32l5 32-10 19h-22L95 58Z"/>
+  <path fill="#383039" d="M102 10 107 0h18l5 10-2 48-12 10-12-10Z"/>
+  <path fill="#ffe2ad" d="M107 0h18l3 7h-24Z"/>
+  <path fill="#f2a45c" d="M110 10h12v35l-6 6-6-6Z"/>
+  <path fill="#493d40" d="m101 84 15-9 15 9 6 27-10 13h-22l-10-13Z"/>
+  <path fill="#395b65" d="m105 87 11-7 11 7 5 21-8 10h-16l-8-10Z"/>
+  <path fill="#c2e5df" d="m106 88 10-6 10 6-2 7h-16Z"/>
+  <path fill="#6b5350" d="M101 132h30l-5 8h-20Z"/>
+</svg>
