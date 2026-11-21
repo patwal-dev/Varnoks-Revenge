@@ -71,14 +71,20 @@ const varnokBossHealth = 30;
 const varnokBossDefeatBonus = 300;
 const varnokBossWidth = 200;
 const varnokBossHeight = 110;
-const varnokAlienBatchSize = 4;
+const varnokAlienBatchMinSize = 4;
+const varnokAlienBatchMaxSize = 8;
+const varnokAlienPopulationLimit = 12;
 const varnokAlienLaunchDelay = 2;
 const varnokAlienLaunchInterval = 0.3;
 const varnokAlienReturnDelay = 0.5;
 const varnokAlienLaunchSpeed = 180;
 const varnokAlienReturnSpeed = 180;
-const varnokFormationSideOffset = 130;
-const varnokFormationRowOffset = 24;
+const varnokReinforcementMinDelay = 15;
+const varnokReinforcementMaxDelay = 20;
+const varnokReinforcementRetryDelay = 3;
+const varnokFormationShapes = ["row", "block", "v", "invertedV"];
+const varnokFormationColumnSpacing = 42;
+const varnokFormationRowSpacing = 35;
 const varnokEyeWidth = 30;
 const varnokEyeHeight = 26;
 const varnokEyePassageWidth = varnokEyeWidth * 1.5;
@@ -132,7 +138,7 @@ let level3RightBoundaryContacts = 0;
 let level3DescentAnimation = null;
 let level2Bomber = null;
 let level2BomberTimer = 0;
-let varnokAlienBatch = null;
+let varnokAlienFormation = null;
 let level2BonusShip = null;
 let level2BonusShipTimer = 0;
 const level2Pickups = [];
@@ -346,7 +352,7 @@ function startLevel3BossFight() {
 function startVarnokBossFight() {
   if (currentLevel !== 3 || lives <= 0) return;
 
-  clearVarnokAlienBatch();
+  clearVarnokAlienFormation();
   clearDiveBomberState();
   enemies.length = 0;
   startingEnemyCount = 0;
@@ -385,13 +391,19 @@ function startVarnokBossFight() {
     eyeOpeningAmount: 0,
     movement: null,
   };
-  varnokAlienBatch = {
+  varnokAlienFormation = {
     elapsed: 0,
-    launchedCount: 0,
-    nextLaunchTime: varnokAlienLaunchDelay,
-    slots: null,
+    nextBatchTime: varnokAlienLaunchDelay,
+    previousShape: null,
+    initialBatchSettled: false,
+    nextLaunchSlot: 0,
+    nextLaunchTime: null,
+    slots: [],
     aliens: [],
+    formationDirection: 1,
+    descentAnimation: null,
   };
+  level2BomberTimer = level2BomberDelay;
   chooseNextRandomizedBossDestination(boss);
   nextShotTime = 0;
   currentWave = level3WaveCount;
@@ -584,7 +596,7 @@ function showLevel3BossDefeatedScreen() {
 
 function showVarnokDefeatedScreen() {
   gameState = "varnokBossDefeated";
-  clearVarnokAlienBatch();
+  clearVarnokAlienFormation();
   clearVarnokBossEncounterState();
   boss = null;
   clearDiveBomberState();
@@ -695,7 +707,7 @@ function updateBoss(deltaSeconds, frameTime) {
   if (boss.level === 4) {
     updateVarnokBossMovement(deltaSeconds);
     updateVarnokEyeCycle(deltaSeconds);
-    updateVarnokAlienBatch(deltaSeconds);
+    updateVarnokAlienFormation(deltaSeconds, frameTime);
     return;
   }
   if (boss.level === 2) {
@@ -806,7 +818,7 @@ function updateLevel3BossMovement(deltaSeconds) {
 }
 
 function updateVarnokBossMovement(deltaSeconds) {
-  updateRandomizedBossMovement(deltaSeconds, boss, 1);
+  updateRandomizedBossMovement(deltaSeconds, boss, 0.945);
 }
 
 function updateRandomizedBossMovement(deltaSeconds, targetBoss, speedMultiplier) {
@@ -866,16 +878,17 @@ function updateVarnokEyeCycle(deltaSeconds) {
   else boss.eyeOpeningAmount = 0;
 }
 
-function updateVarnokAlienBatch(deltaSeconds) {
-  if (boss?.level !== 4 || varnokAlienBatch === null) return;
+function updateVarnokAlienFormation(deltaSeconds, frameTime) {
+  const formation = varnokAlienFormation;
+  if (boss?.level !== 4 || formation === null) return;
 
-  const batch = varnokAlienBatch;
-  batch.elapsed += deltaSeconds;
-  while (batch.launchedCount < varnokAlienBatchSize
-    && batch.elapsed >= batch.nextLaunchTime) {
-    if (batch.slots === null) batch.slots = getVarnokFormationSlots(boss.x, boss.y);
+  formation.elapsed += deltaSeconds;
+  if (formation.nextBatchTime !== null && formation.elapsed >= formation.nextBatchTime) {
+    reserveVarnokAlienBatch(formation);
+  }
+  while (formation.nextLaunchSlot < formation.slots.length
+    && formation.elapsed >= formation.nextLaunchTime) {
     const body = getLevel3BossBodyBounds(boss);
-    const slot = batch.slots[batch.launchedCount];
     const alien = {
       x: boss.x,
       y: body.top,
@@ -885,16 +898,15 @@ function updateVarnokAlienBatch(deltaSeconds) {
       varnokState: "launching",
       returnWait: 0,
       launchX: boss.x,
-      formationTargetX: slot.x,
-      formationTargetY: slot.y,
+      formationSlot: formation.nextLaunchSlot,
     };
-    batch.aliens.push(alien);
+    formation.aliens.push(alien);
     enemies.push(alien);
-    batch.launchedCount += 1;
-    batch.nextLaunchTime += varnokAlienLaunchInterval;
+    formation.nextLaunchSlot += 1;
+    formation.nextLaunchTime += varnokAlienLaunchInterval;
   }
 
-  for (const alien of batch.aliens) {
+  for (const alien of formation.aliens) {
     if (alien.varnokState === "launching") {
       alien.y -= varnokAlienLaunchSpeed * deltaSeconds;
       if (alien.y + alien.height / 2 < 0) {
@@ -909,13 +921,14 @@ function updateVarnokAlienBatch(deltaSeconds) {
         alien.varnokState = "returning";
       }
     } else if (alien.varnokState === "returning") {
-      const dx = alien.formationTargetX - alien.x;
-      const dy = alien.formationTargetY - alien.y;
+      const slot = formation.slots[alien.formationSlot];
+      const dx = slot.x - alien.x;
+      const dy = slot.y - alien.y;
       const distance = Math.hypot(dx, dy);
       const step = varnokAlienReturnSpeed * deltaSeconds;
       if (distance <= step || distance === 0) {
-        alien.x = alien.formationTargetX;
-        alien.y = alien.formationTargetY;
+        alien.x = slot.x;
+        alien.y = slot.y;
         alien.varnokState = "formation";
       } else {
         alien.x += dx / distance * step;
@@ -923,38 +936,190 @@ function updateVarnokAlienBatch(deltaSeconds) {
       }
     }
   }
+
+  if (formation.nextBatchTime === null && formation.nextLaunchSlot === formation.slots.length
+    && formation.aliens.every((alien) => alien.varnokState === "formation")) {
+    formation.initialBatchSettled = true;
+    const delayRange = varnokReinforcementMaxDelay - varnokReinforcementMinDelay;
+    formation.nextBatchTime = formation.elapsed + varnokReinforcementMinDelay + Math.random() * delayRange;
+  }
+  if (formation.initialBatchSettled && formation.aliens.length > 0) {
+    updateVarnokFormation(formation, deltaSeconds);
+    updateLevel2Bomber(deltaSeconds, frameTime);
+  }
 }
 
-function getVarnokFormationSlots(centerX, centerY) {
+function reserveVarnokAlienBatch(formation) {
+  const maxSize = Math.min(varnokAlienBatchMaxSize, varnokAlienPopulationLimit - formation.aliens.length);
+  formation.nextBatchTime = formation.elapsed + varnokReinforcementRetryDelay;
+  if (maxSize < varnokAlienBatchMinSize) return;
+
+  const size = varnokAlienBatchMinSize
+    + Math.floor(Math.random() * (maxSize - varnokAlienBatchMinSize + 1));
+  const shapes = varnokFormationShapes.filter((shape) => shape !== formation.previousShape);
+  const shape = shapes[Math.floor(Math.random() * shapes.length)];
+  const occupiedSlots = formation.aliens.map((alien) => formation.slots[alien.formationSlot]);
+  const newSlots = occupiedSlots.length === 0
+    ? getVarnokFormationSlots(boss.x, boss.y, size, shape)
+    : getVarnokReinforcementSlots(occupiedSlots, formation.descentAnimation, size, shape);
+  if (newSlots === null) return;
+
+  // Keep every living alien's slot and reclaim old vacancies before appending reservations.
+  formation.aliens.forEach((alien, index) => { alien.formationSlot = index; });
+  formation.slots = occupiedSlots.concat(newSlots);
+  formation.nextLaunchSlot = occupiedSlots.length;
+  formation.nextLaunchTime = formation.elapsed;
+  formation.nextBatchTime = null;
+  formation.previousShape = shape;
+  if (occupiedSlots.length === 0) formation.descentAnimation = null;
+}
+
+function isSettledVarnokAlien(alien) {
+  return alien.varnokState === "formation" && alien.bomberState === undefined;
+}
+
+function updateVarnokFormation(formation, deltaSeconds) {
+  const aliens = formation.aliens.filter(isSettledVarnokAlien);
+  if (deltaSeconds <= 0 || aliens.length === 0) return;
+
+  // Keep both active aliens and all incoming reservations inside the canvas.
+  const occupiedSlots = formation.aliens.map((alien) => formation.slots[alien.formationSlot])
+    .concat(formation.slots.slice(formation.nextLaunchSlot));
+  let descentThisFrame = 0;
+  const animation = formation.descentAnimation;
+  if (animation !== null) {
+    const previousElapsed = animation.elapsed;
+    animation.elapsed = Math.min(
+      animation.elapsed + deltaSeconds,
+      level3FormationDescentDuration,
+    );
+    descentThisFrame = animation.distance
+      * (animation.elapsed - previousElapsed) / level3FormationDescentDuration;
+    if (animation.elapsed >= level3FormationDescentDuration) formation.descentAnimation = null;
+  }
+
   const halfSize = enemySize / 2;
-  const minX = halfSize;
-  const maxX = canvas.width - halfSize;
-  const minY = halfSize;
-  const maxY = canvas.height / 2 - halfSize;
+  const leftEdge = Math.min(...occupiedSlots.map((slot) => slot.x - halfSize));
+  const rightEdge = Math.max(...occupiedSlots.map((slot) => slot.x + halfSize));
+  let sidewaysStep = formation.formationDirection * enemySpeed * deltaSeconds;
+  if (formation.formationDirection > 0 && rightEdge + sidewaysStep >= canvas.width) {
+    sidewaysStep = canvas.width - rightEdge;
+    formation.formationDirection = -1;
+    if (formation.descentAnimation === null) {
+      const bottomEdge = Math.max(...occupiedSlots.map((slot) => slot.y + halfSize));
+      const distance = Math.min(
+        level3FormationDescentStep,
+        canvas.height - bottomEdge - descentThisFrame,
+      );
+      if (distance > 0) formation.descentAnimation = { distance, elapsed: 0 };
+    }
+  } else if (formation.formationDirection < 0 && leftEdge + sidewaysStep <= 0) {
+    sidewaysStep = -leftEdge;
+    formation.formationDirection = 1;
+  }
+
+  for (const slot of formation.slots) {
+    slot.x += sidewaysStep;
+    slot.y += descentThisFrame;
+  }
+  for (const slot of occupiedSlots) {
+    slot.y = Math.min(slot.y, canvas.height - halfSize);
+  }
+  for (const alien of aliens) {
+    const slot = formation.slots[alien.formationSlot];
+    alien.x = slot.x;
+    alien.y = slot.y;
+  }
+}
+
+function getVarnokFormationOffsets(size, shape) {
+  const rowSizes = shape === "block" ? [Math.ceil(size / 2), Math.floor(size / 2)] : [size];
+  const slope = shape === "v" ? 1 : shape === "invertedV" ? -1 : 0;
+  const offsets = [];
+  for (const [row, rowSize] of rowSizes.entries()) {
+    for (let column = 0; column < rowSize; column += 1) {
+      const stepsFromEdge = Math.min(column, rowSize - 1 - column);
+      offsets.push({
+        x: (column - (rowSize - 1) / 2) * varnokFormationColumnSpacing,
+        y: (row + slope * stepsFromEdge) * varnokFormationRowSpacing,
+      });
+    }
+  }
+  return offsets;
+}
+
+function getVarnokFormationSlots(centerX, centerY, size, shape) {
+  const offsets = getVarnokFormationOffsets(size, shape);
+  // Fit the entire layout at once to keep its spacing when Varnok is near an edge.
+  const halfSize = enemySize / 2;
+  const halfWidth = Math.max(...offsets.map((slot) => slot.x));
+  const top = Math.min(...offsets.map((slot) => slot.y));
+  const bottom = Math.max(...offsets.map((slot) => slot.y));
+  const minCenterX = halfSize + halfWidth;
+  const maxCenterX = canvas.width - halfSize - halfWidth;
+  const minOriginY = halfSize - top;
+  const maxOriginY = canvas.height / 2 - halfSize - bottom;
   const bodyTop = centerY - varnokBossHeight / 2;
-  const compactFormationFitsAboveBoss = bodyTop >= halfSize + 72;
-  const horizontalOffsets = compactFormationFitsAboveBoss
-    ? [-halfSize - 6, halfSize + 6]
-    : [-varnokFormationSideOffset, varnokFormationSideOffset];
-  const verticalOffsets = compactFormationFitsAboveBoss
-    ? [bodyTop - 37 - centerY, bodyTop - 72 - centerY]
-    : [-varnokFormationRowOffset, varnokFormationRowOffset];
-  return [
-    { x: centerX + horizontalOffsets[0], y: centerY + verticalOffsets[0] },
-    { x: centerX + horizontalOffsets[1], y: centerY + verticalOffsets[0] },
-    { x: centerX + horizontalOffsets[0], y: centerY + verticalOffsets[1] },
-    { x: centerX + horizontalOffsets[1], y: centerY + verticalOffsets[1] },
-  ].map((slot) => ({
-    x: Math.max(minX, Math.min(maxX, slot.x)),
-    y: Math.max(minY, Math.min(maxY, slot.y)),
+  const originAboveBoss = bodyTop - 37 - bottom;
+  const originX = Math.max(minCenterX, Math.min(maxCenterX, centerX));
+  const originY = Math.max(minOriginY, Math.min(maxOriginY, originAboveBoss));
+  return offsets.map((slot) => ({
+    x: originX + slot.x,
+    y: originY + slot.y,
   }));
 }
 
-function clearVarnokAlienBatch() {
+function getVarnokReinforcementSlots(occupiedSlots, descent, size, shape) {
+  const offsets = getVarnokFormationOffsets(size, shape);
+  const halfSize = enemySize / 2;
+  const halfWidth = Math.max(...offsets.map((slot) => slot.x));
+  const top = Math.min(...offsets.map((slot) => slot.y));
+  const bottom = Math.max(...offsets.map((slot) => slot.y));
+  const leftOccupied = Math.min(...occupiedSlots.map((slot) => slot.x));
+  const rightOccupied = Math.max(...occupiedSlots.map((slot) => slot.x));
+  const topOccupied = Math.min(...occupiedSlots.map((slot) => slot.y));
+  const bottomOccupied = Math.max(...occupiedSlots.map((slot) => slot.y));
+  const preferredX = (leftOccupied + rightOccupied) / 2;
+  const preferredY = (topOccupied + bottomOccupied - top - bottom) / 2;
+  const maxY = canvas.height - halfSize - bottom - getRemainingVarnokDescent(descent);
+  let nearestSlots = null;
+  let nearestDistance = Infinity;
+
+  // Search translations of the whole shape near the formation's current center.
+  for (let x = halfSize + halfWidth; x <= canvas.width - halfSize - halfWidth; x += halfSize) {
+    const left = Math.min(leftOccupied, x - halfWidth);
+    const right = Math.max(rightOccupied, x + halfWidth);
+    if (right - left >= canvas.width - enemySize) continue;
+    for (let y = halfSize - top; y <= maxY; y += halfSize) {
+      const distance = (x - preferredX) ** 2 + (y - preferredY) ** 2;
+      if (distance >= nearestDistance) continue;
+      const slots = offsets.map((offset) => ({ x: x + offset.x, y: y + offset.y }));
+      const overlaps = slots.some((slot) => occupiedSlots.some((occupied) => (
+        Math.abs(slot.x - occupied.x) < varnokFormationRowSpacing
+        && Math.abs(slot.y - occupied.y) < varnokFormationRowSpacing
+      )));
+      if (overlaps) continue;
+      nearestSlots = slots;
+      nearestDistance = distance;
+    }
+  }
+  return nearestSlots;
+}
+
+function getRemainingVarnokDescent(descent) {
+  return descent === null ? 0
+    : descent.distance * (1 - descent.elapsed / level3FormationDescentDuration);
+}
+
+function clearVarnokAlienFormation() {
+  if (varnokAlienFormation !== null) {
+    enemyShots.length = 0;
+    nextEnemyShotTime = null;
+  }
   for (let index = enemies.length - 1; index >= 0; index -= 1) {
     if (enemies[index].isVarnokAlien) enemies.splice(index, 1);
   }
-  varnokAlienBatch = null;
+  varnokAlienFormation = null;
 }
 
 function updateLevel3BossArmor(deltaSeconds) {
@@ -1392,7 +1557,7 @@ function finishGame(result) {
   gameState = result;
   resetLevel3Descent();
   clearDiveBomberState();
-  clearVarnokAlienBatch();
+  clearVarnokAlienFormation();
   clearLevel3BossEncounterState();
   clearVarnokBossEncounterState();
   if (currentLevel === 2) {
@@ -1465,7 +1630,7 @@ function restartGame() {
   shots.length = 0;
   enemyShots.length = 0;
   enemies.length = 0;
-  clearVarnokAlienBatch();
+  clearVarnokAlienFormation();
   boss = null;
   bossChargeElapsed = null;
   nextBossAttackTime = null;
@@ -1561,7 +1726,11 @@ level3Button.addEventListener("click", () => {
 
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
-  if (event.code === "Space") {
+  if (key === "k" && !event.repeat && DEVELOPER_MODE
+    && developerBossTestLevel === 4 && gameState === "playing" && boss?.level === 4) {
+    event.preventDefault();
+    applyBossDamage(boss.health);
+  } else if (event.code === "Space") {
     event.preventDefault();
     keysDown.add("space");
   } else if (["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "d", "w", "s"].includes(key)) {
@@ -1768,16 +1937,18 @@ function updateEnemies(deltaSeconds, frameTime) {
 }
 
 function updateLevel2Bomber(deltaSeconds, frameTime) {
+  const varnokFormation = boss?.level === 4 ? varnokAlienFormation : null;
   let bomber = level2Bomber;
   if (bomber === null) {
     level2BomberTimer -= deltaSeconds;
     if (level2BomberTimer <= 0) {
-      const eligibleEnemies = enemies.filter((enemy) => enemy.formationSlot !== null
-        && enemy.bomberState === undefined);
+      const eligibleEnemies = varnokFormation === null
+        ? enemies.filter((enemy) => enemy.formationSlot !== null && enemy.bomberState === undefined)
+        : varnokFormation.aliens.filter((alien) => isSettledVarnokAlien(alien) && alien.y < player.y);
       if (eligibleEnemies.length > 0) {
         bomber = eligibleEnemies[Math.floor(Math.random() * eligibleEnemies.length)];
         level2Bomber = bomber;
-        bomber.formationSlot = null;
+        if (varnokFormation === null) bomber.formationSlot = null;
         bomber.bomberState = "dive";
         const dx = player.x - bomber.x;
         const dy = player.y - bomber.y;
@@ -1785,6 +1956,8 @@ function updateLevel2Bomber(deltaSeconds, frameTime) {
         bomber.diveVelocityX = dx / distance * level2BomberSpeed;
         bomber.diveVelocityY = dy / distance * level2BomberSpeed;
         bomber.contactingPlayer = false;
+      } else if (varnokFormation !== null) {
+        level2BomberTimer = level2BomberCooldown;
       }
     }
   }
@@ -1803,10 +1976,10 @@ function updateLevel2Bomber(deltaSeconds, frameTime) {
       && bomber.y - bomber.height / 2 <= player.y + player.height / 2;
     if (touchingPlayer && !bomber.contactingPlayer && damagePlayer(frameTime)) {
       level2ShieldCharges = 0;
-      enemies.splice(enemies.indexOf(bomber), 1);
+      removeEnemy(bomber);
       level2Bomber = null;
       level2BomberTimer = gameState === "playing" ? level2BomberCooldown : 0;
-      if (enemies.length === 0 && lives > 0) {
+      if (varnokFormation === null && enemies.length === 0 && lives > 0) {
         if (currentLevel === 2) advanceLevel2Formation();
         else if (currentLevel === 3) advanceLevel3Formation();
       }
@@ -1814,27 +1987,16 @@ function updateLevel2Bomber(deltaSeconds, frameTime) {
     }
     bomber.contactingPlayer = touchingPlayer;
     if (bomber.y - bomber.height / 2 > canvas.height) {
-      const occupiedSlots = new Set(enemies
-        .filter((enemy) => enemy !== bomber && enemy.formationSlot !== null)
-        .map((enemy) => enemy.formationSlot));
-      const formationRows = getFormationRowCount();
-      const availableSlots = Array.from(
-        { length: formationRows * formationColumns },
-        (_, slot) => slot,
-      )
-        .filter((slot) => !occupiedSlots.has(slot));
+      const availableSlots = getDiveBomberReturnSlots(bomber, varnokFormation);
       const selectedSlot = availableSlots[Math.floor(Math.random() * availableSlots.length)];
       bomber.formationSlot = selectedSlot;
-      bomber.x = 230 + (selectedSlot % formationColumns) * 65 + level2FormationOffsetX;
+      bomber.x = getDiveBomberReturnPosition(selectedSlot, varnokFormation).x;
       bomber.y = -bomber.height / 2;
       bomber.bomberState = "return";
       bomber.contactingPlayer = false;
     }
   } else if (bomber.bomberState === "return") {
-    const targetX = 230 + (bomber.formationSlot % formationColumns) * 65 + level2FormationOffsetX;
-    const level3DescentOffset = currentLevel === 3 ? level3FormationDescentOffset : 0;
-    const targetY = 90 + Math.floor(bomber.formationSlot / formationColumns) * 55
-      + level3DescentOffset;
+    const { x: targetX, y: targetY } = getDiveBomberReturnPosition(bomber.formationSlot, varnokFormation);
     const dx = targetX - bomber.x;
     const dy = targetY - bomber.y;
     const distance = Math.hypot(dx, dy);
@@ -1849,6 +2011,47 @@ function updateLevel2Bomber(deltaSeconds, frameTime) {
       bomber.x += dx / distance * step;
       bomber.y += dy / distance * step;
     }
+  }
+}
+
+function getDiveBomberReturnSlots(bomber, varnokFormation) {
+  const occupiedSlots = new Set(enemies
+    .filter((enemy) => enemy !== bomber && enemy.formationSlot !== null)
+    .map((enemy) => enemy.formationSlot));
+  if (varnokFormation === null) {
+    return Array.from({ length: getFormationRowCount() * formationColumns }, (_, slot) => slot)
+      .filter((slot) => !occupiedSlots.has(slot));
+  }
+
+  const halfSize = enemySize / 2;
+  const maxY = canvas.height - halfSize - getRemainingVarnokDescent(varnokFormation.descentAnimation);
+  return varnokFormation.slots
+    .map((_, index) => index)
+    .filter((index) => {
+      if (index === bomber.formationSlot) return true;
+      const { x, y } = varnokFormation.slots[index];
+      return index < varnokFormation.nextLaunchSlot && !occupiedSlots.has(index)
+        && x >= halfSize && x <= canvas.width - halfSize
+        && y >= halfSize && y <= maxY;
+    });
+}
+
+function getDiveBomberReturnPosition(slot, varnokFormation) {
+  if (varnokFormation !== null) return varnokFormation.slots[slot];
+
+  const level3DescentOffset = currentLevel === 3 ? level3FormationDescentOffset : 0;
+  return {
+    x: 230 + (slot % formationColumns) * 65 + level2FormationOffsetX,
+    y: 90 + Math.floor(slot / formationColumns) * 55 + level3DescentOffset,
+  };
+}
+
+function removeEnemy(enemy) {
+  const enemyIndex = enemies.indexOf(enemy);
+  if (enemyIndex !== -1) enemies.splice(enemyIndex, 1);
+  if (enemy.isVarnokAlien && varnokAlienFormation !== null) {
+    const batchIndex = varnokAlienFormation.aliens.indexOf(enemy);
+    if (batchIndex !== -1) varnokAlienFormation.aliens.splice(batchIndex, 1);
   }
 }
 
@@ -1951,11 +2154,7 @@ function handleShotCollisions() {
         level2BomberTimer = level2BomberCooldown;
       }
       const destroyedEnemy = enemies[hitEnemyIndex];
-      enemies.splice(hitEnemyIndex, 1);
-      if (destroyedEnemy.isVarnokAlien && varnokAlienBatch !== null) {
-        const batchIndex = varnokAlienBatch.aliens.indexOf(destroyedEnemy);
-        if (batchIndex !== -1) varnokAlienBatch.aliens.splice(batchIndex, 1);
-      }
+      removeEnemy(destroyedEnemy);
       shots.splice(shotIndex, 1);
       score += 10;
       scoreDisplay.textContent = score;
@@ -2051,52 +2250,61 @@ function handleShotCollisions() {
         }
       }
 
-      if (damagesBoss) {
-        boss.health -= 1;
-        score += 10;
-        scoreDisplay.textContent = score;
-        if (boss.health <= 0) {
-          if (boss.level === 2) {
-            score += level2BossDefeatBonus;
-            scoreDisplay.textContent = score;
-            showLevel2ClearedScreen();
-          } else if (boss.level === 3) {
-            score += level3BossDefeatBonus;
-            scoreDisplay.textContent = score;
-            showLevel3BossDefeatedScreen();
-          } else if (boss.level === 4) {
-            score += varnokBossDefeatBonus;
-            scoreDisplay.textContent = score;
-            showVarnokDefeatedScreen();
-          } else {
-            score += level1BossDefeatBonus;
-            scoreDisplay.textContent = score;
-            showLevel1ClearedScreen();
-          }
-          return;
-        }
-      }
+      if (damagesBoss && applyBossDamage(1)) return;
     }
+  }
+}
+
+function applyBossDamage(damage) {
+  boss.health -= damage;
+  score += 10;
+  scoreDisplay.textContent = score;
+  if (boss.health > 0) return false;
+
+  if (boss.level === 2) {
+    score += level2BossDefeatBonus;
+    scoreDisplay.textContent = score;
+    showLevel2ClearedScreen();
+  } else if (boss.level === 3) {
+    score += level3BossDefeatBonus;
+    scoreDisplay.textContent = score;
+    showLevel3BossDefeatedScreen();
+  } else if (boss.level === 4) {
+    score += varnokBossDefeatBonus;
+    scoreDisplay.textContent = score;
+    showVarnokDefeatedScreen();
+  } else {
+    score += level1BossDefeatBonus;
+    scoreDisplay.textContent = score;
+    showLevel1ClearedScreen();
+  }
+  return true;
+}
+
+function updateAlienFiring(shooters, frameTime) {
+  if (shooters.length === 0) {
+    nextEnemyShotTime = null;
+  } else if (nextEnemyShotTime === null) {
+    nextEnemyShotTime = frameTime + enemyShotIntervalMin;
+  } else if (frameTime >= nextEnemyShotTime) {
+    const shooter = shooters[Math.floor(Math.random() * shooters.length)];
+    enemyShots.push({
+      x: shooter.x,
+      y: shooter.y + shooter.height / 2,
+      width: 7,
+      height: 13,
+    });
+    nextEnemyShotTime = frameTime + enemyShotIntervalMin
+      + Math.random() * enemyShotIntervalRange;
   }
 }
 
 function updateEnemyShots(deltaSeconds, frameTime) {
   if (boss === null) {
-    if (enemies.length === 0) {
-      nextEnemyShotTime = null;
-    } else if (nextEnemyShotTime === null) {
-      nextEnemyShotTime = frameTime + enemyShotIntervalMin;
-    } else if (frameTime >= nextEnemyShotTime) {
-      const shooter = enemies[Math.floor(Math.random() * enemies.length)];
-      enemyShots.push({
-        x: shooter.x,
-        y: shooter.y + shooter.height / 2,
-        width: 7,
-        height: 13,
-      });
-      nextEnemyShotTime = frameTime + enemyShotIntervalMin
-        + Math.random() * enemyShotIntervalRange;
-    }
+    updateAlienFiring(enemies, frameTime);
+  } else if (boss.level === 4 && varnokAlienFormation !== null) {
+    const settledAliens = varnokAlienFormation.aliens.filter(isSettledVarnokAlien);
+    updateAlienFiring(settledAliens, frameTime);
   }
 
   for (const shot of enemyShots) {

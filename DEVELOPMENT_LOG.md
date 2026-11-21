@@ -117,7 +117,7 @@ At the time of this Kaezar checkpoint, local work was uncommitted and not pushed
 
 ## Level 3 and Varnok development checkpoint — 20 November 2026
 
-This section records the current local implementation and the user's reported checks. Code presence is not a claim that every behavior has passed gameplay testing.
+This section records the state and reported checks at the 20 November checkpoint. The 21 November checkpoint below records the later Varnok changes.
 
 ### Level 3 and Zhur-Kai
 
@@ -142,3 +142,38 @@ This section records the current local implementation and the user's reported ch
 - A focused Node simulation used production boss movement, eye-cycle, shot movement and collision functions in game-loop order. It showed well-aligned shots hitting both eyes during horizontal and diagonal movement; shots near a moving passage edge were consumed by the overlapping solid armour. This is a controlled code simulation, not browser gameplay or user acceptance.
 - The user manually tested Varnok aliens sufficiently to observe four settling in the upper-left and remaining independent of Varnok. Other launch, collision, scoring, cleanup and defeat cases remain unverified by user report.
 - No browser tests were run for the current alien-launch step. No full playthrough or broad regression coverage is claimed.
+
+## Varnok formation, reinforcements and defeat checkpoint — 21 November 2026
+
+### Implemented
+
+- The boss body uses **0.945** for randomized horizontal and vertical movement at every HP level. The user accepted this difficulty for now. Normal progression still ends at Zhur-Kai’s checkpoint. Varnok remains accessible through **Test Boss 4**, and his defeat leads to the temporary encounter-complete screen. His own dive, bomb barrage, progression connection and final victory are still planned.
+- The initial batch randomly contains 4–8 aliens in a horizontal row, two-row block, V or inverted V. The staggered launch, off-screen wait, return and settling lifecycle applies to each batch. The survivors of the initial batch settle before formation movement starts. The formation moves independently at 65 px/s and descends smoothly by 55 px over 0.35 seconds at each distinct right-edge contact, limited by the bottom boundary.
+- Settled aliens share the existing projectile handling and one firing timer, with the first shot after 0.9 seconds and later shots 0.9–1.5 seconds apart. At most one alien can dive or return from a dive at a time. Only a settled alien above the player can start a dive. Missed divers exit below and re-enter from above to a vacant formation slot. Destroying a diver awards 10 points. A successful diver collision removes one life, clears shield charges and consumes the diver without awarding points.
+- A new batch is scheduled 15–20 seconds after the previous batch settles, including when earlier aliens remain. Consecutive batches use different shapes. The cap is 12 living aliens across launch, off-screen wait, return, settled and diving states. A new batch reserves a random 4–8 places within available capacity. With fewer than four places free, the game retries after 3 seconds. Incoming aliens return to reserved slots that move with the same formation, so survivors keep moving and firing without being repositioned.
+- With Developer Mode enabled during active **Test Boss 4** gameplay, **K** applies lethal damage through the normal eye-hit damage handler, even when the eyes are closed. The normal defeat path adds 10 points for the hit and the 300-point bonus once, shows the defeat screen and clears the aliens, projectiles and reinforcement schedule.
+
+### User-reported browser checks
+
+- Formation movement and right-edge stepping worked. Alien shooting, projectile damage, loss-screen cleanup and fresh-run firing eligibility worked.
+- Diving, missed-dive return and continued formation activity worked. Destroying a diver awarded 10 points. Diver collision removed one life, consumed the diver and gave no points.
+- Random initial formations worked in the user’s trials. Reinforcements arrived while earlier aliens remained and joined the moving formation successfully.
+- The user defeated Varnok normally at **0.9**. The user accepted the current **0.945** difficulty. A normal win at 0.945 has not been reported.
+- The **K** test showed the defeat screen and removed the visible aliens and projectiles. No reinforcements appeared during an extended wait. The score went from 0 to 310 and stayed there after another press.
+- Shield interactions, the population cap, every cleanup path and all 20 count-and-shape combinations remain outside the reported browser coverage.
+
+### Agent-run static checks and Node simulations
+
+- `node --check game.js` and `git diff --check` passed during the implementation steps.
+- Focused Node simulations exercised launch, settling, edge reversals and descent, shooter eligibility and cadence, projectile movement, shield and life handling, and loss, defeat and reset cleanup. Dive simulations exercised downward eligibility, skipped opportunities, locked aim, missed-dive return, continued formation activity, scoring and contact, and Level 3’s return path.
+- Node simulations covered all 20 initial count-and-shape combinations, survivor settling after an early loss, recurring reinforcements with survivors, the population cap and retry, pending slot reservations, and 800 incoming slot placements during descent.
+- A Node simulation exercised a normal eye hit, shortcut restrictions, closed-eye defeat with active aliens and a projectile, cleanup and duplicate-score prevention. The agent ran no browser tests for this checkpoint.
+
+### Tool and model records
+
+- The user reported the previous VS Code Codex UI label as “Luna6-medium.” After purchasing a subscription, the displayed label changed to “GPT-6.2 Sol,” and the earlier model was no longer selectable. These are user-reported labels. The effect of the switch on implementation quality has not been established.
+- Perplexity discussions used Best/automatic selection. The underlying model is unspecified.
+
+### Next session
+
+Review the saved checkpoint with the user and agree on one small gameplay task before editing. Preserve the accepted balance and other bosses. Discuss the remaining Varnok attacks, progression and final victory before choosing settings or implementing them. The user performs browser tests unless they explicitly authorize agent browser tests. Push only on direct request.
