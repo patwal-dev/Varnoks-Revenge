@@ -177,3 +177,66 @@ This section records the state and reported checks at the 20 November checkpoint
 ### Next session
 
 Review the saved checkpoint with the user and agree on one small gameplay task before editing. Preserve the accepted balance and other bosses. Discuss the remaining Varnok attacks, progression and final victory before choosing settings or implementing them. The user performs browser tests unless they explicitly authorize agent browser tests. Push only on direct request.
+
+## Zhur-Kai to Varnok progression — 21 November 2026
+
+- Normal Level 3 now goes straight from Zhur-Kai’s defeat to Varnok’s threat. The existing speech bubble displays for 4.5 seconds with combat paused. The fight begins automatically as the final encounter of Level 3, with Varnok’s own summoned aliens and reinforcements.
+- The transition clears Zhur-Kai’s attack state, projectiles and timers. Remaining lives and score carry over, including +10 for the final hit and a separate +300 defeat bonus awarded once. The normal route and **Test Boss 4** share encounter setup. Test Boss 4 still skips the intro. **K** remains restricted to active Test Boss 4 gameplay with Developer Mode enabled. The standalone **Test Boss 3** checkpoint remains.
+- Varnok’s 0.945 movement multiplier at every HP level and temporary encounter-complete screen are retained. His own dive attack and bomb barrage are deferred. The final victory message and credits remain future work.
+- **Agent-run checks.** `node --check game.js` and `git diff --check` passed. A focused Node simulation used the game loop with stubbed DOM and Canvas. It checked the final hit with multiple player shots and an incoming Zhur-Kai projectile, score and lives carry-over, attack and timer cleanup, dialogue text, paused combat, automatic start, first summons, and duplicate-start and duplicate-reward protection. It also checked the normal route with Developer Mode on and off, both standalone boss tests, the K shortcut, Varnok movement at full and low HP, Varnok’s normal defeat, and Level 1 and 2 intro and clear paths.
+- **Browser verification pending.** The agent did not launch a browser. The user will check the transition by clearing Level 3 and defeating Zhur-Kai.
+- **Tool record.** OpenAI Codex implemented and checked this change. The exact model identifier and reasoning setting were unavailable for this entry.
+
+## Rolling credits and verification update — 21 November 2026
+
+- Varnok’s defeat through normal Level 3 progression clears combat and starts rolling placeholder credits. The existing damage handler awards +10 for the final hit and the +300 defeat bonus once. Combat and its controls stay inactive during the credits. The credits end on a stable victory screen with the final score and the existing Restart button, which starts a fresh Level 1 run.
+- **Test Boss 4** still ends at the standalone encounter-complete screen, including when using **K** with Developer Mode enabled. Varnok’s own dive and bomb barrage are no longer planned. The user considers the current encounter sufficiently difficult.
+- **Agent-run checks.** `node --check game.js` and `git diff --check` passed. A focused Node simulation with stubbed DOM and Canvas checked the normal path from Zhur-Kai to Varnok, a finishing eye hit with a second shot present, one-time scoring, and cleanup of active aliens, shots, dive state and scheduled reinforcements. It checked input suppression, upward credit positions starting below the canvas, the stable final score and Restart button, and movement and shooting after Restart. It separately checked that Test Boss 4's K shortcut still reaches its checkpoint and awards points once.
+- **User-reported browser feedback.** The user liked the Wave 2 entrance in a focused visual check. The report did not specify which levels were checked.
+- **Browser checks pending.** The credits sequence and Zhur-Kai’s cyan crosshair removal await user verification. The agent ran no browser tests.
+- **Tool record.** OpenAI Codex implemented and checked this change. The exact model identifier and reasoning setting were unavailable for this entry.
+
+## Varnok health adjustment — 21 November 2026
+
+- Reduced Varnok’s shared eye and boss health from 30 to 24 HP (20%) at the user’s request. The shared encounter setup sets both starting and maximum health, and the health bar already uses that maximum. Movement remains at 0.945 and eye timing, attacks, summons and scoring rules retain their existing values.
+- **Agent-run checks.** `node --check game.js` and `git diff --check` passed. A focused Node simulation started both routes again after restart, checked full and half health bar widths, and confirmed that 24 alternating eye hits still award 10 points each plus the one-time 300-point bonus. Normal defeat started the credits, and Test Boss 4 showed its checkpoint. Browser verification is pending.
+- **Tool record.** OpenAI Codex implemented and checked this change. The exact model identifier and reasoning setting were unavailable for this entry.
+
+## Varnok health reduced to 19 HP — 21 November 2026
+
+- Reduced shared health from 24 to **19 HP** by rounding 19.2 to whole HP. This supersedes the proposed 22 HP setting. Both routes use 19 as the starting and maximum health, including for the health bar. Movement remains at 0.945, and attacks, summons, eye timings, damage and scoring retain their existing values.
+- **Agent-run checks.** `node --check game.js` and `git diff --check` passed. A focused Node simulation checked both routes after restart, the bar at 19/19 and 18/19 HP, and 19 alternating eye hits worth 10 points each plus a single 300-point bonus. Normal defeat started the credits, and Test Boss 4 showed its checkpoint. Browser verification is pending.
+- **Tool record.** OpenAI Codex implemented and checked this change. The exact model identifier and reasoning setting were unavailable for this entry.
+
+## Main menu and placeholder music — 21 November 2026
+
+- The initial screen shows the Space Shooter title and buttons for Start Game, How to Play and Music. Combat starts on Start Game through the existing Level 1 reset. How to Play describes the controls and objective and offers a Back button. Developer Mode tools stay in their own panel.
+- A quiet generated Web Audio loop plays after a user clicks a button with music enabled. Music defaults to Off. Its preference is saved locally when storage works, and the toggle stays above the play area during gameplay. Turning music off stops the loop.
+- **User-reported browser check.** The user defeated Varnok at 19 HP in **Test Boss 4** and saw the standalone checkpoint. Normal-route credits remain pending browser verification.
+- **Agent-run checks.** `node --check game.js`, `node --check music.js` and whitespace checks passed. A focused Node simulation with stubbed DOM, Canvas and Web Audio checked the idle menu, How to Play and Back, Level 1 reset and shooting, Developer Mode and Test Boss 4’s K checkpoint, and music default, persistence, trusted click gating, resume retry, duplicate-loop prevention, stopping and restarting, blocked storage, and unsupported audio. Menu layout and audible playback still need browser verification. The agent ran no browser tests.
+- **Tool record.** OpenAI Codex implemented and checked this change. The exact model identifier and reasoning setting were unavailable for this entry.
+
+## Gameplay and menu checkpoint before graphics — 21 November 2026
+
+### Current implementation
+
+- Zhur-Kai’s defeat in normal Level 3 leads straight to Varnok’s threat. Combat pauses for about 4.5 seconds, then Varnok starts automatically. Test Boss 3 keeps its standalone checkpoint. Zhur-Kai’s cyan targeting crosshair drawing was removed while the existing attack timing, aim lock and projectiles were retained.
+- Wave 2 enters smoothly from above over about 1.5 seconds in Levels 1–3. Its combat behavior starts when the formation arrives.
+- Normal-progression Varnok defeat starts rolling placeholder credits, then shows the final score and Restart. Test Boss 4 still ends at its standalone checkpoint. Varnok’s current shared health is 19 HP, superseding 30 HP, 24 HP and the proposed 22 HP. His movement multiplier remains 0.945. The user considers the existing fight sufficiently difficult and has dropped plans for Varnok’s own dive and bomb barrage.
+- The idle main menu offers Start Game, How to Play and Music On/Off. The central menu and gameplay header music buttons share one setting and one placeholder loop. Music defaults to Off, remembers the setting when storage is available, and starts after user interaction.
+
+### User-reported browser checks
+
+- The user confirmed the Zhur-Kai-to-Varnok transition occurred, Varnok became playable, and his summoned aliens appeared. Exact timing, scoring, lives carryover and shortcut restrictions were outside this report.
+- The user liked the Wave 2 entrance in a focused visual check. The report did not identify all three levels as tested.
+- The user defeated 19 HP Varnok in Test Boss 4 and saw the expected standalone checkpoint. The normal-progression credits remain pending browser verification, as does Zhur-Kai’s crosshair removal.
+- The user’s screenshot showed the main menu with the music control in the header. The subsequent central-menu button and synchronization between the two music controls remain pending browser verification.
+
+### Agent checks
+
+- Focused Node simulations from the earlier changes are recorded above. Additional focused simulations checked Wave 2 entry and combat timers across all three levels, last-diver contact in Levels 2–3, entrance cleanup and boss handoffs. A simulated DOM and Web Audio check covered placement of the added music toggle, synchronized labels and pressed state, saved settings, trusted-click startup and duplicate-loop prevention.
+- The checkpoint review included the full diff and ran `node --check game.js`, `node --check music.js`, `git diff --check` and `git diff --cached --check`. The agent ran no browser tests for this checkpoint.
+
+### Next session
+
+Start a separate visual workshop with player-ship concepts. No player-ship direction has been selected. Show concepts enlarged and at actual in-game size and obtain approval before integration. Integrate approved artwork incrementally while preserving gameplay, weapon positions and collision hitboxes. Keep pending browser checks visible. Focus on one scoped change and user browser test at a time, and fix small gameplay issues as discovered.

@@ -2,6 +2,13 @@ const canvas = document.getElementById("game");
 const context = canvas.getContext("2d");
 const scoreDisplay = document.getElementById("score");
 const livesDisplay = document.getElementById("lives");
+const gameStatus = document.getElementById("game-status");
+const mainMenu = document.getElementById("main-menu");
+const menuOptions = document.getElementById("menu-options");
+const howToPlay = document.getElementById("how-to-play");
+const howToPlayButton = document.getElementById("show-how-to-play");
+const menuBackButton = document.getElementById("menu-back");
+const musicToggle = document.getElementById("music-toggle");
 const restartButton = document.getElementById("restart");
 const level2Button = document.getElementById("level-2");
 const level3Button = document.getElementById("level-3");
@@ -67,7 +74,7 @@ const level3BossMinMoveDuration = 2;
 const level3BossMaxMoveDuration = 4;
 const level3BossLowHealthThreshold = 0.25;
 const level3BossLowHealthMovementMultiplier = 1.15;
-const varnokBossHealth = 30;
+const varnokBossHealth = 19;
 const varnokBossDefeatBonus = 300;
 const varnokBossWidth = 200;
 const varnokBossHeight = 110;
@@ -127,7 +134,10 @@ const maxEnemySpeedMultiplier = 1.75;
 const level1WaveCount = 2;
 const level2WaveCount = 2;
 const level3WaveCount = 2;
-const waveEntranceDuration = 0.8;
+const waveEntranceDuration = 1.5;
+const creditsScrollSpeed = 100;
+const creditsLineSpacing = 32;
+const creditsLines = ["Game Design", "Development", "Playtesting"];
 const barrierWidth = 110;
 const barrierHeight = 28;
 const barrierHitPoints = 3;
@@ -163,7 +173,8 @@ let nextShotTime = 0;
 let nextEnemyShotTime = null;
 let playerInvulnerableUntil = 0;
 let playerShieldProtectedUntil = 0;
-let gameState = "playing";
+let gameState = "menu";
+let creditsY = null;
 let previousFrameTime = 0;
 const stars = [];
 let starSeed = 74821;
@@ -217,7 +228,7 @@ function getFormationRowCount() {
 
 function startWaveEntrance() {
   const lowestEdge = Math.max(...enemies.map((enemy) => enemy.y + enemy.height / 2));
-  const entranceOffset = -lowestEdge;
+  const entranceOffset = -lowestEdge - 1;
   waveEntrancePositions = enemies.map((enemy) => {
     const targetY = enemy.y;
     const startY = targetY + entranceOffset;
@@ -225,25 +236,31 @@ function startWaveEntrance() {
     return { startY, targetY };
   });
   waveEntranceElapsed = 0;
+  nextEnemyShotTime = null;
 }
 
-function updateWaveEntrance(deltaSeconds) {
+function updateWaveEntrance(deltaSeconds, frameTime) {
   waveEntranceElapsed = Math.min(
     waveEntranceElapsed + deltaSeconds,
     waveEntranceDuration,
   );
   const progress = waveEntranceElapsed / waveEntranceDuration;
+  const easedProgress = progress * progress * (3 - 2 * progress);
 
   enemies.forEach((enemy, index) => {
     const { startY, targetY } = waveEntrancePositions[index];
     enemy.y = progress === 1
       ? targetY
-      : startY + (targetY - startY) * progress;
+      : startY + (targetY - startY) * easedProgress;
   });
 
   if (progress === 1) {
     waveEntranceElapsed = null;
     waveEntrancePositions = null;
+    nextEnemyShotTime = frameTime + enemyShotIntervalMin;
+    if (currentLevel === 2 || currentLevel === 3) {
+      level2BomberTimer = level2BomberDelay;
+    }
   }
 }
 
@@ -349,8 +366,8 @@ function startLevel3BossFight() {
   previousFrameTime = 0;
 }
 
-function startVarnokBossFight() {
-  if (currentLevel !== 3 || lives <= 0) return;
+function startVarnokBossFight(showIntro = false) {
+  if (currentLevel !== 3 || lives <= 0 || boss !== null || gameState !== "playing") return;
 
   clearVarnokAlienFormation();
   clearDiveBomberState();
@@ -363,6 +380,7 @@ function startVarnokBossFight() {
   level2BonusShipTimer = 0;
   level2Pickups.length = 0;
   level2ShieldCharges = 0;
+  playerInvulnerableUntil = 0;
   playerShieldProtectedUntil = 0;
   level2WeaponTimeRemaining = 0;
   level2WeaponMessageTimeRemaining = 0;
@@ -374,7 +392,7 @@ function startVarnokBossFight() {
   waveEntrancePositions = null;
   bossChargeElapsed = null;
   nextBossAttackTime = null;
-  bossIntroElapsed = null;
+  bossIntroElapsed = showIntro ? 0 : null;
   bossIntroStartY = null;
   bossIntroTargetY = null;
   boss = {
@@ -408,7 +426,7 @@ function startVarnokBossFight() {
   nextShotTime = 0;
   currentWave = level3WaveCount;
   keysDown.clear();
-  gameState = "playing";
+  gameState = showIntro ? "bossIntro" : "playing";
   restartButton.hidden = true;
   level2Button.hidden = true;
   level3Button.hidden = true;
@@ -425,11 +443,10 @@ function advanceLevel2Formation() {
     enemyShots.length = 0;
     enemies.length = 0;
     level2FormationOffsetX = 0;
-    level2Bomber = null;
-    level2BomberTimer = level2BomberDelay;
+    clearDiveBomberState();
     enemyDirection = 1;
-    nextEnemyShotTime = null;
     createEnemies();
+    startWaveEntrance();
     return;
   }
 
@@ -447,18 +464,17 @@ function startBossIntro() {
 }
 
 function updateBossIntro(deltaSeconds) {
-  const dialogueDuration = boss.level === 2 ? 0 : bossDialogueDuration;
-  bossIntroElapsed = Math.min(
-    bossIntroElapsed + deltaSeconds,
-    bossIntroSlideDuration + dialogueDuration,
-  );
-  const slideProgress = Math.min(bossIntroElapsed / bossIntroSlideDuration, 1);
-  boss.y = slideProgress === 1
-    ? bossIntroTargetY
-    : bossIntroStartY + (bossIntroTargetY - bossIntroStartY) * slideProgress;
+  const slideDuration = bossIntroStartY === null ? 0 : bossIntroSlideDuration;
+  const introDuration = slideDuration + (boss.level === 2 ? 0 : bossDialogueDuration);
+  bossIntroElapsed = Math.min(bossIntroElapsed + deltaSeconds, introDuration);
+  if (slideDuration > 0) {
+    const slideProgress = Math.min(bossIntroElapsed / slideDuration, 1);
+    boss.y = slideProgress === 1
+      ? bossIntroTargetY
+      : bossIntroStartY + (bossIntroTargetY - bossIntroStartY) * slideProgress;
+  }
 
-  if (bossIntroElapsed >= bossIntroSlideDuration + dialogueDuration) {
-    boss.y = bossIntroTargetY;
+  if (bossIntroElapsed >= introDuration) {
     bossIntroElapsed = null;
     bossIntroStartY = null;
     bossIntroTargetY = null;
@@ -594,11 +610,14 @@ function showLevel3BossDefeatedScreen() {
   level3Button.hidden = true;
 }
 
-function showVarnokDefeatedScreen() {
-  gameState = "varnokBossDefeated";
+function finishVarnokEncounter() {
+  const isBossTest = developerBossTestLevel === 4;
+  gameState = isBossTest ? "varnokBossDefeated" : "credits";
   clearVarnokAlienFormation();
   clearVarnokBossEncounterState();
   boss = null;
+  bossChargeElapsed = null;
+  nextBossAttackTime = null;
   clearDiveBomberState();
   level2BonusShip = null;
   level2BonusShipTimer = 0;
@@ -610,9 +629,24 @@ function showVarnokDefeatedScreen() {
   keysDown.clear();
   shots.length = 0;
   enemyShots.length = 0;
-  restartButton.hidden = false;
+  nextShotTime = 0;
+  nextEnemyShotTime = null;
+  if (!isBossTest) {
+    playerInvulnerableUntil = 0;
+    creditsY = canvas.height + creditsLineSpacing;
+  }
+  restartButton.hidden = !isBossTest;
   level2Button.hidden = true;
   level3Button.hidden = true;
+}
+
+function updateCredits(deltaSeconds) {
+  creditsY -= creditsScrollSpeed * deltaSeconds;
+  if (creditsY + (creditsLines.length + 2) * creditsLineSpacing <= 0) {
+    creditsY = null;
+    gameState = "victory";
+    restartButton.hidden = false;
+  }
 }
 
 function advanceLevel3Formation() {
@@ -626,13 +660,10 @@ function advanceLevel3Formation() {
     enemies.length = 0;
     clearDiveBomberState();
     level2FormationOffsetX = 0;
-    level2BomberTimer = level2BomberDelay;
     enemyDirection = 1;
-    nextEnemyShotTime = null;
-    waveEntranceElapsed = null;
-    waveEntrancePositions = null;
     previousFrameTime = 0;
     createEnemies();
+    startWaveEntrance();
     return;
   }
 
@@ -1555,6 +1586,8 @@ function damageBarrierWithShot(shot) {
 
 function finishGame(result) {
   gameState = result;
+  waveEntranceElapsed = null;
+  waveEntrancePositions = null;
   resetLevel3Descent();
   clearDiveBomberState();
   clearVarnokAlienFormation();
@@ -1608,6 +1641,7 @@ function damagePlayerFromProjectile(frameTime) {
 
 function restartGame() {
   developerBossTestLevel = null;
+  creditsY = null;
   score = 0;
   lives = 3;
   currentLevel = 1;
@@ -1649,6 +1683,8 @@ function restartGame() {
   playerShieldProtectedUntil = 0;
   keysDown.clear();
   gameState = "playing";
+  mainMenu.hidden = true;
+  gameStatus.hidden = false;
   restartButton.hidden = true;
   level2Button.hidden = true;
   level3Button.hidden = true;
@@ -1700,8 +1736,23 @@ function startDeveloperTestBoss(level) {
   previousFrameTime = 0;
 }
 
-createEnemies();
-createBarriers();
+document.getElementById("start-game").addEventListener("click", () => {
+  restartGame();
+  canvas.focus({ preventScroll: true });
+});
+howToPlayButton.addEventListener("click", () => {
+  menuOptions.hidden = true;
+  howToPlay.hidden = false;
+  menuBackButton.focus();
+});
+menuBackButton.addEventListener("click", () => {
+  howToPlay.hidden = true;
+  menuOptions.hidden = false;
+  howToPlayButton.focus();
+});
+musicToggle.addEventListener("click", (event) => {
+  if (gameState === "playing" && event.detail > 0) canvas.focus({ preventScroll: true });
+});
 restartButton.addEventListener("click", restartGame);
 if (DEVELOPER_MODE) {
   gameMain.classList.add("developer-mode");
@@ -1725,17 +1776,19 @@ level3Button.addEventListener("click", () => {
 });
 
 window.addEventListener("keydown", (event) => {
+  if (gameState === "menu" || gameState === "victory") return;
   const key = event.key.toLowerCase();
   if (key === "k" && !event.repeat && DEVELOPER_MODE
     && developerBossTestLevel === 4 && gameState === "playing" && boss?.level === 4) {
     event.preventDefault();
     applyBossDamage(boss.health);
   } else if (event.code === "Space") {
+    if (event.target === musicToggle) return;
     event.preventDefault();
-    keysDown.add("space");
+    if (gameState !== "credits") keysDown.add("space");
   } else if (["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "d", "w", "s"].includes(key)) {
     event.preventDefault();
-    keysDown.add(key);
+    if (gameState !== "credits") keysDown.add(key);
   }
 });
 
@@ -1848,6 +1901,7 @@ function updateEnemies(deltaSeconds, frameTime) {
   const hasDiveBombers = currentLevel === 2 || currentLevel === 3;
   if (hasDiveBombers) {
     updateLevel2Bomber(deltaSeconds, frameTime);
+    if (waveEntranceElapsed !== null) return false;
   }
   if (currentLevel === 3 && gameState !== "playing") return true;
   const formationEnemies = hasDiveBombers
@@ -2166,7 +2220,6 @@ function handleShotCollisions() {
           enemies.length = 0;
           createEnemies();
           enemyDirection = 1;
-          nextEnemyShotTime = null;
           startWaveEntrance();
         } else if (currentLevel === 1) {
           startBossIntro();
@@ -2256,6 +2309,8 @@ function handleShotCollisions() {
 }
 
 function applyBossDamage(damage) {
+  if (gameState !== "playing" || boss === null || boss.health <= 0) return false;
+
   boss.health -= damage;
   score += 10;
   scoreDisplay.textContent = score;
@@ -2268,11 +2323,17 @@ function applyBossDamage(damage) {
   } else if (boss.level === 3) {
     score += level3BossDefeatBonus;
     scoreDisplay.textContent = score;
-    showLevel3BossDefeatedScreen();
+    if (developerBossTestLevel === 3) {
+      showLevel3BossDefeatedScreen();
+    } else {
+      clearLevel3BossEncounterState();
+      boss = null;
+      startVarnokBossFight(true);
+    }
   } else if (boss.level === 4) {
     score += varnokBossDefeatBonus;
     scoreDisplay.textContent = score;
-    showVarnokDefeatedScreen();
+    finishVarnokEncounter();
   } else {
     score += level1BossDefeatBonus;
     scoreDisplay.textContent = score;
@@ -2731,29 +2792,6 @@ function drawVarnokBoss() {
   context.strokeRect(body.left, healthBarY, boss.width, 8);
 }
 
-function drawLevel3BossTargetMarker() {
-  if (boss?.level !== 3 || boss.targetMarker === null) return;
-  context.save();
-  context.strokeStyle = "#67f4ff";
-  context.fillStyle = "#67f4ff";
-  context.lineWidth = 2;
-  context.beginPath();
-  context.arc(boss.targetMarker.x, boss.targetMarker.y, 12, 0, Math.PI * 2);
-  context.moveTo(boss.targetMarker.x - 18, boss.targetMarker.y);
-  context.lineTo(boss.targetMarker.x - 7, boss.targetMarker.y);
-  context.moveTo(boss.targetMarker.x + 7, boss.targetMarker.y);
-  context.lineTo(boss.targetMarker.x + 18, boss.targetMarker.y);
-  context.moveTo(boss.targetMarker.x, boss.targetMarker.y - 18);
-  context.lineTo(boss.targetMarker.x, boss.targetMarker.y - 7);
-  context.moveTo(boss.targetMarker.x, boss.targetMarker.y + 7);
-  context.lineTo(boss.targetMarker.x, boss.targetMarker.y + 18);
-  context.stroke();
-  context.beginPath();
-  context.arc(boss.targetMarker.x, boss.targetMarker.y, 2, 0, Math.PI * 2);
-  context.fill();
-  context.restore();
-}
-
 function drawLevel3BossCollisionDebugOverlay() {
   if (!DEVELOPER_MODE || developerBossTestLevel !== 3 || boss?.level !== 3) return;
 
@@ -2826,9 +2864,37 @@ function drawBarriers() {
   }
 }
 
+function drawVictoryEnding() {
+  const centerX = canvas.width / 2;
+  const isRolling = gameState === "credits";
+  const headingY = isRolling ? creditsY : canvas.height / 2 - 44;
+
+  context.save();
+  context.textAlign = "center";
+  context.textBaseline = "top";
+  context.fillStyle = "#ffffff";
+  context.font = "bold 40px Arial, sans-serif";
+  context.fillText("Victory", centerX, headingY);
+  context.fillStyle = "#bfd0e3";
+  context.font = "20px Arial, sans-serif";
+  if (isRolling) {
+    creditsLines.forEach((line, index) => {
+      context.fillText(line, centerX, headingY + (index + 2) * creditsLineSpacing);
+    });
+  } else {
+    context.fillText(`Final score: ${score}`, centerX, headingY + 56);
+  }
+  context.restore();
+}
+
 function drawFrame(frameTime) {
   context.clearRect(0, 0, canvas.width, canvas.height);
   drawStarfield();
+  if (gameState === "menu") return;
+  if (gameState === "credits" || gameState === "victory") {
+    drawVictoryEnding();
+    return;
+  }
   drawLevel2BossChargeLane();
   enemies.forEach(drawEnemy);
   drawLevel2BonusShip();
@@ -2844,17 +2910,16 @@ function drawFrame(frameTime) {
     context.fillRect(shot.x - shot.width / 2, shot.y, shot.width, shot.height);
   }
   drawPlayer(frameTime);
-  drawLevel3BossTargetMarker();
   drawLevel2WeaponMessage();
   drawLevel3BossCollisionDebugOverlay();
 
-  if (gameState === "bossIntro" && boss.level === 1) {
-    if (bossIntroElapsed >= bossIntroSlideDuration) {
+  if (gameState === "bossIntro" && (boss.level === 1 || boss.level === 4)) {
+    if (bossIntroStartY === null || bossIntroElapsed >= bossIntroSlideDuration) {
       context.fillStyle = "rgba(0, 0, 0, 0.35)";
       context.fillRect(0, 0, canvas.width, canvas.height);
       const bubbleX = 24;
       const bubbleY = 24;
-      const bubbleWidth = 300;
+      const bubbleWidth = boss.level === 4 ? 260 : 300;
       const bubbleHeight = 154;
       const cornerRadius = 14;
       const tailHalfWidth = 12;
@@ -2899,21 +2964,12 @@ function drawFrame(frameTime) {
       context.fillStyle = "#FFFFFF";
       context.textAlign = "center";
       context.font = "16px Arial, sans-serif";
-      context.fillText(
-        "Muwahahaha! You fool! You may",
-        bubbleX + bubbleWidth / 2,
-        bubbleY + 48,
-      );
-      context.fillText(
-        "have beaten my minions, but now",
-        bubbleX + bubbleWidth / 2,
-        bubbleY + 79,
-      );
-      context.fillText(
-        "you must face me!",
-        bubbleX + bubbleWidth / 2,
-        bubbleY + 110,
-      );
+      const dialogueLines = boss.level === 4
+        ? ["Zhur-Kai was only the beginning.", "I am Varnok.", "Your journey ends here."]
+        : ["Muwahahaha! You fool! You may", "have beaten my minions, but now", "you must face me!"];
+      dialogueLines.forEach((line, index) => {
+        context.fillText(line, bubbleX + bubbleWidth / 2, bubbleY + 48 + index * 31);
+      });
     }
   } else if (gameState === "level1Cleared") {
     context.fillStyle = "rgba(0, 0, 0, 0.65)";
@@ -3035,18 +3091,20 @@ function gameLoop(frameTime) {
     : Math.min((frameTime - previousFrameTime) / 1000, 0.05);
   previousFrameTime = frameTime;
 
-  if (gameState === "bossIntro") {
+  if (gameState === "credits") {
+    updateCredits(deltaSeconds);
+  } else if (gameState === "bossIntro") {
     updateBossIntro(deltaSeconds);
   } else if (gameState === "playing") {
     updatePlayer(deltaSeconds);
     updateLevel2WeaponTimers(deltaSeconds);
     if (waveEntranceElapsed !== null) {
-      updateWaveEntrance(deltaSeconds);
+      updateWaveEntrance(deltaSeconds, frameTime);
     } else {
       updateShots(deltaSeconds, frameTime);
       if (boss === null) {
         const formationBreached = updateEnemies(deltaSeconds, frameTime);
-        if (formationBreached) {
+        if (formationBreached || waveEntranceElapsed !== null) {
           drawFrame(frameTime);
           requestAnimationFrame(gameLoop);
           return;
@@ -3059,7 +3117,7 @@ function gameLoop(frameTime) {
         updateLevel2Pickups(deltaSeconds);
       }
       handleShotCollisions();
-      if (gameState === "playing") {
+      if (gameState === "playing" && waveEntranceElapsed === null) {
         updateEnemyShots(deltaSeconds, frameTime);
       }
     }

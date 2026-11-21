@@ -8,14 +8,31 @@
 </head>
 <body>
   <main>
-    <h1>Space Shooter</h1>
-    <p>Move with WASD or the arrow keys. Hold Space to shoot.</p>
-    <div class="status" aria-live="polite">
+    <header class="game-header">
+      <h1>Space Shooter</h1>
+      <button id="music-toggle" type="button" data-music-toggle aria-label="Music" aria-pressed="false">Music: Off</button>
+    </header>
+    <div id="game-status" class="status" aria-live="polite" hidden>
       <span>Score: <strong id="score">0</strong></span>
       <span>Lives: <strong id="lives">3</strong></span>
     </div>
     <div class="game-stage">
-      <canvas id="game" width="800" height="600" aria-label="Space game area"></canvas>
+      <div class="play-area">
+        <canvas id="game" width="800" height="600" aria-label="Space game area" tabindex="-1"></canvas>
+        <div id="main-menu" class="main-menu">
+          <nav id="menu-options" aria-label="Main menu">
+            <button id="start-game" type="button">Start Game</button>
+            <button id="show-how-to-play" type="button">How to Play</button>
+            <button type="button" data-music-toggle aria-label="Music" aria-pressed="false">Music: Off</button>
+          </nav>
+          <section id="how-to-play" aria-labelledby="how-to-play-title" hidden>
+            <h2 id="how-to-play-title">How to Play</h2>
+            <p>Use WASD or the arrow keys to move. Up and down movement stays near the bottom of the screen. Hold Space to shoot.</p>
+            <p>Clear the alien waves and defeat the bosses to survive all three levels.</p>
+            <button id="menu-back" type="button">Back</button>
+          </section>
+        </div>
+      </div>
       <aside id="developer-testing" class="developer-panel" aria-labelledby="developer-testing-title" hidden>
         <h2 id="developer-testing-title">Developer testing</h2>
         <div class="developer-level-buttons">
@@ -37,5 +54,6 @@
     <button id="level-3" type="button" hidden>Level 3</button>
   </main>
   <script src="game.js"></script>
+  <script src="music.js"></script>
 </body>
 </html>

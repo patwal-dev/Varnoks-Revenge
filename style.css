@@ -25,8 +25,17 @@ main.developer-mode {
   width: min(100%, 1040px);
 }
 
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+
 h1 {
-  margin: 0 0 8px;
+  margin: 0;
   color: #d9f6ff;
   font-size: clamp(1.5rem, 4vw, 2rem);
   letter-spacing: 0.12em;
@@ -78,9 +87,53 @@ canvas {
   gap: 16px;
 }
 
-.game-stage canvas {
+.play-area {
+  position: relative;
   flex: 1;
   min-width: 0;
+}
+
+.main-menu {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 16px;
+}
+
+.status[hidden],
+.main-menu[hidden] {
+  display: none;
+}
+
+.main-menu nav,
+.main-menu section {
+  width: min(100%, 360px);
+  padding: 16px;
+  border: 1px solid #263a54;
+  border-radius: 8px;
+  background: #0c1726;
+}
+
+.main-menu nav button {
+  display: block;
+  width: 100%;
+}
+
+.main-menu h2 {
+  margin: 0 0 12px;
+  color: #d9f6ff;
+  font-size: 1.25rem;
+}
+
+.main-menu p:last-of-type {
+  margin-bottom: 0;
+}
+
+.game-header button,
+.main-menu nav button:first-child {
+  margin-top: 0;
 }
 
 .developer-panel {
@@ -155,6 +208,11 @@ button[hidden] {
 @media (max-width: 760px) {
   .game-stage {
     flex-direction: column;
+  }
+
+  .play-area {
+    flex: none;
+    width: 100%;
   }
 
   .developer-panel {
