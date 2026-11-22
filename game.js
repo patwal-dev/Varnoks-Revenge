@@ -103,6 +103,39 @@ const hatchlingArtwork = ["bud", "hook", "crown"].map((name) => {
 const hatchlingVisualChoices = new WeakMap();
 const alienAngles = new WeakMap();
 
+const sporeChoirImage = new Image();
+let sporeChoirImageReady = false;
+sporeChoirImage.addEventListener("load", () => {
+  sporeChoirImageReady = true;
+});
+sporeChoirImage.addEventListener("error", () => {
+  console.error("Could not load the Spore Choir boss artwork:", sporeChoirImage.src);
+}, { once: true });
+sporeChoirImage.src = "boss-workshop/Xal’Gorath Boss Art Workshop/assets/spore-choir.svg";
+
+const ironSepulchreImage = new Image();
+let ironSepulchreImageReady = false;
+ironSepulchreImage.addEventListener("load", () => {
+  ironSepulchreImageReady = true;
+});
+ironSepulchreImage.addEventListener("error", () => {
+  console.error("Could not load the Iron Sepulchre boss artwork:", ironSepulchreImage.src);
+}, { once: true });
+ironSepulchreImage.src = "boss-workshop/Xal’Gorath Boss Art Workshop/assets/iron-sepulchre.svg";
+
+const [crownMawBody, crownMawCore, crownMawJaw] = ["body", "core", "jaw"].map((part) => {
+  const image = new Image();
+  const artwork = { image, ready: false };
+  image.addEventListener("load", () => {
+    artwork.ready = true;
+  });
+  image.addEventListener("error", () => {
+    console.error("Could not load the Crown Maw boss artwork:", image.src);
+  }, { once: true });
+  image.src = `assets/bosses/crown-maw-${part}.svg`;
+  return artwork;
+});
+
 const keysDown = new Set();
 const shots = [];
 const enemyShots = [];
@@ -1351,11 +1384,12 @@ function fireLevel3BossAimedShot() {
 }
 
 function getLevel3BossCoreBounds(targetBoss) {
+  const bottom = targetBoss.y + targetBoss.height / 2;
   return {
     left: targetBoss.x - level3BossCoreWidth / 2,
     right: targetBoss.x + level3BossCoreWidth / 2,
-    top: targetBoss.y + 6 - level3BossCoreHeight / 2,
-    bottom: targetBoss.y + 6 + level3BossCoreHeight / 2,
+    top: bottom - level3BossCoreHeight,
+    bottom,
   };
 }
 
@@ -1377,20 +1411,16 @@ function getPlayerShotBounds(shot) {
   };
 }
 
-function getLevel3BossPanelGap(targetBoss) {
-  return targetBoss.openingAmount * (level3BossCoreWidth + 16);
-}
-
 function getLevel3BossProjectilePassageBounds(targetBoss) {
-  const panelGap = getLevel3BossPanelGap(targetBoss);
-  if (panelGap <= 0) return null;
-  const body = getLevel3BossBodyBounds(targetBoss);
-  const halfGap = panelGap / 2;
+  const progress = targetBoss.openingAmount;
+  if (progress <= 0) return null;
+  const core = getLevel3BossCoreBounds(targetBoss);
+  const halfWidth = level3BossCoreWidth * progress / 2;
   return {
-    left: targetBoss.x - halfGap,
-    right: targetBoss.x + halfGap,
-    top: body.top,
-    bottom: body.bottom,
+    left: targetBoss.x - halfWidth,
+    right: targetBoss.x + halfWidth,
+    top: core.bottom - level3BossCoreHeight * progress,
+    bottom: core.bottom,
   };
 }
 
@@ -1398,10 +1428,7 @@ function getLevel3BossArmorCollisionRegions(targetBoss) {
   const body = getLevel3BossBodyBounds(targetBoss);
   const passage = getLevel3BossProjectilePassageBounds(targetBoss);
   if (passage === null) return [body];
-  return [
-    { left: body.left, right: passage.left, top: body.top, bottom: body.bottom },
-    { left: passage.right, right: body.right, top: body.top, bottom: body.bottom },
-  ];
+  return subtractCollisionBounds(body, passage);
 }
 
 function collisionBoundsOverlap(first, second) {
@@ -2294,7 +2321,7 @@ function updateLevel2BonusShip(deltaSeconds) {
   }
 }
 
-function handleShotCollisions() {
+function handleShotCollisions(deltaSeconds) {
   for (let shotIndex = shots.length - 1; shotIndex >= 0; shotIndex -= 1) {
     const shot = shots[shotIndex];
     const shotBounds = getPlayerShotBounds(shot);
@@ -2388,9 +2415,17 @@ function handleShotCollisions() {
       if (boss.level === 3) {
         if (collisionBoundsOverlap(shotBounds, bossBounds)) {
           const core = getLevel3BossCoreBounds(boss);
+          // Check the entry point before a fast shot can cross the shallow opening in one frame.
+          const entersFromBelow = shot.y < bossBounds.bottom
+            && shot.y + shotSpeed * deltaSeconds >= bossBounds.bottom;
+          const contactBounds = entersFromBelow ? {
+            ...shotBounds,
+            top: bossBounds.bottom,
+            bottom: bossBounds.bottom + shot.height,
+          } : shotBounds;
           const hitsArmour = getLevel3BossArmorCollisionRegions(boss)
-            .some((region) => collisionBoundsOverlap(shotBounds, region));
-          damagesBoss = !hitsArmour && collisionBoundsOverlap(shotBounds, core);
+            .some((region) => collisionBoundsOverlap(contactBounds, region));
+          damagesBoss = !hitsArmour && collisionBoundsOverlap(contactBounds, core);
           if (hitsArmour || damagesBoss) {
             shots.splice(shotIndex, 1);
           }
@@ -2736,7 +2771,23 @@ function drawLevel2BossChargeLane() {
     ? Math.max(0, 1 - boss.attackPhaseElapsed / level2BossLaneFadeDuration)
     : 1;
 
+  const clipExtent = Math.hypot(canvas.width, canvas.height);
+  const forwardX = dx / length * clipExtent;
+  const forwardY = dy / length * clipExtent;
+
   context.save();
+  // Start the visible lane under the sprite and keep it below and ahead of the moving boss.
+  context.beginPath();
+  context.rect(0, boss.y, canvas.width, canvas.height - boss.y);
+  context.clip();
+  context.beginPath();
+  context.moveTo(boss.x - forwardY, boss.y + forwardX);
+  context.lineTo(boss.x + forwardY, boss.y - forwardX);
+  context.lineTo(boss.x + forwardY + forwardX, boss.y - forwardX + forwardY);
+  context.lineTo(boss.x - forwardY + forwardX, boss.y + forwardX + forwardY);
+  context.closePath();
+  context.clip();
+
   context.globalAlpha = level2BossLaneOpacity * fade;
   context.strokeStyle = "#ff7087";
   context.lineWidth = sweptWidth;
@@ -2757,41 +2808,58 @@ function drawBoss() {
   }
 
   if (boss.level === 3) {
-    const left = boss.x - boss.width / 2;
-    const top = boss.y - boss.height / 2;
-    const core = getLevel3BossCoreBounds(boss);
-    const panelGap = getLevel3BossPanelGap(boss);
+    const body = getLevel3BossBodyBounds(boss);
+    if (!crownMawBody.ready) {
+      context.fillStyle = "#89596b";
+      context.fillRect(body.left, body.top, boss.width, boss.height);
+    }
 
-    context.fillStyle = "#663b91";
-    context.fillRect(left, top, boss.width, boss.height);
-    context.fillStyle = boss.vulnerable ? "#ffb347" : "#a65d5d";
-    context.fillRect(core.left, core.top, level3BossCoreWidth, level3BossCoreHeight);
-    context.fillStyle = "#39264f";
-    context.fillRect(core.left + 7, core.top + 6, level3BossCoreWidth - 14, level3BossCoreHeight - 12);
+    const opening = boss.openingAmount;
+    const jawDrop = 16 * opening;
+    const jawTop = body.top + 44 + jawDrop;
+    if (opening > 0) {
+      const cavityWidth = 22 + 14 * opening;
+      if (crownMawCore.ready) {
+        context.drawImage(crownMawCore.image, boss.x - cavityWidth / 2, body.top + 41,
+          cavityWidth, 8 + jawDrop);
+      } else {
+        context.fillStyle = "#ffd850";
+        context.beginPath();
+        context.moveTo(boss.x - 7, jawTop);
+        context.lineTo(boss.x, jawTop - jawDrop / 2);
+        context.lineTo(boss.x + 7, jawTop);
+        context.closePath();
+        context.fill();
+      }
+    }
 
-    context.fillStyle = "#8959b2";
-    const panelWidth = (boss.width - panelGap) / 2;
-    context.fillRect(left, top, panelWidth, boss.height);
-    context.fillRect(boss.x + panelGap / 2, top, panelWidth, boss.height);
-    context.strokeStyle = "#d3a4e8";
-    context.lineWidth = 2;
-    context.strokeRect(left, top, panelWidth, boss.height);
-    context.strokeRect(boss.x + panelGap / 2, top, panelWidth, boss.height);
+    if (crownMawJaw.ready) {
+      context.drawImage(crownMawJaw.image, boss.x - 11, jawTop);
+    } else {
+      context.fillStyle = "#9b4b65";
+      context.beginPath();
+      context.moveTo(boss.x - 11, jawTop);
+      context.lineTo(boss.x + 11, jawTop);
+      context.lineTo(boss.x, jawTop + 14);
+      context.closePath();
+      context.fill();
+    }
 
-    const healthBarY = top - 18;
-    context.fillStyle = "#26374d";
-    context.fillRect(left, healthBarY, boss.width, 8);
-    context.fillStyle = "#e77bd5";
-    context.fillRect(left, healthBarY, boss.width * (boss.health / boss.maxHealth), 8);
-    context.strokeStyle = "#f3d9ff";
-    context.lineWidth = 1;
-    context.strokeRect(left, healthBarY, boss.width, 8);
+    // The fixed upper lip is part of the body and covers the top of the cavity.
+    if (crownMawBody.ready) {
+      context.drawImage(crownMawBody.image, body.left, body.top, boss.width, boss.height);
+    }
     return;
   }
 
   if (boss.level === 2) {
-    const left = boss.x - boss.width / 2;
     const top = boss.y - boss.height / 2;
+    if (ironSepulchreImageReady) {
+      const left = boss.x - boss.width / 2;
+      context.drawImage(ironSepulchreImage, left, top, boss.width, boss.height);
+      return;
+    }
+
     context.fillStyle = "#663b91";
     context.beginPath();
     context.moveTo(boss.x, top);
@@ -2804,60 +2872,28 @@ function drawBoss() {
     context.fill();
     context.fillStyle = "#dc8cff";
     context.fillRect(boss.x - boss.width * 0.19, top + boss.height * 0.32, boss.width * 0.38, boss.height * 0.4);
-
-    const healthBarY = top - 18;
-    context.fillStyle = "#26374d";
-    context.fillRect(left, healthBarY, boss.width, 8);
-    context.fillStyle = "#e77bd5";
-    context.fillRect(left, healthBarY, boss.width * (boss.health / boss.maxHealth), 8);
-    context.strokeStyle = "#f3d9ff";
-    context.lineWidth = 1;
-    context.strokeRect(left, healthBarY, boss.width, 8);
     return;
-  }
-
-  if (bossChargeElapsed !== null) {
-    const chargeProgress = bossChargeElapsed / bossChargeDuration;
-    context.strokeStyle = `rgba(95, 231, 255, ${0.55 + chargeProgress * 0.4})`;
-    context.lineWidth = 4 + chargeProgress * 4;
-    context.beginPath();
-    context.ellipse(
-      boss.x,
-      boss.y,
-      boss.width * (0.58 + chargeProgress * 0.12),
-      boss.height * (0.75 + chargeProgress * 0.2),
-      0,
-      0,
-      Math.PI * 2,
-    );
-    context.stroke();
   }
 
   const left = boss.x - boss.width / 2;
   const top = boss.y - boss.height / 2;
-  context.fillStyle = "#9d6be8";
-  context.beginPath();
-  context.moveTo(boss.x, top);
-  context.lineTo(left + boss.width, top + boss.height * 0.3);
-  context.lineTo(left + boss.width * 0.82, top + boss.height * 0.82);
-  context.lineTo(boss.x, top + boss.height);
-  context.lineTo(left + boss.width * 0.18, top + boss.height * 0.82);
-  context.lineTo(left, top + boss.height * 0.3);
-  context.closePath();
-  context.fill();
+  if (sporeChoirImageReady) {
+    context.drawImage(sporeChoirImage, left, top, boss.width, boss.height);
+  } else {
+    context.fillStyle = "#9d6be8";
+    context.beginPath();
+    context.moveTo(boss.x, top);
+    context.lineTo(left + boss.width, top + boss.height * 0.3);
+    context.lineTo(left + boss.width * 0.82, top + boss.height * 0.82);
+    context.lineTo(boss.x, top + boss.height);
+    context.lineTo(left + boss.width * 0.18, top + boss.height * 0.82);
+    context.lineTo(left, top + boss.height * 0.3);
+    context.closePath();
+    context.fill();
 
-  context.fillStyle = "#f5e6ff";
-  context.fillRect(left + boss.width * 0.27, top + boss.height * 0.38, boss.width * 0.46, 7);
-
-  const healthBarWidth = boss.width;
-  const healthBarY = top - 18;
-  context.fillStyle = "#26374d";
-  context.fillRect(left, healthBarY, healthBarWidth, 8);
-  context.fillStyle = "#e77bd5";
-  context.fillRect(left, healthBarY, healthBarWidth * (boss.health / boss.maxHealth), 8);
-  context.strokeStyle = "#f3d9ff";
-  context.lineWidth = 1;
-  context.strokeRect(left, healthBarY, healthBarWidth, 8);
+    context.fillStyle = "#f5e6ff";
+    context.fillRect(left + boss.width * 0.27, top + boss.height * 0.38, boss.width * 0.46, 7);
+  }
 }
 
 function drawVarnokBoss() {
@@ -2937,61 +2973,6 @@ function drawVarnokBoss() {
       eye.bounds.bottom - eye.bounds.top,
     );
   }
-
-  const healthBarY = body.top - 18;
-  context.fillStyle = "#26374d";
-  context.fillRect(body.left, healthBarY, boss.width, 8);
-  context.fillStyle = "#e77bd5";
-  context.fillRect(body.left, healthBarY, boss.width * (boss.health / boss.maxHealth), 8);
-  context.strokeStyle = "#f3d9ff";
-  context.lineWidth = 1;
-  context.strokeRect(body.left, healthBarY, boss.width, 8);
-}
-
-function drawLevel3BossCollisionDebugOverlay() {
-  if (!DEVELOPER_MODE || developerBossTestLevel !== 3 || boss?.level !== 3) return;
-
-  const body = getLevel3BossBodyBounds(boss);
-  const core = getLevel3BossCoreBounds(boss);
-  const armorRegions = getLevel3BossArmorCollisionRegions(boss);
-  const passage = getLevel3BossProjectilePassageBounds(boss);
-  context.save();
-  context.lineWidth = 2;
-  context.strokeStyle = "#53e6ff";
-  context.strokeRect(body.left, body.top, body.right - body.left, body.bottom - body.top);
-  context.fillStyle = "rgba(255, 93, 135, 0.14)";
-  context.strokeStyle = "#ff5d87";
-  for (const region of armorRegions) {
-    context.fillRect(region.left, region.top, region.right - region.left, region.bottom - region.top);
-    context.strokeRect(region.left, region.top, region.right - region.left, region.bottom - region.top);
-  }
-  if (passage !== null) {
-    context.fillStyle = "rgba(83, 255, 131, 0.12)";
-    context.fillRect(
-      passage.left,
-      passage.top,
-      passage.right - passage.left,
-      passage.bottom - passage.top,
-    );
-    context.strokeStyle = "#53ff83";
-    context.setLineDash([5, 4]);
-    context.strokeRect(
-      passage.left,
-      passage.top,
-      passage.right - passage.left,
-      passage.bottom - passage.top,
-    );
-    context.setLineDash([]);
-  }
-  context.strokeStyle = boss.openingAmount > 0 ? "#53ff83" : "#ff5d87";
-  context.strokeRect(core.left, core.top, core.right - core.left, core.bottom - core.top);
-  context.strokeStyle = "#ffe66d";
-  for (const shot of shots) {
-    const bounds = getPlayerShotBounds(shot);
-    context.strokeRect(bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
-  }
-
-  context.restore();
 }
 
 function drawBarriers() {
@@ -3067,7 +3048,6 @@ function drawFrame(frameTime) {
   }
   drawPlayer(frameTime);
   drawLevel2PickupMessage();
-  drawLevel3BossCollisionDebugOverlay();
 
   if (gameState === "bossIntro" && (boss.level === 1 || boss.level === 4)) {
     if (bossIntroStartY === null || bossIntroElapsed >= bossIntroSlideDuration) {
@@ -3272,7 +3252,7 @@ function gameLoop(frameTime) {
         updateLevel2BonusShip(deltaSeconds);
         updateLevel2Pickups(deltaSeconds);
       }
-      handleShotCollisions();
+      handleShotCollisions(deltaSeconds);
       if (gameState === "playing" && waveEntranceElapsed === null) {
         updateEnemyShots(deltaSeconds, frameTime);
       }

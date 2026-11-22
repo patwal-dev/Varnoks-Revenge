@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="110" viewBox="0 0 200 110">
+  <defs>
+    <linearGradient id="shell" x2=".2" y2="1"><stop stop-color="#986ebd"/><stop offset=".57" stop-color="#624c94"/><stop offset="1" stop-color="#42366a"/></linearGradient>
+    <linearGradient id="crest" x2=".1" y2="1"><stop stop-color="#d5b5ef"/><stop offset=".52" stop-color="#a989cf"/><stop offset="1" stop-color="#695195"/></linearGradient>
+    <g id="s">
+      <path d="M17 59c1-20 14-34 27-39 8-3 17-3 26-1l10 16C49 29 31 43 25 63l-2 25Z" fill="#8e72bd"/>
+      <path d="M21 52c7-17 19-26 35-28l8 3c-15 2-28 9-37 23Z" fill="#c9aae8"/>
+      <path d="M26 73c13-17 24-18 36-16l-6 7c-10 0-17 6-22 16Z" fill="#a783c2"/>
+      <path d="M24 91c8-12 18-16 29-17l-5 10c-7 1-13 5-17 10Z" fill="#755e9d"/>
+    </g>
+  </defs>
+  <path d="M100 1c7 10 15 15 28 20l11-17c7 10 10 17 10 23 21-4 35 8 38 21 1 8-2 20-9 34l-4 22-30 5-21-6-23 7-23-7-21 6-30-5-4-22C15 68 12 56 13 48c3-13 17-25 38-21 0-6 3-13 10-23l11 17c13-5 21-10 28-20Z" fill="#44345f"/>
+  <path d="M100 5c9 11 18 15 30 20l9-16c5 8 8 16 8 22 18-5 33 5 36 17 1 12-6 25-7 33l-5 21-27 5-21-7-23 8-23-8-21 7-27-5-5-21c-1-8-8-21-7-33 3-12 18-22 36-17 0-6 3-14 8-22l9 16c12-5 21-9 30-20Z" fill="url(#shell)"/>
+  <use href="#s"/><use href="#s" transform="translate(200) scale(-1 1)"/>
+  <path d="M100 4c6 10 16 15 29 21l-10 13 3 15-10 8 1 20-13 25-13-25 1-20-10-8 3-15-10-13c13-6 23-11 29-21Z" fill="url(#crest)" stroke="#765c9c" stroke-width="2"/>
+  <path d="M100 10c-6 13-15 17-23 19 9 4 15 1 23-4 8 5 14 8 23 4-8-2-17-6-23-19Z" fill="#f0d8f5"/>
+  <path d="m100 29 13 9-7 13 6 8-12 27-12-27 6-8-7-13Z" fill="#614989"/>
+  <path d="m100 34 8 6-6 10 4 11-6 16-6-16 4-11-6-10Z" fill="#cf91c6"/>
+  <path d="m100 38 4 3-4 7-4-7Z" fill="#ffe0dc"/>
+  <path d="M80 85c7 3 12 8 20 16 8-8 13-13 20-16l-6 12-14 11-14-11Z" fill="#9675b6"/>
+</svg>

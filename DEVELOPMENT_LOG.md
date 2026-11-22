@@ -326,3 +326,103 @@ Start a separate visual workshop with player-ship concepts. No player-ship direc
 - Vesper draws at **49.5 × 46.306452 px** after rotation and uses a **52.8 × 46.306452 px** shot hitbox. The cyan debug rectangle was removed. Supply ships use a shared **7–15 second** active-combat delay for first and repeat spawns in Level 2 and 3 waves and Bosses 2–4, including their developer tests. The user confirmed a spawn and Vesper artwork in Test Boss 2. Browser coverage of the other encounter routes remains pending.
 - The shield rings are **54 × 50 px** and **74 × 66 px**. Shield protection and the player hitbox retain their original behavior. The pickup messages are **Machinegun!** and **Shield!**. The 50-point supply-ship reward, pickup effects and messages, protection, remaining encounter coverage and normal progression still need browser checks. The pending checks are listed in `NEXT_SESSION.md`.
 - The Xal’Gorath workshop prompt was prepared. Execution in Perplexity Computer has yet to be confirmed. All four bosses retain their existing artwork.
+
+## Xal’Gorath Spore Choir artwork — 22 November 2026
+
+- The user selected Spore Choir for Boss 1. The game loads the original SVG from `boss-workshop/Xal’Gorath Boss Art Workshop/assets/spore-choir.svg` and draws it centered at **112 × 58 px** in normal progression and **Test Boss 1**. The previous body drawing serves as the loading and error fallback. This integration originally kept the separate cyan charge halo.
+- The user selected Iron Sepulchre for Lord Kaezar Vhul, to be adapted later to his existing geometry, and Crown Maw for Zhur-Kai, to be adapted later to her animated armour and core mechanics. Varnok will get new Spore Choir-inspired artwork as a distinct living alien with tentacles and two clearly targetable eyes, preserving his existing gameplay geometry and mechanics.
+- **Agent source checks.** JavaScript syntax, diff whitespace, and the SVG path, dimensions and internal references passed. Comparison against the previous `game.js` confirmed that only image loading and the Boss 1 body drawing changed.
+- **User-reported browser feedback.** The user accepted Spore Choir’s appearance in a focused Boss 1 check. The feedback covered the artwork only.
+- **Tool record.** OpenAI Codex implemented the change. The exact session model identifier and reasoning setting were unavailable.
+
+## Boss combat displays — 22 November 2026
+
+- The user asked to remove Xal’Gorath’s cyan warning halo, superseding the earlier requirement to preserve it. The shared Boss 1 renderer omits the halo in normal progression and **Test Boss 1**. His charge state, attack timing and spread shots still use their existing code.
+- The user decided to keep boss health information hidden from the player. Removed the bar background, fill and border for all four bosses in both encounter routes. Source review found no numeric HP or percentage display. The change preserves internal HP and gameplay rules, other boss warnings, developer collision outlines and player lives and shield displays.
+- **Agent source checks.** `node --check game.js` and `git diff --check` passed. Comparison with the starting file confirmed that the only code changes were the halo and four health bar removals and the now-unused Boss 2 bar coordinate.
+- **User-reported browser feedback.** The user confirmed that Xal’Gorath’s cyan halo was removed and all four boss health bars were hidden. This feedback covered those visual changes only.
+- **Tool record.** OpenAI Codex implemented the change. The exact session model identifier and reasoning setting were unavailable.
+
+## Lord Kaezar Vhul Iron Sepulchre artwork — 22 November 2026
+
+- The game loads the original Iron Sepulchre SVG from `boss-workshop/Xal’Gorath Boss Art Workshop/assets/iron-sepulchre.svg`. It scales the downward-facing bronze armour to the existing centered **132 × 68 px** drawing area in normal Level 2 progression and **Test Boss 2**. The previous drawing serves as the loading and error fallback. The original SVG and workshop provenance log were preserved.
+- The centered **76.56 × 42.16 px** shot and ram collision footprint, warning lane, locked-path ram, 616 px/s charge speed and smooth retreat retain their existing code. The other boss and player rendering and gameplay code also retain their existing paths.
+- **Agent source checks.** JavaScript syntax, diff whitespace, SVG path and internal references, and workshop file checksums passed. Comparison with the starting code confirmed that the JavaScript change was limited to loading and drawing Iron Sepulchre.
+- **Browser feedback.** The focused artwork acceptance is recorded in the warning-lane entry below.
+- **Deferred.** After all four boss artworks are integrated, add a brief visible flash on hits that damage a boss. Blocked or invulnerable hits must never trigger the flash.
+- **Tool record.** OpenAI Codex implemented the change. The exact session model identifier and reasoning setting were unavailable.
+
+## Boss 2 warning-lane clipping — 22 November 2026
+
+- **User-reported browser feedback.** A screenshot from a focused Boss 2 check showed the warning lane’s rounded upper cap protruding above Iron Sepulchre.
+- The shared lane renderer clips the existing stroke below and ahead of Kaezar’s current center. The lane starts beneath the sprite for a continuous connection, and the far end keeps its rounded cap. This applies in normal Level 2 progression and **Test Boss 2**. The locked path, fade, attack timing, movement, collision, damage and sprite placement retain their existing code.
+- **Agent checks.** `node --check game.js` and `git diff --check` passed. A Node check with a Canvas stub verified the clip geometry for straight and diagonal paths, the original stroke endpoints and fade, and unchanged boss state.
+- **User-reported browser confirmation.** The user confirmed that the warning-lane clipping fix works and accepted Iron Sepulchre’s current appearance. This was a focused visual check.
+- **Tool record.** OpenAI Codex implemented the change. The exact session model identifier and reasoning setting were unavailable.
+
+## Zhur-Kai Crown Maw artwork — 22 November 2026
+
+- Adapted the workshop’s Crown Maw into `assets/bosses/crown-maw-armour.svg` and `assets/bosses/crown-maw-core.svg`. The original SVG and provenance log remain intact. Both normal Level 3 progression and **Test Boss 3** use the same renderer, with the previous drawing as a fallback while either asset loads or if it fails.
+- Mirrored opaque claw panels fill the live blocking regions of the centered **132 × 68 px** body. The existing animated gap, up to **52 px** wide, reveals the **36 × 30 px** core at its original position. The new renderer leaves the rest of the opening clear and preserves the collision, damage and attack code and developer outlines.
+- **User-reported browser feedback on supply pickups.** The user observed both **Shield!** and **Machinegun!** notifications. Pickup effects and rewards still await focused checks.
+- **Agent checks.** JavaScript syntax, diff whitespace, SVG dimensions and references, and workshop file checksums passed. A Node check with a Canvas stub matched the artwork to the collision bounds through all armour phases in both encounter contexts and matched the fallback to the previous drawing.
+- **User decision.** The user rejected this split-panel visual adaptation and requested the intact Crown Maw revision recorded below.
+- **Tool record.** OpenAI Codex implemented the change. The exact session model identifier and reasoning setting were unavailable.
+
+## Crown Maw mouth revision review — 22 November 2026
+
+- The requested design keeps Crown Maw’s full head, eyes, hooked sides and lower-center mouth in one stable silhouette. The existing cycle progress should progressively reveal a yellow shootable mouth interior and cover it fully when closed.
+- **Source review.** The live **36 × 30 px** core is centered **6 px below** the boss center. The horizontal armour panels open a gap up to **52 px** wide through the entire **68 px** body height. The original SVG’s mouth sits lower than the core, and the live passage runs through the space occupied by the intact face.
+- **Agent checks.** JavaScript syntax, SVG paths and internal references, and diff whitespace checks passed. The browser was not used.
+- **Proposed change.** Replace the full-height passage with an opening reachable from the lower edge, and align the existing-size core with the mouth. Drive the rendered opening, projectile blocking and developer outlines from the same geometry and retain the current cycle. This review made no gameplay or asset changes.
+
+## Crown Maw animated mouth — 22 November 2026
+
+- The user explicitly approved the Boss 3 projectile geometry revision to match the animated mouth. The **36 × 30 px** core moved from **6 px** to **19 px** below the boss center, placing its bottom at the lower body edge. The existing cycle progress expands the opening from that edge up to **36 × 30 px**, then contracts it again. Drawing, projectile blocking and developer outlines share those bounds.
+- The adapted `assets/bosses/crown-maw-body.svg` keeps the workshop head, eyes and hooked sides together and frames the lower mouth. The separate `crown-maw-core.svg` is a yellow interior revealed only inside the opening. The original workshop artwork and provenance log were preserved. Normal Level 3 progression and **Test Boss 3** share the revision.
+- A shot that crosses the lower edge in one frame is checked at entry so it can hit a shallow opening before reaching the armour above. Damage per hit and scoring retain their existing values.
+- **Agent checks.** JavaScript syntax, diff whitespace, SVG references and original workshop checksums passed. A non-browser Node check exercised both encounter routes and checked blocked shots, damage and scoring, and agreement between the drawing and developer outline through closed, opening, fully open and closing states. It included a long frame crossing a narrow opening.
+- **Browser check pending.** Watch the mouth through a full cycle and check that a shot from below scores only when it reaches the visible target. User visual acceptance is pending.
+- **Tool record.** OpenAI Codex implemented the change. The exact session model identifier and reasoning setting were unavailable.
+
+## Developer collision overlays removed — 22 November 2026
+
+- Removed the remaining developer collision renderer and its call from the frame drawing code. This removes Boss 3’s body and armour outlines, armour fills, core box, mouth guide and player-shot bounds. The Developer testing panel and all level and boss buttons remain available.
+- Boss 2’s ram warning lane, player shields and Crown Maw’s yellow mouth target still use their existing drawing code. Collision detection, hitboxes and projectile blocking are unchanged. The boss hit flash remains deferred.
+- **Agent checks.** `node --check game.js` and `git diff --check` passed. A source comparison confirmed the overlay and its frame call were the only game code removals, and all seven developer test buttons are present.
+- **Browser check pending.** In **Test Boss 3**, watch the mouth cycle while shooting. Check that the collision overlays are gone and the yellow target is still visible while exposed.
+
+## Crown Maw jaw and twin-salvo artwork polish — 22 November 2026
+
+- Restored the original tapered lower jaw in the adapted body SVG, with a closed seam that conceals the yellow interior. The open-mouth graphic scales with the existing passage in both encounter routes. Its shaped lip sits outside the target and warm shading covers the entire exposed area, including the corners. Collision bounds and cycle timing retain their existing code.
+- Added two short organic firing organs beneath the claws. Their tips are **50 px** left and right of the boss center and **4 px** above the body’s lower edge, at the existing twin-salvo origins. Both organs fit inside the existing body dimensions. Projectile origins, trajectories, cadence and collision code retain their existing values.
+- Updated the adapted body and core SVGs. The original workshop SVG and provenance log were preserved.
+- **Agent checks.** JavaScript syntax, SVG paths and internal references, workshop checksums, and diff whitespace checks passed. A Node check with a Canvas stub matched the two organ tips to the actual shot spawns and confirmed that the painted interior covers the entire live opening through the cycle. The browser was not used.
+- **Browser check pending.** In **Test Boss 3**, watch the closed jaw and open mouth through a full cycle and check that the twin salvos emerge from the organ tips. Visual acceptance is pending.
+- **Tool record.** OpenAI Codex implemented the change. The exact session model identifier and reasoning setting were unavailable.
+
+## Crown Maw tapered mouth — 22 November 2026
+
+- The user’s screenshots showed the square open mouth and the acceptable closed jaw proportions. The revision keeps the closed jaw’s outer shape and reduces its dark opening to a narrow seam. The open jaw now has angled cheeks, a pointed lower lip and a dark rim around a faceted yellow interior.
+- The existing vulnerability progress scales the visible lips and interior together in both Boss 3 encounter routes. The decorative silhouette can overlap the corners of the unchanged rectangular **36 × 30 px** target. The claw, head, eye and firing-organ artwork and the projectile and collision code retain their existing values.
+- **Agent checks.** Syntax, SVG references, workshop checksums and diff whitespace passed. A source comparison verified that the code changes are limited to the mouth renderer. A Canvas-stub check confirmed that the yellow interior stays concealed at zero progress and that the lips scale with the existing opening in both directions.
+- **Browser check pending.** Watch a full mouth cycle in **Test Boss 3** and normal Level 3 progression. The revised mouth appearance awaits user acceptance.
+- **Tool record.** OpenAI Codex implemented the change. The exact session model identifier and reasoning setting were unavailable.
+
+## Crown Maw moving jaw and recessed target — 22 November 2026
+
+- The user found that the previous open mouth resembled a glowing badge and the closed jaw was too bulky. The revised closed jaw tapers to a sharper point and meets the upper lip at a subtle seam.
+- The upper lip stays fixed beneath the face while a separate lower jaw drops **16 px** at full opening and rises again with the existing cycle progress. Dark maroon side walls frame a small recessed yellow target. The artwork moves independently of the unchanged **36 × 30 px** hitbox and projectile rules.
+- Changed the adapted body and mouth interior, and added `assets/bosses/crown-maw-jaw.svg`. The original workshop SVG, eyes, claws, firing organs and projectile origins were preserved.
+- **Agent checks.** JavaScript syntax, SVG references, workshop checksums and diff whitespace passed. Source comparison confirmed that gameplay code stayed unchanged. A Canvas-stub check verified the fixed upper lip, the separate jaw movement and the concealed interior at zero opening progress.
+- **User-reported visual acceptance.** The user accepted Zhur-Kai’s Crown Maw artwork and mouth animation in a focused visual check. Preserve the compact pointed closed jaw, the dropping lower jaw that reveals the recessed yellow target, and the twin firing organs. Full gameplay and regression verification remain separate.
+- **Next artwork task.** Design Varnok as a distinct living alien inspired by Spore Choir, with tentacles and two clearly targetable eyes. Boss damaging-hit flashes remain deferred until all four boss artworks are integrated.
+- **Tool record.** OpenAI Codex implemented the change. The exact session model identifier and reasoning setting were unavailable.
+
+## Boss artwork and Varnok workshop checkpoint — 22 November 2026
+
+- **User-reported visual acceptance.** Xal’Gorath uses Spore Choir. Lord Kaezar Vhul uses Iron Sepulchre with the corrected warning-lane clipping. Zhur-Kai uses Crown Maw with the final pointed closed jaw, dropping lower jaw, recessed yellow target and twin firing organs. These checks cover the accepted visuals. Full gameplay and regression verification remain separate.
+- The user confirmed that Boss 1’s cyan warning halo and all four boss health bars were removed. Developer collision overlays were removed while the test buttons and collision logic stayed in place. The user saw **Shield!** and **Machinegun!** pickup notifications. Pickup effects, rewards and route coverage remain unverified by that check.
+- The user renamed `BRR-Music/` to `backstageriot/` and created its seven tracks with Suno. Level and track assignments and in-game music integration remain pending. [Backstage Riot on Suno](https://suno.com/@backstageriot)
+- The user placed the Varnok workshop under `finalboss-workshop/Varnok Artwork Workshop (complete ZIP)/` and `finalboss-workshop/Varnok Artwork Workshop/`. Each tree has the HTML preview, geometry and animation scripts, stylesheets, `Tools-and-prompt-log.md`, and four SVG components each for Brood Mantle, Rooted Crown and Veil Nautilus. The standalone provenance log is `finalboss-workshop/Varnok Artwork Workshop  Tools and Prompt Log.md`. No concept has been selected or integrated.
+- Next session, open `finalboss-workshop/Varnok Artwork Workshop (complete ZIP)/index.html` and review the concepts at actual size and enlarged, including the complete eye-opening cycle, before selecting one. Boss damaging-hit flashes remain deferred until all four boss artworks are integrated.

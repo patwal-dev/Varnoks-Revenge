@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="112" height="58" viewBox="0 0 112 58">
+  <defs>
+    <linearGradient id="membrane" x2=".15" y2="1"><stop stop-color="#d4dc80"/><stop offset=".47" stop-color="#9b9c49"/><stop offset="1" stop-color="#53633e"/></linearGradient>
+    <linearGradient id="pod" x2=".18" y2="1"><stop stop-color="#d4d17a"/><stop offset="1" stop-color="#787c42"/></linearGradient>
+    <g id="lobe">
+      <path fill="#566344" d="M47 16c-6-9-16-13-26-9C11 10 5 17 4 26c-1 8 3 14 9 17 3 5 11 9 19 9 9 0 16-6 18-13 8-5 6-16-3-23Z"/>
+      <path fill="url(#pod)" d="M44 17c-6-9-15-12-23-8C12 12 7 18 6 26c-1 6 2 12 9 15 4 5 10 8 17 8 10 0 15-8 15-13 6-6 3-14-3-19Z"/>
+      <path fill="#d9dc8e" d="M9 21c4-8 10-12 18-12 4 0 8 2 11 4-10-3-21 2-25 8l-4 8Z"/>
+      <path fill="#65704a" d="M8 31c6 5 14 6 24 2 5-2 9-5 13-8l1 5c-7 8-16 13-27 12-5-1-8-5-11-11Z"/>
+      <path fill="#acb261" d="M16 41c7 1 15-1 23-6-1 5-7 10-13 10-4 0-7-1-10-4Z"/>
+      <path fill="#565540" d="M18 24c3-3 7-4 11-4 4 0 6 3 5 6-2 4-7 6-11 6-5-1-7-4-5-8Z"/>
+      <path fill="#e4c58a" d="M20 24c4-3 9-3 11 0-1 3-4 5-8 5-3 0-4-2-3-5Z"/>
+      <path fill="#f4dfae" d="M23 24c2-1 4-1 6 0l-3 2h-3Z"/>
+    </g>
+  </defs>
+  <use href="#lobe"/><use href="#lobe" transform="translate(112 0) scale(-1 1)"/>
+  <path fill="#5c6643" d="M56 2c12 0 24 7 24 22 0 8-3 14-9 18-1 9-8 15-15 15s-14-6-15-15c-6-4-9-10-9-18C32 9 44 2 56 2Z"/>
+  <path fill="url(#membrane)" d="M56 4c11 0 21 7 21 20 0 8-4 14-10 16l-1 7c-2 5-6 9-10 9s-8-4-10-9l-1-7c-6-2-10-8-10-16C35 11 45 4 56 4Z"/>
+  <path fill="#edf0ac" d="M41 17c3-7 8-10 15-10s13 3 15 10c-5-4-9-5-15-5s-10 1-15 5Z"/>
+  <path fill="#696946" d="M43 25c2-6 8-9 13-9s11 3 13 9c3 7-3 14-13 14s-16-7-13-14Z"/>
+  <path fill="#aaa55f" d="M45 25c2-5 7-7 11-7s9 2 11 7c2 5-3 10-11 10s-13-5-11-10Z"/>
+  <path fill="#574d39" d="M47 27c4-3 13-3 18 0-2 4-6 6-9 6s-7-2-9-6Z"/>
+  <path fill="#f7de96" d="M50 28c3-1 9-1 12 0-1 2-4 3-6 3s-5-1-6-3Z"/>
+  <path fill="#5e513a" d="M48 44c0-4 5-6 8-6s8 2 8 6c0 5-4 10-8 10s-8-5-8-10Z"/>
+  <path fill="#d89962" d="M50 46c4-4 8-4 12 0-1 3-3 6-6 6s-5-3-6-6Z"/>
+  <path fill="#fff1b0" d="M53 47h6c0 2-2 3-3 3s-3-1-3-3Z"/>
+</svg>

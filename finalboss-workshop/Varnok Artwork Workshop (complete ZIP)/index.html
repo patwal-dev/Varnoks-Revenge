@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#15171c">
+  <meta name="description" content="Three Varnok concept alternatives with an exact six-second eye and shot-passage preview.">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./base.css">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./geometry.js" defer></script>
+  <script src="./workshop.js" defer></script>
+  <title>Varnok | Final Boss Artwork Workshop</title>
+</head>
+<body>
+  <a class="skip" href="#workshop">Skip to workshop</a>
+  <header class="wrap">
+    <div class="mast"><span><b aria-hidden="true">✦</b> Space Shooter</span><span>Final boss / Art review</span></div>
+    <div class="heading">
+      <div><p class="kicker">Boss 04 / Concept comparison</p><h1>Varnok</h1></div>
+      <p>Three takes on the same living boss. Compare the silhouette, the two eyes and how the tissue parts to expose the shot passages.</p>
+    </div>
+  </header>
+
+  <main class="wrap" id="workshop">
+    <section class="controls" aria-labelledby="cycle-heading">
+      <div class="section-line"><h2 id="cycle-heading">Inspect the eye cycle</h2><span>6 seconds / Both eyes synchronized</span></div>
+      <div class="transport">
+        <button type="button" id="play" disabled>Play cycle</button>
+        <div class="scrub">
+          <div class="scrub-top"><label for="timeline">Cycle position</label><output id="position" for="timeline" aria-live="off">0.000 s / 6.000 s</output></div>
+          <input type="range" id="timeline" min="0" max="6000" step="1" value="0" disabled>
+          <div class="ruler" aria-hidden="true"><span>0</span><span>2</span><span>4</span><span>6 s</span></div>
+        </div>
+        <div class="readout"><span id="phase">Closed</span><span id="aperture">0.0 px passage width</span></div>
+      </div>
+      <div class="presets" aria-label="Jump to a paused state">
+        <button type="button" data-time="0" disabled>Closed</button>
+        <button type="button" data-time="2250" disabled>Partly open</button>
+        <button type="button" data-time="2500" disabled>Fully open</button>
+        <p>Scrubbing or choosing a state pauses the cycle. All six views stay in sync.</p>
+      </div>
+      <fieldset class="guides">
+        <legend>Optional guides</legend>
+        <label><input type="checkbox" data-guide="bounds"> Body bounds</label>
+        <label><input type="checkbox" data-guide="eyes"> Eye hitboxes</label>
+        <label><input type="checkbox" data-guide="passages"> Current shot passages</label>
+        <label><input type="checkbox" data-guide="origin"> Hatchling origin</label>
+      </fieldset>
+      <noscript><p>Enable JavaScript to composite the SVG layers and inspect the eye cycle.</p></noscript>
+    </section>
+
+    <section class="collection" aria-labelledby="concept-heading">
+      <div class="section-line"><h2 id="concept-heading">Compare the alternatives</h2><span>200 × 110 px artboard / Facing down</span></div>
+      <div class="plates">
+        <article class="plate mantle" aria-labelledby="mantle">
+          <figure class="large space"><figcaption><span>Concept A</span><span>Enlarged</span></figcaption><div class="slot" data-concept="brood-mantle" data-alt="Brood Mantle, a broad violet hood with curled outer tentacles and a tapered central keel."></div></figure>
+          <div class="copy"><p class="kicker">Broad membrane</p><h3 id="mantle">Brood Mantle</h3><p>A wide, ray-like hood flares over two curled side tentacles. A tapered keel divides the eye channels.</p></div>
+          <figure class="native space"><div class="slot" data-concept="brood-mantle"></div><figcaption>Actual size / 200 × 110 px</figcaption></figure>
+        </article>
+        <article class="plate rooted" aria-labelledby="rooted">
+          <figure class="large space"><figcaption><span>Concept B</span><span>Enlarged</span></figcaption><div class="slot" data-concept="rooted-crown" data-alt="Rooted Crown, a tall lilac crest with split horns and forked tentacles."></div></figure>
+          <div class="copy"><p class="kicker">Split carapace</p><h3 id="rooted">Rooted Crown</h3><p>A tall, split crest rises between horned shoulders. Forked tendrils curl around the outer body.</p></div>
+          <figure class="native space"><div class="slot" data-concept="rooted-crown"></div><figcaption>Actual size / 200 × 110 px</figcaption></figure>
+        </article>
+        <article class="plate veil" aria-labelledby="veil">
+          <figure class="large space"><figcaption><span>Concept C</span><span>Enlarged</span></figcaption><div class="slot" data-concept="veil-nautilus" data-alt="Veil Nautilus, an asymmetric mauve organism with a shell-like curl on the left and trailing tendrils."></div></figure>
+          <div class="copy"><p class="kicker">Asymmetric shell curl</p><h3 id="veil">Veil Nautilus</h3><p>A mauve shell curls to one side, with a softer lobe and trailing tendrils on the other. The eyes stay aligned.</p></div>
+          <figure class="native space"><div class="slot" data-concept="veil-nautilus"></div><figcaption>Actual size / 200 × 110 px</figcaption></figure>
+        </article>
+      </div>
+    </section>
+    <p class="note">The shot passages are transparent when open. Guides show the specified geometry for review only; the workshop does not simulate shots, attacks or hatchling launches.</p>
+  </main>
+  <footer class="wrap footer"><a href="./Tools-and-prompt-log.md" target="_blank" rel="noopener noreferrer">Tools &amp; prompt log</a><span>Created with Perplexity Computer</span></footer>
+</body>
+</html>

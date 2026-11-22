@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="110" viewBox="0 0 200 110">
+  <defs><g id="e">
+    <path d="M-15 1c0-7 6-14 15-14S15-6 15 1 9 13 0 13-15 8-15 1Z" fill="#563a73"/>
+    <path d="M-13 1c2-8 7-12 13-12S11-7 13 1C10 8 6 11 0 11S-10 8-13 1Z" fill="#f5b1d4"/>
+    <path d="M-10 1C-6-10 6-10 10 1 6 10-6 10-10 1Z" fill="#ffdaaa"/>
+    <path d="M0-9 4 1 0 9-4 1Z" fill="#54365e"/><circle cx="-3" cy="-4" r="2" fill="#fff0e1"/>
+  </g></defs>
+  <use href="#e" x="48" y="41"/><use href="#e" x="152" y="41"/>
+</svg>

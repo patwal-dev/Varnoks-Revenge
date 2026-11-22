@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="110" viewBox="0 0 200 110">
+  <defs><g id="t">
+    <path d="M22 47C6 54 2 66 6 78c3 8 10 10 8 18-1 5-6 7-10 6 7 9 20 3 20-7 0-13-12-14-10-25 1-5 4-8 10-10Z" fill="#76559e"/>
+    <path d="M13 62c-7 12 2 21 5 26 2 5 1 10-2 13" fill="none" stroke="#c98bc6" stroke-width="3" stroke-linecap="round"/>
+    <path d="M18 64C9 74 2 75 2 68 0 80 11 83 17 75l6-8Z" fill="#9c6eaf"/>
+    <path d="M24 78c-6 9-6 18 0 25V78Z" fill="#ae82c0"/>
+  </g></defs>
+  <use href="#t"/><use href="#t" transform="translate(200) scale(-1 1)"/>
+</svg>
