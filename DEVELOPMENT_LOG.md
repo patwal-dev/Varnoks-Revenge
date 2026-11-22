@@ -426,3 +426,55 @@ Start a separate visual workshop with player-ship concepts. No player-ship direc
 - The user renamed `BRR-Music/` to `backstageriot/` and created its seven tracks with Suno. Level and track assignments and in-game music integration remain pending. [Backstage Riot on Suno](https://suno.com/@backstageriot)
 - The user placed the Varnok workshop under `finalboss-workshop/Varnok Artwork Workshop (complete ZIP)/` and `finalboss-workshop/Varnok Artwork Workshop/`. Each tree has the HTML preview, geometry and animation scripts, stylesheets, `Tools-and-prompt-log.md`, and four SVG components each for Brood Mantle, Rooted Crown and Veil Nautilus. The standalone provenance log is `finalboss-workshop/Varnok Artwork Workshop  Tools and Prompt Log.md`. No concept has been selected or integrated.
 - Next session, open `finalboss-workshop/Varnok Artwork Workshop (complete ZIP)/index.html` and review the concepts at actual size and enlarged, including the complete eye-opening cycle, before selecting one. Boss damaging-hit flashes remain deferred until all four boss artworks are integrated.
+
+## Varnok Rooted Crown integration — 22 November 2026
+
+- The user accepted Rooted Crown’s standalone artwork and animation and approved a rendering-only integration. Both normal progression and **Test Boss 4** use the same renderer. It loads the original body and eye SVGs, draws the accepted eight sweeping tentacles in Canvas, and clips the eyes with the curved lids using the existing vulnerability progress. The old drawing serves as a fallback while an image is unavailable.
+- The body stays centered at **200 × 110 px**, with the eyes at **(48, 41)** and **(152, 41)** in body coordinates. Decorative tentacles may extend offscreen. The shot draw order, shot passages, collision, HP, movement, hatchlings, scoring, supply ships and encounter progression retain their existing code. Shots that clear a passage are visible over the intact shell on their way to the eye. The passage edges remain unmarked, and the damage flash is deferred.
+- **Agent source checks.** JavaScript syntax and diff whitespace checks passed. Source comparison found only rendering changes in `game.js`. Canvas-stub checks matched the accepted workshop tentacle outlines and verified the body and eye coordinates, lid clipping and image fallback. No browser checks were run.
+- **User browser check pending.** In **Test Boss 4**, watch a complete eye cycle, then compare shots fired below an eye while closed and open with shots fired off-axis. Check that damage still awards **10 points per hit**. Normal progression shares the renderer and awaits its own browser check.
+- **Tool record.** OpenAI Codex implemented the change. The exact session model identifier and reasoning setting were unavailable.
+
+## Varnok maw and plum palette integration — 22 November 2026
+
+- **Workshop decision.** The user approved the latest Rooted Crown artwork for an in-game visual test. The shared renderer for normal progression and **Test Boss 4** now loads `body-maw.svg` and `eyes-predatory.svg` from the workshop and uses the matching angular sockets and dark plum tentacle palette. The recessed maw and uneven ivory fangs are static decoration.
+- The body anchor, **200 × 110 px** scale, eye centers, vulnerability-driven eyelid aperture, eight-tentacle motion and shot draw order retain their previous behavior. The artwork swap leaves hit detection, passages, HP, movement, hatchlings, supply ships, scoring and progression in the same game code.
+- **Agent source checks.** JavaScript syntax and diff whitespace checks passed. Asset references matched the embedded workshop copies. Canvas-stub comparison matched the previous body placement, eye clipping and eight tentacle paths. Checksums confirmed that `game.js` and the workshop art and renderer were unchanged by this revision.
+- **User browser check pending.** Review the palette contrast, fangs, eye readability and tentacle motion in **Test Boss 4**. Browser checks were not run for this revision.
+- **Tool record.** OpenAI Codex implemented the change. The exact session model identifier and reasoning setting were unavailable.
+
+## Boss hit feedback — 22 November 2026
+
+- **User-reported visual approval.** The user accepted the integrated Varnok animation in Safari, including normal-strength breathing and the hinged jaw with attached teeth. That artwork and motion are unchanged.
+- All four bosses now share a pale **100 ms** flash in normal encounters and developer tests. The shared damage handler records a flash only when health drops. A second damaging hit restarts the fade at the same maximum brightness. The game tints the pixels of the current boss art before drawing projectiles. Existing lethal hits still transition immediately.
+- **Agent source checks.** JavaScript syntax, diff whitespace and Canvas-stub checks passed. Stub checks covered damaging and blocked hits, the fade and restart, unchanged Varnok animation inputs, and the original Test Boss 4 defeat behavior. Browser verification of the flash is pending.
+- **Tool record.** OpenAI Codex implemented the change. The exact session model identifier and reasoning setting were unavailable.
+
+## Enemy projectiles and supply crates — 22 November 2026
+
+- **User-reported visual approval.** The user accepted the hit flash on all four bosses. The new projectile and crate visuals await their own Safari review.
+- Clack bolts use leaf green, Anvil copper, Rift coral, and Varnok’s Bud, Hook and Crown hatchlings violet. The colors come from the existing sprites. Xal’Gorath’s three-shot spread uses olive spores, and the existing 24 × 24 px wide shot looks like a ribbed, spiked bomb pod. Zhur-Kai’s twin volleys use rose barbs and the aimed burst uses plum and blush shards. Boss 2’s ram, the player’s yellow shot, and untagged enemy projectiles retain their existing rendering paths.
+- Both possible Vesper rewards draw the same steel-blue **22 × 22 px** crate with reinforced corners and an aqua indicator. Each destroyed supply ship still drops one pickup, whose contents set the existing shield or rapid-fire effect.
+- **Agent source checks.** Syntax and diff checks passed. Canvas-stub checks verified source palettes, art bounds, shot spawn data, layer order, the shared crate, one pickup per supply kill, and both pickup effects. The browser was not used.
+- **Tool record.** OpenAI Codex implemented the change. The exact session model identifier and reasoning setting were unavailable.
+
+## Visual polish and session handoff — 22 November 2026
+
+### User-reported Safari acceptance
+
+- Varnok’s integrated Rooted Crown artwork and normal-strength cheek breathing and hinged jaw, including the attached lower teeth and muted plum tissue.
+- Damaging-hit flashes on all four bosses.
+- Color-matched projectiles for Level 1–3 aliens, Xal’Gorath’s spore spread and wide-shot bomb pod, Zhur-Kai’s twin volleys and aimed burst, and Varnok’s hatchlings.
+- Identical space-crate artwork for both supply rewards.
+- Varnok’s crown hatch opening, the existing minions emerging, and the hatch closing. Minion shots pass behind his solid artwork, and player shots remain visible over the shell.
+- Machine-gun shots use cyan darts while rapid fire is active. New shots return to yellow at expiry, and shots already in flight keep the appearance assigned at firing.
+
+### Requirements and remaining work
+
+- All three gameplay levels are implemented. Supply-ship rewards are the upgrade system. A separate between-level upgrade-choice screen requires a new request.
+- The future menu difficulty choices are **Easy**, **Hard**, and **Ridiculous**. Tuning remains to be agreed. This checkpoint adds no difficulty options or balancing changes.
+
+### Agent checks at save
+
+- Node v26.13.1 syntax checks passed for nine JavaScript files. Game and workshop script and stylesheet references resolved. The 16 workshop SVGs parsed, their internal references resolved, and all embedded copies matched their source SVGs.
+- Focused Node checks with DOM and Canvas stubs passed for both Varnok launch routes, reinforcement timing and draw order, and rapid-fire activation, expiry, in-flight appearance, and resets. Git diff whitespace checks passed. The static browser game has no configured build step. The agent ran no browser tests at save.

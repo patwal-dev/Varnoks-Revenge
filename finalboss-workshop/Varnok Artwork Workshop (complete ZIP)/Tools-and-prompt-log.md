@@ -2,9 +2,83 @@
 
 ## Open the workshop
 
-Extract the complete ZIP and open `index.html` in a modern browser. Keep `assets/`, both stylesheets, and both scripts beside `index.html`. The workshop runs offline without installing anything. It starts paused at the closed state; select **Play cycle**, scrub the timeline, or choose one of the three inspection states.
+Open `index.html` directly in a desktop browser. Keep both stylesheets and all three scripts beside it. The workshop runs offline without installing anything. It starts paused at the closed state. Select **Play cycle**, scrub the timeline, or choose one of the three inspection states.
 
-## Tools and outputs
+## Lower fang attachment · 22 November 2026
+
+- The user liked the hinge motion and reported that the lower teeth sometimes looked detached near closure. Source inspection confirmed the gum and teeth shared one hinge, but the ivory bases were painted on top of the dark backing gum. The new curved front gum covers extended roots while leaving the fangs exposed. The normal and exaggerated hinge ranges stay the same. The user accepted the corrected workshop animation and later accepted its normal-strength integration in Safari.
+
+## Hinged jaw and muted breathing · 22 November 2026
+
+- The user rejected the sliding jaw panels, disappearing teeth and bright cheek strips in the diagnostic. The upper jaw is now fixed and the lower jaw flexes from both mouth corners with its teeth attached. The mouth stays partly open in both motion modes. The diagnostic uses the same hinge and darker plum tissue.
+- One lower fang angles farther toward the outside to clear the opposing tooth. The accepted still body and comparison toggles remain available. Visual review is pending in the workshop.
+
+## Exaggerated body motion diagnostic · 22 November 2026
+
+- The user reported that only the eyes and tentacles visibly moved. Breathing and jaw motion remain unverified in the browser. The source showed two cheek panels drawn through SVG references and a stationary dark cavity behind the moving jaw rims.
+- The workshop now animates both visible cheek panels directly. **Exaggerated body motion** makes the tissue brighter and increases its expansion. Diagnostic rims move with the original teeth and cover more of the dark cavity as the jaw closes. **Freeze eyes and tentacles** holds those layers at the current pose while body playback continues.
+- Uncheck **Animate breathing and jaw** to restore the accepted still body. The diagnostic only affects the workshop.
+
+## Body motion visibility follow-up · 22 November 2026
+
+- The user reported no visible breathing or jaw motion. Source tracing in the offline workshop confirmed that the toggle selects the animated body, the static body is hidden while it plays, and Play advances the decorative clock across the eye-cycle reset. The previous jaw moved only 0.16 px in the first two seconds. Source geometry samples also placed about 70% of the tissue highlight behind the lower plate.
+- Codex made the tissue seam visible above the lower plate, increased the early breathing and jaw travel, and kept the outer jaw armor fixed. A temporary **Body animation** readout shows elapsed seconds and playing, paused or off status. Browser review is pending.
+
+## Breathing and jaw preview · 22 November 2026
+
+- The user accepted the current face and downward gaze and requested subtle living motion in the standalone workshop. Soft tissue under the cheeks pulses, nearby plates shift less than one pixel on each axis, and the jaw rims flex with their teeth attached. The crown, horns, sockets and dark cavity stay fixed.
+- **Animate breathing and jaw** switches both preview sizes between the animated body and the accepted still body. The prior face and palette are still available through the separate comparison control. The motion shares the continuous decorative clock used by the tentacles, with an 8.8-second breath and a slower jaw flex. The six-second eye cycle keeps its existing timing.
+- The new body is embedded in the offline workshop for direct file opening. The integrated game retains its existing artwork. Visual review is pending.
+
+## Fixed downward gaze · 22 November 2026
+
+- The user liked the current Rooted Crown design and requested a subtle downward gaze in both the workshop and the game. Codex shortened the shared amber eyes’ slit pupils and centered them slightly below the middle of each eye. The amber fields, socket positions, eye exposure and eyelid timing retain their existing shapes and behavior.
+- This is a fixed visual pose. The game loads the updated eye SVG in both encounter routes, and the offline workshop carries the same SVG in its embedded artwork. Source and syntax checks passed. Visual review of the pupils is pending.
+
+## Anglerfish maw and unified palette · 22 November 2026
+
+- The user preferred the sharper face and requested a darker, unified tentacle palette, a more hostile brow and cheek line, and a static anglerfish-inspired gape. This superseded the earlier instruction to omit a mouth.
+- Codex added `body-maw.svg` with a dark recessed mouth and uneven, hooked ivory teeth. The decorative mouth has no animation or gameplay role. Tinting the existing tentacles with a plum gradient and muted highlights preserves their eight shapes and sweep. The amber eyes retain the same positions, aperture and timing.
+- **Show previous face and tentacle palette** switches both sizes to the prior workshop version at the current timeline position. Both versions load from embedded SVG data. Visual review is pending.
+
+## Predatory face and carapace revision · 22 November 2026
+
+- The user reported that the integrated Rooted Crown looked too cute and requested a hostile face and sharper armor for standalone review. The user asked to preserve the tentacles, body anchor, eye exposure and timing, and keep the integrated version in place.
+- Codex added separate workshop SVGs for the jagged dark-purple carapace and amber slit eyes. The workshop adds angular sockets behind the existing eyelid apertures, which retain their shape, position and timing. The new SVGs are embedded for direct file opening.
+- Visual review of this variant is pending.
+
+## Standalone approval of the original integration artwork · 22 November 2026
+
+- The user accepted Concept B, Rooted Crown, in its current workshop form, including the intact purple carapace, curved eyelids and broad, staggered motion of four tentacles per side. This approval covers the standalone appearance and animation.
+- Integration is pending the user’s decision. The proposed rendering swap would keep the existing shot draw order and collision geometry. Shots that clear the passages would stay visible as they cross the intact shell toward the eyes, with the passage edges left unmarked.
+
+## Broader Rooted Crown tentacle motion · 22 November 2026
+
+- The user accepted the longer tentacles and their number, and requested larger, slower sweeps with deeper curls and varied rhythms.
+- Codex kept the four shapes per side and animated the bend along each tentacle without stretching it. The tentacles cycle independently of the six-second eye animation. Both preview stages gained vertical space at the same body scale.
+
+## Extended Rooted Crown tentacles · 22 November 2026
+
+- The user approved Rooted Crown’s intact body, eye animation and existing tentacle motion. The new request was for three or four longer tentacles per side that sweep outward, with upward and downward curls and staggered motion.
+- Codex drew four tapered tentacles per side with fixed roots and offset waves that grow toward the tips. The enlarged and actual-size views use a wider stage. The actual-size body stays at 200 × 110 px, with its original local anchor at (100, 55).
+- The footprint limit is superseded for the decorative tentacles. If integrated later, they may extend offscreen. The boss keeps its body scale, position and gameplay geometry. This revision covers the standalone preview only.
+- Source and syntax checks covered this intermediate revision. The final version with broader motion was later accepted by the user.
+
+## Local preview rendering fix · 22 November 2026
+
+- The user reported blank artwork in all six views when opening the workshop directly in Safari. A leftover image helper interrupted startup before the controls initialized.
+- The renderer now uses one image helper and reads embedded copies of the SVGs from `artwork.js`. The artwork in `assets/` remains the source for those copies. If a source SVG changes, update its matching entry in `artwork.js`.
+- Codex checked the renderer from source with a stubbed DOM. Safari verification is pending.
+
+## Rooted Crown revision · 22 November 2026
+
+- **User decision.** Selected Concept B, Rooted Crown, for Varnok and requested a standalone visual revision for review. The user superseded the original transparent passage requirement for this concept.
+- **Request.** Keep the purple carapace, crest and shoulder horns intact. Use organic eyelids in the existing eye positions and six-second cycle. Add stronger, continuously curling tentacles with fixed roots and offset timing on either side. Keep both preview sizes and the optional guides.
+- **Tools and output.** OpenAI Codex used vanilla JavaScript and SVG paths to layer curved eyelids over the original artwork and animate the tentacles. The revised preview is in the offline workshop named in the handover. The original SVGs and the hosted workshop export are preserved. Model variant and reasoning setting were unavailable.
+- **Integration review.** Guides retain the live fight’s passage and hitbox geometry. A later rendering-only integration could mark the passable routes as glowing conduits within the intact shell and draw shots visibly along them. If the shell must read as solid everywhere below the eyes, a lower-edge weak point aligned with each exposed eye would need a targeting change and approval. Early hits would change the current travel time.
+- **Verification.** Source and syntax checks covered this intermediate revision. See the standalone approval above for the user’s review.
+
+## Original tools and outputs
 
 - **Perplexity Computer:** Retrieved the copyable Codex specification from the earlier HAMK conversation. Only the project conversation and previous standalone artwork were used. The working game and its files were not opened, run, or modified.
 - **SVG:** Drew the components directly as SVG vector paths and gradients. Spore Choir informed the use of soft internal membranes and fleshy nodes, while Bud, Hook, and Crown informed the amethyst family, shell highlights, hooks, and warm eye accents. Kestrel and Vesper were used to check arcade-scale readability and visual separation between player and alien art. No previous artwork was copied into the new assets. No image or video model was used, so there are no image or video generation settings to record.
@@ -17,7 +91,7 @@ Extract the complete ZIP and open `index.html` in a modern browser. Keep `assets
 | Rooted Crown | `assets/rooted-crown/` | Horned split crest, faceted carapace and forked tendrils. |
 | Veil Nautilus | `assets/veil-nautilus/` | Asymmetric shell curl, soft right lobe and dissimilar trailing tendrils. |
 
-## Layering and animation reference
+## Original layering and animation reference
 
 All twelve SVGs are transparent and share `width="200"`, `height="110"` and `viewBox="0 0 200 110"`. Coordinates start at the top left and increase downward. The body anchor remains `(100, 55)` for every layer. The SVG files contain no guides, collision outlines, or text.
 

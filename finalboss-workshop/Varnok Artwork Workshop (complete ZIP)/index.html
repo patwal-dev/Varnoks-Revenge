@@ -4,11 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#15171c">
-  <meta name="description" content="Three Varnok concept alternatives with an exact six-second eye and shot-passage preview.">
+  <meta name="description" content="Review the selected Rooted Crown revision and compare it with the original Varnok alternatives.">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./base.css">
   <link rel="stylesheet" href="./style.css">
   <script src="./geometry.js" defer></script>
+  <script src="./artwork.js" defer></script>
   <script src="./workshop.js" defer></script>
   <title>Varnok | Final Boss Artwork Workshop</title>
 </head>
@@ -18,7 +19,7 @@
     <div class="mast"><span><b aria-hidden="true">✦</b> Space Shooter</span><span>Final boss / Art review</span></div>
     <div class="heading">
       <div><p class="kicker">Boss 04 / Concept comparison</p><h1>Varnok</h1></div>
-      <p>Three takes on the same living boss. Compare the silhouette, the two eyes and how the tissue parts to expose the shot passages.</p>
+      <p>Review Rooted Crown’s eyelids and tentacle motion at both sizes.</p>
     </div>
   </header>
 
@@ -32,7 +33,7 @@
           <input type="range" id="timeline" min="0" max="6000" step="1" value="0" disabled>
           <div class="ruler" aria-hidden="true"><span>0</span><span>2</span><span>4</span><span>6 s</span></div>
         </div>
-        <div class="readout"><span id="phase">Closed</span><span id="aperture">0.0 px passage width</span></div>
+        <div class="readout"><span id="phase">Closed</span><span id="aperture">0.0 px passage guide width</span></div>
       </div>
       <div class="presets" aria-label="Jump to a paused state">
         <button type="button" data-time="0" disabled>Closed</button>
@@ -53,15 +54,28 @@
     <section class="collection" aria-labelledby="concept-heading">
       <div class="section-line"><h2 id="concept-heading">Compare the alternatives</h2><span>200 × 110 px artboard / Facing down</span></div>
       <div class="plates">
+        <article class="plate rooted" aria-labelledby="rooted">
+          <div class="rooted-comparison">
+            <label><input type="checkbox" id="rooted-body-motion" checked disabled> Animate breathing and jaw</label>
+            <label><input type="checkbox" id="rooted-exaggerated" disabled> Exaggerated body motion</label>
+            <label><input type="checkbox" id="rooted-freeze" disabled> Freeze eyes and tentacles</label>
+            <output id="rooted-body-time" aria-live="off">Body animation 0.00 s · paused</output>
+            <label><input type="checkbox" id="rooted-previous" disabled> Show previous face and tentacle palette</label>
+          </div>
+          <figure class="large space">
+            <figcaption><span>Concept B · Face and armor revision</span><span>Enlarged</span></figcaption>
+            <div class="rooted-stage"><div class="slot" data-concept="rooted-crown" data-alt="Rooted Crown with sharply angled brows, amber slit eyes, dark purple armor and four sweeping tentacles on each side."></div></div>
+          </figure>
+          <figure class="native space">
+            <div class="rooted-stage"><div class="slot" data-concept="rooted-crown"></div></div>
+            <figcaption>Actual size / 200 × 110 px body</figcaption>
+          </figure>
+          <div class="copy"><p class="kicker">Split carapace</p><h3 id="rooted">Rooted Crown</h3><p>Amber slit eyes, jagged cheek armor and eight sweeping tentacles.</p></div>
+        </article>
         <article class="plate mantle" aria-labelledby="mantle">
           <figure class="large space"><figcaption><span>Concept A</span><span>Enlarged</span></figcaption><div class="slot" data-concept="brood-mantle" data-alt="Brood Mantle, a broad violet hood with curled outer tentacles and a tapered central keel."></div></figure>
           <div class="copy"><p class="kicker">Broad membrane</p><h3 id="mantle">Brood Mantle</h3><p>A wide, ray-like hood flares over two curled side tentacles. A tapered keel divides the eye channels.</p></div>
           <figure class="native space"><div class="slot" data-concept="brood-mantle"></div><figcaption>Actual size / 200 × 110 px</figcaption></figure>
-        </article>
-        <article class="plate rooted" aria-labelledby="rooted">
-          <figure class="large space"><figcaption><span>Concept B</span><span>Enlarged</span></figcaption><div class="slot" data-concept="rooted-crown" data-alt="Rooted Crown, a tall lilac crest with split horns and forked tentacles."></div></figure>
-          <div class="copy"><p class="kicker">Split carapace</p><h3 id="rooted">Rooted Crown</h3><p>A tall, split crest rises between horned shoulders. Forked tendrils curl around the outer body.</p></div>
-          <figure class="native space"><div class="slot" data-concept="rooted-crown"></div><figcaption>Actual size / 200 × 110 px</figcaption></figure>
         </article>
         <article class="plate veil" aria-labelledby="veil">
           <figure class="large space"><figcaption><span>Concept C</span><span>Enlarged</span></figcaption><div class="slot" data-concept="veil-nautilus" data-alt="Veil Nautilus, an asymmetric mauve organism with a shell-like curl on the left and trailing tendrils."></div></figure>
@@ -70,8 +84,8 @@
         </article>
       </div>
     </section>
-    <p class="note">The shot passages are transparent when open. Guides show the specified geometry for review only; the workshop does not simulate shots, attacks or hatchling launches.</p>
+    <p class="note">On Rooted Crown, the shot passage guides mark where shots can travel in the current fight. Turn them on to compare those routes with the intact carapace.</p>
   </main>
-  <footer class="wrap footer"><a href="./Tools-and-prompt-log.md" target="_blank" rel="noopener noreferrer">Tools &amp; prompt log</a><span>Created with Perplexity Computer</span></footer>
+  <footer class="wrap footer"><a href="./Tools-and-prompt-log.md" target="_blank" rel="noopener noreferrer">Tools &amp; prompt log</a><span>Original workshop by Perplexity Computer</span></footer>
 </body>
 </html>

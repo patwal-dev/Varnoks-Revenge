@@ -12,13 +12,13 @@
 - **Boss 1, Xal’Gorath.** The user visually accepted Spore Choir. It is integrated at a centered **112 × 58 px** in normal progression and **Test Boss 1**.
 - **Boss 2, Lord Kaezar Vhul.** The user visually accepted Iron Sepulchre and the corrected warning-lane clipping. The artwork is integrated at a centered **132 × 68 px** in normal Level 2 progression and **Test Boss 2**. The existing **76.56 × 42.16 px** shot and ram collision footprint stays centered within the body.
 - **Boss 3, Zhur-Kai.** The user visually accepted Crown Maw’s current artwork and mouth animation. Preserve the compact pointed closed jaw, the dropping lower jaw that reveals the recessed yellow target, and the twin firing organs.
-- **Boss 4, Varnok.** The standalone artwork workshop is saved locally. Brood Mantle, Rooted Crown and Veil Nautilus are unselected concepts. The game still uses its current Varnok rendering. The direction is a distinct living alien inspired by Spore Choir, with tentacles and two clearly targetable eyes aligned to the existing geometry.
+- **Boss 4, Varnok.** The user visually approved the integrated Rooted Crown animation in Safari. Normal progression and **Test Boss 4** use the same **200 × 110 px** artwork with downward amber slit eyes, normal-strength cheek breathing, a hinged lower jaw with attached fangs, and eight sweeping dark plum tentacles. The eyelids still use the existing vulnerability progress.
 
 ## Current implementation
 
 - All four bosses keep their HP internal in normal progression and standalone tests. The player sees no boss health bar, HP number, percentage or replacement indicator.
 - Xal’Gorath’s visible cyan charge halo was removed in both encounter routes, superseding the earlier requirement to preserve it. His internal charge timing and spread shots still use the existing code.
-- The project is a single-player HTML/CSS/vanilla JavaScript Canvas game. Level 1 remains accepted as-is: two waves, then Xal’Gorath, a separate 100-point defeat bonus, and a paused clear screen before Level 2. Preserve the accepted gameplay.
+- The project is a single-player HTML/CSS/vanilla JavaScript Canvas game with all three gameplay levels implemented. Level 1 remains accepted as-is, with two waves followed by Xal’Gorath, a separate 100-point defeat bonus, and a paused clear screen before Level 2.
 - The game opens at an idle Space Shooter menu. **Start Game** uses the existing reset for Level 1 with 3 lives and 0 score. **How to Play** lists the movement, firing and objective, with a Back button. Developer Mode tools remain in a separate panel.
 - The Developer testing panel retains all level and boss buttons. Collision overlays and guides have been removed from gameplay rendering.
 - **Music On/Off** is available inside the central menu below How to Play and in the header during gameplay. Both buttons share one preference and one quiet Web Audio placeholder loop. Music defaults to Off, remembers the setting when local storage is available, and starts after a user clicks a button with music enabled. Turning music off stops the loop.
@@ -42,6 +42,14 @@
 
 ### User browser checks
 
+- The user accepted these visuals in Safari at the session checkpoint:
+  - Varnok’s integrated Rooted Crown artwork, breathing and hinged jaw, including the attached lower teeth and muted plum cheek tissue.
+  - The **100 ms** damaging-hit flashes on all four bosses.
+  - Color-matched shots for Level 1–3 aliens, Xal’Gorath’s spore spread and bomb pod, Zhur-Kai’s twin volleys and aimed burst, and Varnok’s minions.
+  - Identical space crates for the shield and rapid-fire supply rewards.
+  - Varnok’s crown hatch opening, minion emergence and closing. His minion shots pass behind the shell, and player shots remain visible over it.
+  - Cyan machine-gun darts during rapid fire, yellow shots after expiry, and the retained appearance of shots already in flight.
+
 - The user accepted Spore Choir’s appearance in a focused Boss 1 browser check. This check covered the artwork only.
 - The user confirmed in the browser that Xal’Gorath’s cyan halo was removed and all four boss health bars were hidden. This feedback covered those visual changes only.
 - The user confirmed in a focused Boss 2 browser check that the warning-lane clipping fix works and accepted Iron Sepulchre’s current appearance.
@@ -60,6 +68,9 @@
 
 - JavaScript syntax and diff whitespace checks and focused Node simulations are recorded in `DEVELOPMENT_LOG.md`. Earlier simulations covered the boss transition, both Varnok routes at 19 HP, credits and restart, Wave 2 entrances, and menu and music behavior with stubbed browser APIs.
 - This session’s simulations covered supply-ship scheduling and drawing, shield geometry and protection, regular-alien turning, and hatchling variant persistence and gameplay RNG parity through both Varnok routes. Canvas and image events were stubbed.
+- For Rooted Crown, syntax and source comparison checks passed. Canvas-stub checks matched the workshop tentacle outlines and checked the body anchor, eye clipping, and image fallback. The browser was not used for this integration.
+- For the maw and plum palette revision, syntax and source checks verified the workshop asset references and matched the eye clipping, body placement and all eight tentacle paths to the earlier renderer.
+- At session save, Node syntax checks passed for nine scripts, and the game and workshop links and all 16 embedded SVG sources matched. Focused stub checks passed for both Varnok launch routes and rapid-fire visuals, including expiry and resets. Git diff whitespace checks passed. There is no configured build step. No browser tests were run by the agent at save.
 
 ### Pending browser checks
 
@@ -71,8 +82,8 @@
 
 ## Next session
 
-- Open `finalboss-workshop/Varnok Artwork Workshop (complete ZIP)/index.html` and review the three Varnok concepts at **200 × 110 px** and enlarged. Play or scrub the full eye-opening cycle and inspect the target and passage guides before choosing artwork.
-- After all four boss artworks are integrated, add a brief visible flash only when a hit damages a boss. Blocked or invulnerable hits must never trigger the flash. This work is deferred.
+- Supply-ship rewards are the upgrade system. A separate between-level upgrade-choice screen requires a new request.
+- Future menu difficulty choices are **Easy**, **Hard**, and **Ridiculous**. The user has yet to agree on tuning, and the difficulty menu remains unimplemented.
 
 ## Tool and model notes
 
@@ -84,7 +95,7 @@
 - Perplexity Computer’s `ship-workshop/` contains Kestrel, Vesper and the unselected Bastion. `alien-workshop/Alien Art Workshop (complete ZIP)/` contains the three level designs, three hatchlings, turning previews and `Tools-and-prompt-log.md`. The workshop motion paths are demonstrations and stay separate from the game.
 - `boss-workshop/Xal’Gorath Boss Art Workshop/` contains Spore Choir, Iron Sepulchre, Crown Maw and the original `Tools-and-prompt-log.md`. The game loads Spore Choir and Iron Sepulchre directly from the workshop’s `assets/` directory.
 - `assets/bosses/` holds the adapted Crown Maw body, mouth interior and lower jaw SVGs. The original workshop SVG and provenance log remain in the workshop folder.
-- The Varnok workshop is under `finalboss-workshop/Varnok Artwork Workshop (complete ZIP)/` and `finalboss-workshop/Varnok Artwork Workshop/`. Both contain `index.html`, `geometry.js`, `workshop.js`, stylesheets, `Tools-and-prompt-log.md`, and `assets/{brood-mantle,rooted-crown,veil-nautilus}/` with separate body, eyes, seals and tentacles SVGs. The standalone log is `finalboss-workshop/Varnok Artwork Workshop  Tools and Prompt Log.md`.
+- The accepted offline Varnok revision is under `finalboss-workshop/Varnok Artwork Workshop (complete ZIP)/`. Its `Tools-and-prompt-log.md` records the approval, and `artwork.js` embeds the SVGs for direct file opening. The original workshop and its provenance are preserved under `finalboss-workshop/Varnok Artwork Workshop/` and in `finalboss-workshop/Varnok Artwork Workshop  Tools and Prompt Log.md`.
 - Keep the workshop source and provenance with the artwork. Record tools, prompts, outputs and user decisions. Record exact model and reasoning settings only when known.
 
 ## Working and verification preferences

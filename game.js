@@ -1,5 +1,10 @@
 const canvas = document.getElementById("game");
 const context = canvas.getContext("2d");
+const bossFlashCanvas = document.createElement("canvas");
+bossFlashCanvas.width = canvas.width;
+bossFlashCanvas.height = canvas.height;
+const bossFlashContext = bossFlashCanvas.getContext("2d");
+const bossHitFlashDuration = 100;
 const scoreDisplay = document.getElementById("score");
 const livesDisplay = document.getElementById("lives");
 const gameStatus = document.getElementById("game-status");
@@ -101,6 +106,7 @@ const hatchlingArtwork = ["bud", "hook", "crown"].map((name) => {
   return artwork;
 });
 const hatchlingVisualChoices = new WeakMap();
+const hatchlingLaunchVisualTimes = new WeakMap();
 const alienAngles = new WeakMap();
 
 const sporeChoirImage = new Image();
@@ -139,7 +145,58 @@ const [crownMawBody, crownMawCore, crownMawJaw] = ["body", "core", "jaw"].map((p
 const keysDown = new Set();
 const shots = [];
 const enemyShots = [];
+const varnokMinionShots = new WeakSet();
 const enemies = [];
+// Keep the artwork in the existing projectile and pickup footprints.
+function createCombatArtwork(layers) {
+  return layers.map(([color, path]) => [color, new Path2D(path)]);
+}
+
+const rapidFireShotArtwork = createCombatArtwork([
+  ["#277496", "M2.5 0 5 5.4 4.3 11.6 2.5 14 0.7 11.6 0 5.4Z"],
+  ["#4ad8f6", "M2.5 1.4 4.2 5.8 3.7 11 2.5 13 1.3 11 0.8 5.8Z"],
+  ["#dcfaff", "M2.5 2.8 3.35 6.1 3.1 10.6 2.5 11.9 1.9 10.6 1.65 6.1Z"],
+]);
+
+const alienBoltShell = new Path2D("M3.5 0 6.5 2.5 7 7 5.5 10.5 3.5 13 1.5 10.5 0 7 0.5 2.5Z");
+const alienBoltCore = new Path2D("M3.5 2 5.1 4 5 7.5 3.5 11 2 7.5 1.9 4Z");
+const alienShotArtwork = [
+  ["#61773c", "#d6e89b"], // Clack
+  ["#a65740", "#f3b37c"], // Anvil
+  ["#92364e", "#ffaca0"], // Rift
+  ["#aa78d7", "#dec0f4"], // Bud, Hook and Crown share these colors.
+].map(([shell, core]) => [[shell, alienBoltShell], [core, alienBoltCore]]);
+
+const sporeShotArtwork = createCombatArtwork([
+  ["#65704a", "M3.5 0C5.5 1.7 7 4.5 7 7.3 7 10.6 5.6 13 3.5 13S0 10.6 0 7.3C0 4.5 1.5 1.7 3.5 0Z"],
+  ["#d9dc8e", "M3.5 2.5C5.1 4.7 5.8 6.5 5.5 8.5 5.3 10.4 4.6 11.3 3.5 11.3S1.7 10.4 1.5 8.5C1.2 6.5 1.9 4.7 3.5 2.5Z"],
+]);
+const sporeBombArtwork = createCombatArtwork([
+  ["#65704a", "M12 1 16 3 18 5 22 4 21 9 24 12 22 16 21 20 16 21 12 24 8 21 3 20 2 16 0 12 3 9 2 4 6 5 8 3Z"],
+  ["#acb261", "M12 3 17 5 20 10 20 15 17 19 12 22 7 19 4 15 4 10 7 5Z"],
+  ["#53633e", "M6 8 9 9 9 15 7 18 5 14ZM18 8 19 14 17 18 15 15 15 9Z"],
+  ["#edf0ac", "M12 6 16 9 17 13 15 17 12 19 9 17 7 13 8 9Z"],
+  ["#d89962", "M12 9 14 11 14 14 12 16 10 14 10 11Z"],
+]);
+const crownMawVolleyArtwork = createCombatArtwork([
+  ["#a34562", "M1 0H6L7 4 5 10 3.5 13 2 10 0 4Z"],
+  ["#d58095", "M2 2H5L5.4 5 3.5 10.5 1.6 5Z"],
+]);
+const crownMawAimedArtwork = createCombatArtwork([
+  ["#7c3953", "M3.5 0 6.8 3.5 6.7 9 3.5 13 0.3 9 0.2 3.5Z"],
+  ["#f3a5a7", "M3.5 2.3 5.4 5 5 8.8 3.5 11.1 2 8.8 1.6 5Z"],
+  ["#a74e6b", "M3.5 2.3V11.1L2 8.8 1.6 5Z"],
+]);
+const supplyCrateArtwork = createCombatArtwork([
+  ["#9bafb9", "M3 0H19L22 3V19L19 22H3L0 19V3Z"],
+  ["#263c4e", "M4 1H18L21 4V18L18 21H4L1 18V4Z"],
+  ["#68849a", "M3 5 5 3H17L19 5V8H3Z"],
+  ["#455f73", "M3 10H19V17L17 19H5L3 17Z"],
+  ["#1b2b3b", "M3 8H19V10H3ZM8 11H14V16H8ZM5 16H7V18H5ZM15 16H17V18H15Z"],
+  ["#b8c8cd", "M3 1H7V3H4L3 4V7H1V3ZM15 1H19L21 3V7H19V4L18 3H15ZM1 15H3V18L4 19H7V21H3L1 19ZM19 15H21V19L19 21H15V19H18L19 18Z"],
+  ["#89e6e0", "M9 12H13V14H9Z"],
+]);
+
 const shotSpeed = 420;
 const shotInterval = 0.80;
 const rapidFireRateMultiplier = 2;
@@ -192,6 +249,10 @@ const varnokAlienLaunchInterval = 0.3;
 const varnokAlienReturnDelay = 0.5;
 const varnokAlienLaunchSpeed = 180;
 const varnokAlienReturnSpeed = 180;
+const varnokHatchLeadTime = 0.28;
+const varnokHatchOpenDuration = 0.24;
+const varnokHatchCloseDuration = 0.28;
+const varnokHatchEmergenceDuration = 0.22;
 const varnokReinforcementMinDelay = 15;
 const varnokReinforcementMaxDelay = 20;
 const varnokReinforcementRetryDelay = 3;
@@ -258,6 +319,8 @@ let level3DescentAnimation = null;
 let level2Bomber = null;
 let level2BomberTimer = 0;
 let varnokAlienFormation = null;
+let varnokHatchProgress = 0;
+let varnokHatchLastRelease = null;
 let level2BonusShip = null;
 let level2BonusShipTimer = 0;
 const level2Pickups = [];
@@ -799,6 +862,7 @@ function fireBossWideShot() {
     height: 24,
     vy: enemyShotSpeed,
     isBossShot: true,
+    artwork: sporeBombArtwork,
   });
 }
 
@@ -815,6 +879,7 @@ function fireBossSpread() {
       vx: 0,
       vy: enemyShotSpeed,
       isBossShot: true,
+      artwork: sporeShotArtwork,
     },
     {
       x: boss.x,
@@ -825,6 +890,7 @@ function fireBossSpread() {
       vy: enemyShotSpeed,
       isBossShot: true,
       bounceAtWalls: true,
+      artwork: sporeShotArtwork,
     },
     {
       x: boss.x,
@@ -835,6 +901,7 @@ function fireBossSpread() {
       vy: enemyShotSpeed,
       isBossShot: true,
       bounceAtWalls: true,
+      artwork: sporeShotArtwork,
     },
   );
 }
@@ -1044,6 +1111,8 @@ function updateVarnokAlienFormation(deltaSeconds, frameTime) {
     // Choose artwork independently of the random draws that control combat.
     const visualRandom = crypto.getRandomValues(new Uint32Array(1))[0] / 0x100000000;
     hatchlingVisualChoices.set(alien, hatchlingArtwork[Math.floor(visualRandom * hatchlingArtwork.length)]);
+    hatchlingLaunchVisualTimes.set(alien, formation.elapsed);
+    varnokHatchLastRelease = formation.elapsed;
     formation.aliens.push(alien);
     enemies.push(alien);
     formation.nextLaunchSlot += 1;
@@ -1092,6 +1161,22 @@ function updateVarnokAlienFormation(deltaSeconds, frameTime) {
     updateLevel2Bomber(deltaSeconds, frameTime);
   }
   updateAlienAngles(formation.aliens, deltaSeconds, formation);
+  updateVarnokHatch(formation, deltaSeconds);
+}
+
+function updateVarnokHatch(formation, deltaSeconds) {
+  const launchExpected = formation.nextBatchTime !== null
+    && formation.nextBatchTime - formation.elapsed <= varnokHatchLeadTime
+    && varnokAlienPopulationLimit - formation.aliens.length >= varnokAlienBatchMinSize;
+  const batchLaunching = formation.nextLaunchTime !== null
+    && formation.nextLaunchSlot < formation.slots.length;
+  const hatchlingEmerging = varnokHatchLastRelease !== null
+    && formation.elapsed - varnokHatchLastRelease < varnokHatchEmergenceDuration;
+  if (launchExpected || batchLaunching || hatchlingEmerging) {
+    varnokHatchProgress = Math.min(1, varnokHatchProgress + deltaSeconds / varnokHatchOpenDuration);
+  } else {
+    varnokHatchProgress = Math.max(0, varnokHatchProgress - deltaSeconds / varnokHatchCloseDuration);
+  }
 }
 
 function reserveVarnokAlienBatch(formation) {
@@ -1265,6 +1350,8 @@ function clearVarnokAlienFormation() {
     if (enemies[index].isVarnokAlien) enemies.splice(index, 1);
   }
   varnokAlienFormation = null;
+  varnokHatchProgress = 0;
+  varnokHatchLastRelease = null;
 }
 
 function updateLevel3BossArmor(deltaSeconds) {
@@ -1353,6 +1440,7 @@ function fireLevel3BossVolley() {
       height: 13,
       vy: enemyShotSpeed,
       isBossShot: true,
+      artwork: crownMawVolleyArtwork,
     },
     {
       x: boss.x + level3BossProjectileOffset,
@@ -1361,6 +1449,7 @@ function fireLevel3BossVolley() {
       height: 13,
       vy: enemyShotSpeed,
       isBossShot: true,
+      artwork: crownMawVolleyArtwork,
     },
   );
 }
@@ -1380,6 +1469,7 @@ function fireLevel3BossAimedShot() {
     vx: dx / distance * enemyShotSpeed,
     vy: dy / distance * enemyShotSpeed,
     isBossShot: true,
+    artwork: crownMawAimedArtwork,
   });
 }
 
@@ -1927,16 +2017,15 @@ function updatePlayer(deltaSeconds) {
 
 function updateShots(deltaSeconds, frameTime) {
   if (keysDown.has("space") && frameTime >= nextShotTime) {
+    const rapidFireActive = (currentLevel === 2 || currentLevel === 3) && level2WeaponTimeRemaining > 0;
     shots.push({
       x: player.x,
       y: player.y - player.height / 2 - 5,
       width: 5,
       height: 14,
+      artwork: rapidFireActive ? rapidFireShotArtwork : null,
     });
-    const firingInterval = (currentLevel === 2 || currentLevel === 3)
-      && level2WeaponTimeRemaining > 0
-      ? shotInterval / rapidFireRateMultiplier
-      : shotInterval;
+    const firingInterval = rapidFireActive ? shotInterval / rapidFireRateMultiplier : shotInterval;
     nextShotTime = frameTime + firingInterval * 1000;
   }
 
@@ -2321,7 +2410,7 @@ function updateLevel2BonusShip(deltaSeconds) {
   }
 }
 
-function handleShotCollisions(deltaSeconds) {
+function handleShotCollisions(deltaSeconds, frameTime) {
   for (let shotIndex = shots.length - 1; shotIndex >= 0; shotIndex -= 1) {
     const shot = shots[shotIndex];
     const shotBounds = getPlayerShotBounds(shot);
@@ -2457,15 +2546,17 @@ function handleShotCollisions(deltaSeconds) {
         }
       }
 
-      if (damagesBoss && applyBossDamage(1)) return;
+      if (damagesBoss && applyBossDamage(1, frameTime)) return;
     }
   }
 }
 
-function applyBossDamage(damage) {
+function applyBossDamage(damage, frameTime = performance.now()) {
   if (gameState !== "playing" || boss === null || boss.health <= 0) return false;
 
+  const healthBefore = boss.health;
   boss.health -= damage;
+  if (boss.health < healthBefore) boss.hitFlashUntil = frameTime + bossHitFlashDuration;
   score += 10;
   scoreDisplay.textContent = score;
   if (boss.health > 0) return false;
@@ -2503,12 +2594,15 @@ function updateAlienFiring(shooters, frameTime) {
     nextEnemyShotTime = frameTime + enemyShotIntervalMin;
   } else if (frameTime >= nextEnemyShotTime) {
     const shooter = shooters[Math.floor(Math.random() * shooters.length)];
-    enemyShots.push({
+    const shot = {
       x: shooter.x,
       y: shooter.y + shooter.height / 2,
       width: 7,
       height: 13,
-    });
+      artwork: alienShotArtwork[shooter.isVarnokAlien ? 3 : currentLevel - 1],
+    };
+    if (shooter.isVarnokAlien) varnokMinionShots.add(shot);
+    enemyShots.push(shot);
     nextEnemyShotTime = frameTime + enemyShotIntervalMin
       + Math.random() * enemyShotIntervalRange;
   }
@@ -2627,11 +2721,9 @@ function drawStarfield() {
   }
 }
 
-function drawEnemy(enemy, index) {
+function drawEnemy(enemy, index, x = enemy.x, y = enemy.y) {
   const halfWidth = enemy.width / 2;
   const halfHeight = enemy.height / 2;
-  const x = enemy.x;
-  const y = enemy.y;
   if (currentLevel === 1 && clackImageReady) {
     context.drawImage(clackImage, x - halfWidth, y - halfHeight, enemy.width, enemy.height);
     return;
@@ -2679,6 +2771,32 @@ function drawEnemy(enemy, index) {
   context.fill();
 }
 
+function drawVarnokHatchlings(emerging, hatchOpening) {
+  const body = getLevel3BossBodyBounds(boss);
+  const gap = getRootedCrownHatchGap(hatchOpening);
+  context.save();
+  context.beginPath();
+  context.rect(0, 0, canvas.width, body.top);
+  context.moveTo(boss.x - gap, body.top);
+  context.lineTo(boss.x + gap, body.top);
+  context.lineTo(boss.x + gap, body.top + 20);
+  context.lineTo(boss.x + gap * 0.78, body.top + rootedCrownHatchLipY);
+  context.lineTo(boss.x - gap * 0.78, body.top + rootedCrownHatchLipY);
+  context.lineTo(boss.x - gap, body.top + 20);
+  context.closePath();
+  context.clip();
+
+  for (const { enemy, index, age } of emerging) {
+    // Start behind the crown's foreground lip and ease into the existing flight path.
+    const inside = (1 - age / varnokHatchEmergenceDuration) ** 2;
+    const startY = body.top + rootedCrownHatchLipY + enemy.height * 0.3;
+    const x = enemy.x + (boss.x - enemy.x) * inside;
+    const y = enemy.y + (startY - enemy.y) * inside;
+    drawEnemy(enemy, index, x, y);
+  }
+  context.restore();
+}
+
 function drawLevel2BonusShip() {
   if (level2BonusShip === null) return;
   context.save();
@@ -2711,33 +2829,29 @@ function drawLevel2BonusShip() {
   context.restore();
 }
 
+function drawCombatArtwork(artwork, left, top) {
+  context.save();
+  context.translate(left, top);
+  for (const [color, path] of artwork) {
+    context.fillStyle = color;
+    context.fill(path);
+  }
+  context.restore();
+}
+
 function drawLevel2Pickups() {
   for (const pickup of level2Pickups) {
-    context.save();
-    context.translate(pickup.x, pickup.y);
-    context.lineWidth = 2;
-    context.beginPath();
-    if (pickup.type === "shield") {
-      context.fillStyle = "#70e8ff";
-      context.strokeStyle = "#e6fcff";
-      context.moveTo(0, -pickup.height / 2);
-      context.lineTo(pickup.width / 2, 0);
-      context.lineTo(0, pickup.height / 2);
-      context.lineTo(-pickup.width / 2, 0);
-    } else {
-      context.fillStyle = "#ffad55";
-      context.strokeStyle = "#fff0c2";
-      context.moveTo(3, -pickup.height / 2);
-      context.lineTo(pickup.width / 2, -2);
-      context.lineTo(3, 1);
-      context.lineTo(5, pickup.height / 2);
-      context.lineTo(-pickup.width / 2, 2);
-      context.lineTo(-2, -1);
-    }
-    context.closePath();
-    context.fill();
-    context.stroke();
-    context.restore();
+    drawCombatArtwork(supplyCrateArtwork, pickup.x - pickup.width / 2, pickup.y - pickup.height / 2);
+  }
+}
+
+function drawEnemyShot(shot) {
+  const left = shot.x - shot.width / 2;
+  if (shot.artwork) {
+    drawCombatArtwork(shot.artwork, left, shot.y);
+  } else {
+    context.fillStyle = "#ffb26b";
+    context.fillRect(left, shot.y, shot.width, shot.height);
   }
 }
 
@@ -2799,11 +2913,30 @@ function drawLevel2BossChargeLane() {
   context.restore();
 }
 
-function drawBoss() {
+function drawBoss(frameTime, hatchOpening = 0) {
   if (boss === null) return;
 
+  const remaining = (boss.hitFlashUntil ?? 0) - frameTime;
+  if (remaining <= 0 || bossFlashContext === null) {
+    drawBossArtwork(context, frameTime, hatchOpening);
+    return;
+  }
+
+  bossFlashContext.clearRect(0, 0, bossFlashCanvas.width, bossFlashCanvas.height);
+  bossFlashContext.save();
+  drawBossArtwork(bossFlashContext, frameTime, hatchOpening);
+  // Tint only the pixels of this frame's artwork, keeping its transparency and detail.
+  bossFlashContext.globalCompositeOperation = "source-atop";
+  bossFlashContext.globalAlpha = 0.28 * Math.min(1, remaining / bossHitFlashDuration);
+  bossFlashContext.fillStyle = "#fff0d4";
+  bossFlashContext.fillRect(0, 0, bossFlashCanvas.width, bossFlashCanvas.height);
+  bossFlashContext.restore();
+  context.drawImage(bossFlashCanvas, 0, 0);
+}
+
+function drawBossArtwork(context, frameTime, hatchOpening) {
   if (boss.level === 4) {
-    drawVarnokBoss();
+    drawVarnokBoss(context, frameTime, hatchOpening);
     return;
   }
 
@@ -2896,9 +3029,12 @@ function drawBoss() {
   }
 }
 
-function drawVarnokBoss() {
+function drawVarnokBoss(context, frameTime, hatchOpening) {
   const body = getLevel3BossBodyBounds(boss);
   const eyeGeometry = getVarnokEyeGeometry(boss);
+  if (drawRootedCrownArtwork(context, body, eyeGeometry, boss.eyeOpeningAmount, frameTime, hatchOpening)) return;
+
+  // Keep the original artwork as a fallback if an image is unavailable.
   const passages = getVarnokProjectilePassages(boss);
 
   context.fillStyle = "#4b293e";
@@ -3032,19 +3168,41 @@ function drawFrame(frameTime) {
     drawVictoryEnding();
     return;
   }
+  const varnokOnScreen = boss?.level === 4;
+  const hatchOpening = varnokHatchProgress * varnokHatchProgress * (3 - 2 * varnokHatchProgress);
+  const emerging = [];
   drawLevel2BossChargeLane();
-  enemies.forEach(drawEnemy);
+  enemies.forEach((enemy, index) => {
+    if (varnokOnScreen && varnokAlienFormation !== null && enemy.varnokState === "launching") {
+      const age = varnokAlienFormation.elapsed - hatchlingLaunchVisualTimes.get(enemy);
+      if (age < varnokHatchEmergenceDuration) {
+        emerging.push({ enemy, index, age });
+        return;
+      }
+    }
+    drawEnemy(enemy, index);
+  });
   drawLevel2BonusShip();
   drawLevel2Pickups();
-  drawBoss();
+  if (varnokOnScreen) {
+    for (const shot of enemyShots) {
+      if (varnokMinionShots.has(shot)) drawEnemyShot(shot);
+    }
+  }
+  drawBoss(frameTime, hatchOpening);
+  if (emerging.length > 0) drawVarnokHatchlings(emerging, hatchOpening);
   drawBarriers();
   context.fillStyle = "#ffe08a";
   for (const shot of shots) {
-    context.fillRect(shot.x - shot.width / 2, shot.y, shot.width, shot.height);
+    const left = shot.x - shot.width / 2;
+    if (shot.artwork) {
+      drawCombatArtwork(shot.artwork, left, shot.y);
+    } else {
+      context.fillRect(left, shot.y, shot.width, shot.height);
+    }
   }
-  context.fillStyle = "#ffb26b";
   for (const shot of enemyShots) {
-    context.fillRect(shot.x - shot.width / 2, shot.y, shot.width, shot.height);
+    if (!varnokOnScreen || !varnokMinionShots.has(shot)) drawEnemyShot(shot);
   }
   drawPlayer(frameTime);
   drawLevel2PickupMessage();
@@ -3252,7 +3410,7 @@ function gameLoop(frameTime) {
         updateLevel2BonusShip(deltaSeconds);
         updateLevel2Pickups(deltaSeconds);
       }
-      handleShotCollisions(deltaSeconds);
+      handleShotCollisions(deltaSeconds, frameTime);
       if (gameState === "playing" && waveEntranceElapsed === null) {
         updateEnemyShots(deltaSeconds, frameTime);
       }

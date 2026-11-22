@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="110" viewBox="0 0 200 110">
+  <defs>
+    <linearGradient id="shell" x2=".16" y2="1">
+      <stop stop-color="#65517d"/><stop offset=".42" stop-color="#3e3057"/><stop offset="1" stop-color="#211a32"/>
+    </linearGradient>
+    <linearGradient id="crest" x2=".2" y2="1">
+      <stop stop-color="#847097"/><stop offset=".38" stop-color="#57436f"/><stop offset="1" stop-color="#30233f"/>
+    </linearGradient>
+    <linearGradient id="brow" x2="0" y2="1">
+      <stop stop-color="#776087"/><stop offset=".5" stop-color="#4e3b65"/><stop offset="1" stop-color="#261a35"/>
+    </linearGradient>
+    <linearGradient id="throat" x2=".12" y2="1">
+      <stop stop-color="#100b15"/><stop offset=".62" stop-color="#09060c"/><stop offset="1" stop-color="#1c111b"/>
+    </linearGradient>
+    <linearGradient id="ivory" x2=".8" y2=".35">
+      <stop stop-color="#817568"/><stop offset=".48" stop-color="#b4a591"/><stop offset="1" stop-color="#928273"/>
+    </linearGradient>
+    <g id="plates">
+      <!-- Shoulder horn and the dark facet behind the brow. -->
+      <path d="M52 26 61 4 68 19 84 26 75 38 67 32 51 31Z" fill="#5b466e"/>
+      <path d="M53 25 61 4 62 20 69 25 61 22Z" fill="#8b749a"/>
+      <path d="m65 8 8 14 11 4-9 12-7-6 4-6Z" fill="#30233f"/>
+      <!-- Recess between the cheek plates and the scythe-shaped lower armor. -->
+      <path d="m17 52 14 4 21 4 19-8-8 17-17 17-14 3-9-6 6-10-9 1Z" fill="#21182f"/>
+      <path d="m20 54 10 5 15 6 28-11-8 13-10 5-17 9-13 6 6-12-9 2 5-10Z" fill="#59456f"/>
+      <path d="m29 59 16 6 28-11-16 11-13 4-11-4Z" fill="#776185"/>
+      <path d="m24 91 22-9 13-13 21-7-9 17-16 10-18 8-12 6 6-10Z" fill="#463556"/>
+      <path d="m31 92 14-7 13-13 12-7-10 13-14 10Z" fill="#665177"/>
+      <path d="m34 99 21-8 20-14-7 18-14 9-8-4-16 5Z" fill="#322540"/>
+      <path d="m66 59 12-18 8 11-4 13-11 10-8 13 6-19-9 7Z" fill="#1b1428"/>
+      <!-- The brow falls toward the center. Its point sits beside the eye well. -->
+      <path d="m23 31 8-9 15-1 21 9 8 10-6 11-5 8-14 3-18-4-10-10Z" fill="#170f23"/>
+      <path d="m19 34 10-16 15 1 17 7 17 13-5 13-10-15-13-8-16-4-8 4Z" fill="#21162d"/>
+      <path d="m20 32 10-15 14 2 17 7 16 12-5 9-9-12-13-8-17-4-8 4Z" fill="url(#brow)"/>
+      <path d="m24 26 6-9 14 2 17 7 14 11-17-10-14-5-13-2Z" fill="#8a729c"/>
+      <path d="m26 47 8 7 13 5 15-4-13 8-16-5Z" fill="#30223f"/>
+    </g>
+  </defs>
+  <path d="M100 0 115 14 130 22 140 2 150 15 151 25 168 24 179 31 188 44 180 59 185 58 178 76 171 80 178 81 172 96 173 104 157 100 145 108 137 103 122 107 116 103 100 110 84 103 78 107 63 103 55 108 43 100 27 104 28 96 22 81 29 80 22 76 15 58 20 59 12 44 21 31 32 24 49 25 50 15 60 2 70 22 85 14Z" fill="#191221"/>
+  <path d="M100 3 114 17 131 26 140 5 147 17 148 29 166 27 177 34 184 44 176 61 181 61 175 74 167 80 173 83 169 94 169 100 156 97 145 105 137 100 122 104 116 99 100 107 84 99 78 104 63 100 55 105 44 97 31 100 31 94 27 83 33 80 25 74 19 61 24 61 16 44 23 34 34 27 52 29 53 17 60 5 69 26 86 17Z" fill="url(#shell)"/>
+  <use href="#plates"/><use href="#plates" transform="translate(200) scale(-1 1)"/>
+  <!-- Keep the central spear crest and split planes. -->
+  <path d="m100 1 14 16 16 8-12 15 5 13-10 10 1 18-14 26-14-26 1-18-10-10 5-13-12-15 16-8Z" fill="url(#crest)" stroke="#271e35" stroke-linejoin="round"/>
+  <path d="m100 3 4 18 21 6-11 5-14-7-16 7-9-5 16-8Z" fill="#7d6991"/>
+  <path d="m100 24 14 13-8 14 7 9-13 34-13-34 7-9-8-14Z" fill="#251a34"/>
+  <path d="m100 28 8 11-6 13 5 10-7 24-7-24 5-10-6-13Z" fill="#5f486e"/>
+  <path d="m100 28 1 23-2 12 1 21-4-22 2-10-4-13Z" fill="#7a5b86"/>
+  <!-- Static gape, carved into the lower crest. The shell silhouette stays intact. -->
+  <g id="maw">
+    <path d="m70 70 12-12 13 4 9-10 15 5 12 13-3 18-10 13-12 4-10-2-8 2-14-13-5-11Z" fill="#39263e"/>
+    <path d="m74 70 10-9 12 4 8-9 13 4 11 11-3 15-10 12-10 4-10-2-7 2-11-11-5-11Z" fill="url(#throat)"/>
+    <path d="m74 71 10-10 12 4 8-9 13 4 10 10-13-5-11-3-8 6-11-3-9 9Z" fill="#291822"/>
+    <path d="m76 85 8 7 11 4 10-3 10 1 10-11-4 9-6 7-10 3-10-2-7 2-11-11Z" fill="#251722"/>
+    <g fill="url(#ivory)">
+      <path d="M79 67 86 64Q83 76 92 83 81 81 79 67Z"/>
+      <path d="M90 65 95 66Q93 70 97 75 91 74 90 65Z"/>
+      <path d="M102 61 107 59Q110 67 102 74 105 68 102 61Z"/>
+      <path d="M114 63 122 67Q118 80 106 84 113 76 114 63Z"/>
+      <path d="M81 92 85 96Q84 88 89 86 84 86 81 92Z"/>
+      <path d="M88 95 95 99Q91 89 98 82 90 84 88 95Z"/>
+      <path d="M101 98 107 100Q104 95 103 90 100 94 101 98Z"/>
+      <path d="M114 96 120 90Q113 87 110 78 108 87 114 96Z"/>
+    </g>
+    <path d="M81 69Q81 76 86 79M117 67Q115 75 111 79M91 94Q92 88 95 85" fill="none" stroke="#d0bfa8" stroke-opacity=".55" stroke-width=".85" stroke-linecap="round"/>
+    <path d="m73 88 11 10 6 4 6-2 8 3-10 2-8-1Z" fill="#59425e"/>
+    <path d="m107 104 10-5 10-12-3 10-9 7Z" fill="#4c3753"/>
+  </g>
+</svg>

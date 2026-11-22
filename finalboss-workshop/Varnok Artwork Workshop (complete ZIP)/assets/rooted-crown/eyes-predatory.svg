@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="110" viewBox="0 0 200 110">
+  <defs>
+    <linearGradient id="amber" x2="0" y2="1">
+      <stop stop-color="#bb6a19"/><stop offset=".37" stop-color="#ffce48"/><stop offset=".62" stop-color="#ffb92d"/><stop offset="1" stop-color="#d47716"/>
+    </linearGradient>
+    <g id="eye">
+      <!-- The animated eyelid masks the amber field. Leave the full aperture colored. -->
+      <rect x="-15" y="-13" width="30" height="26" fill="url(#amber)"/>
+      <path d="M-15 0-9-6-10-1-15 4Zm30 0-5-5 1 5 4 4Z" fill="#a85512" opacity=".48"/>
+      <path d="M0-5 2.4 1 1.9 7 0 11-1.9 7-2.4 1Z" fill="#201321"/>
+      <path d="m-6-4 1.2-.7-.4 4.1-.9.7Z" fill="#ffdf7a" opacity=".63"/>
+    </g>
+  </defs>
+  <use href="#eye" x="48" y="41"/><use href="#eye" transform="translate(152 41) scale(-1 1)"/>
+</svg>
