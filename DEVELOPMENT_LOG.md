@@ -478,3 +478,52 @@ Start a separate visual workshop with player-ship concepts. No player-ship direc
 
 - Node v26.13.1 syntax checks passed for nine JavaScript files. Game and workshop script and stylesheet references resolved. The 16 workshop SVGs parsed, their internal references resolved, and all embedded copies matched their source SVGs.
 - Focused Node checks with DOM and Canvas stubs passed for both Varnok launch routes, reinforcement timing and draw order, and rapid-fire activation, expiry, in-flight appearance, and resets. Git diff whitespace checks passed. The static browser game has no configured build step. The agent ran no browser tests at save.
+
+## Task 1 — Supply ship movement during wave entrances — 23 November 2026
+
+- The slide-in skipped the combat update that moves the supply ship, so a ship already in flight froze.
+- The slide-in now updates the supply ship only while one is in flight. The countdown for the next ship stays paused.
+- The user chose to watch for problems during later play. Explicit browser verification is pending.
+
+## Task 2 — Boss dialogue removal — 23 November 2026
+
+- The shared boss intro used a 4.5-second dialogue pause for Xal’Gorath and Varnok.
+- Removed all boss dialogue, including both speech bubbles. Bosses 1 and 2 keep their 0.8-second slide-ins. Varnok appears during a 1-second silent pause in normal progression and starts immediately in Test Boss 4.
+- Task 2 is complete (applied, browser tested by user). The user reported that it works.
+
+## Task 3 — Game over Restart button — 23 November 2026
+
+- The Restart button previously appeared below the game stage. On a loss, the same button now appears in the Game over panel and receives focus so Enter or Space can activate it.
+- Restart uses the existing fresh Level 1 reset and returns the button to its usual position. The user chose to watch for problems during later play. Explicit browser verification is pending.
+
+## Task 4 — Neon menu and result panels — 23 November 2026
+
+- The start menu now uses a cyan and magenta frame, four drifting alien SVGs selected by a separate visual random source, and Kestrel. The extra art hides on narrow screens.
+- The clear screens, Victory, Game over, and both standalone boss-test endings share the same neon panel shape. Existing portraits sit behind solid text panels, and CSS handles the red and rose Game over pulse. The existing buttons and game progression are retained.
+- The user accepted the overall appearance in the browser. The later arcade button styling, panel seam fix, in-panel next-level buttons and clear-screen copy lack individual browser verification.
+- The player buttons use arcade gradients, distinct Music states, accent-colored keyboard focus, and a 44 px minimum height. The inset result text box has rounded corners and a fade into the portrait. The gold Level 2 and Level 3 buttons sit inside their clear panels, and the Level 1 clear text is shorter.
+- Task 17 records the planned combined Zhur-Kai and Varnok summary after Boss 4. It will show bonuses, score and lives, then Continue will fade into the credits. Normal progression will still go directly from Boss 3 to Boss 4.
+
+## Task 5 — Kestrel bank — 23 November 2026
+
+- The first implementation tilted the nose by up to 12°. The user asked for a bank instead, and the first bank used 70% of the ship’s full width.
+- The user accepted the **84%** full-bank width with **0.12** skew and **2°** rotation. Actual horizontal movement drives the bank through the existing easing and small movement dead zone. The bank resets on restart, level changes, and screens where the ship is uncontrollable. The shield rings, hitbox, shot origin and pickup overlap retain their existing center and dimensions.
+- Fixed a confirmed mismatch where a mirrored shade mask could extend outside Kestrel’s asymmetric engine outlines. Each wing now has its own mask made from the same unflipped silhouette.
+- The user reported that Kestrel was sharp at rest but blurry or stuttering during horizontal movement with **Bank effect** both on and off, including after the shading-mask fix. On the low-battery Mac, measured browser animation-frame intervals were **33.30 ms median and 34.30 ms longest**. After connecting the Mac to power, the readings improved to **8.30 ms median and 10.60 ms longest**. The user attributed the symptom to power behavior and chose to move on. The exact OS or browser mechanism was not established. No further ship-rendering fix is requested.
+- Added **Bank effect** to compare banked and unbanked drawing and **Measure Canvas** to record Canvas sizes, device pixel ratio, bitmap-to-display ratios and a three-second sample of browser animation-frame intervals. Both are temporary Task 20 removals.
+
+## Tasks 6 and 7 — Double shot and Spread shot — 23 November 2026
+
+- Vesper still awards 50 points and drops one crate. Shield, Machinegun, electric-blue Double shot, and emerald Spread shot now have equal odds. The weapon pickups last 10 seconds and share the existing 2-second message display.
+- Double shot fires two parallel bullets 14 px apart. Spread shot fires three bullets 12° apart. Angled bullets check their path between frames, and each volley can damage a boss once, including across Varnok’s two eyes. Bullets keep their original appearance after the weapon expires or is replaced.
+- Deliberate change. Losing any life clears the active weapon, including Machinegun. A shield-absorbed hit keeps it active.
+- Node simulations covered drops, weapon switching, expiry, life loss, shield absorption, angled armor checks, one-hit volleys, scoring, and offscreen cleanup.
+- The user verified Shield, Machinegun and Spread shot in the browser, including Spread hits on Varnok’s exposed eyes. Double shot and the broader replacement, expiry and reset checks still need explicit browser verification.
+- Shield charges now expire after **10 seconds**, with a **two-second** ring fade. This expiry behavior still needs a browser check. The forced supply reward buttons and boss-shot readout are temporary Task 20 removals.
+- Removed Vesper’s draw-only pixel-snapping trial. Its precise position and the Task 1 fix for movement through wave entrances are in place. The planned level flight orientation remains unimplemented.
+
+## Local save checks — 23 November 2026
+
+- Node v26.13.1 syntax checks passed for all nine project scripts. Git diff whitespace checks passed. All 19 game asset references checked resolve to tracked files. The agent ran no browser tests at this save.
+- Next session, briefly check the remaining weapon and Shield behavior in the browser, then continue the numbered tasks in `TODO.md`.
+- OpenAI Codex assisted with this checkpoint. The exact session model identifier and reasoning setting were unavailable.

@@ -18,15 +18,30 @@ const restartButton = document.getElementById("restart");
 const level2Button = document.getElementById("level-2");
 const level3Button = document.getElementById("level-3");
 const developerTestingPanel = document.getElementById("developer-testing");
+const developerBankEffect = document.getElementById("developer-bank-effect");
+const developerMeasureCanvasButton = document.getElementById("developer-measure-canvas");
+const developerCanvasReadout = document.getElementById("developer-canvas-readout");
 const developerLevelButtons = document.querySelectorAll("[data-developer-level]");
 const developerBossButtons = document.querySelectorAll("[data-developer-boss]");
+const developerRewardButtons = document.querySelectorAll("[data-developer-reward]");
+const bossShotReadout = document.getElementById("boss-shot-readout");
 const gameMain = document.querySelector("main");
 const DEVELOPER_MODE = true;
 let developerBossTestLevel = null;
+let developerForcedSupplyReward = null;
+let tracedBoss = null;
+let developerShotNumber = 0;
+const developerShotLog = [];
 
 const playerSpawnY = canvas.height - 52;
 const playerMinY = playerSpawnY - 60;
 const playerMaxY = playerSpawnY;
+const playerFullBankWidthScale = 0.84;
+const playerMaxBankSkew = 0.12;
+const playerMaxBankRotation = 2 * Math.PI / 180;
+const playerBankEaseSpeed = 12;
+const playerBankDeadZoneSpeed = 6;
+let playerBank = 0;
 const player = {
   x: canvas.width / 2,
   y: playerSpawnY,
@@ -37,6 +52,7 @@ const player = {
 
 const kestrelImage = new Image();
 let kestrelFlashImage = null;
+let kestrelWingShades = [];
 kestrelImage.addEventListener("load", () => {
   const flashCanvas = document.createElement("canvas");
   flashCanvas.width = 232;
@@ -50,6 +66,23 @@ kestrelImage.addEventListener("load", () => {
   flashContext.fillStyle = "#ffffff";
   flashContext.fillRect(0, 0, flashCanvas.width, flashCanvas.height);
   kestrelFlashImage = flashCanvas;
+
+  // Shade each wing from the same unflipped alpha mask to preserve the engine outlines.
+  kestrelWingShades = [0, flashCanvas.width].map((edgeX) => {
+    const shadeCanvas = document.createElement("canvas");
+    shadeCanvas.width = flashCanvas.width;
+    shadeCanvas.height = flashCanvas.height;
+    const shadeContext = shadeCanvas.getContext("2d");
+    if (shadeContext === null) return null;
+    shadeContext.drawImage(flashCanvas, 0, 0);
+    shadeContext.globalCompositeOperation = "source-in";
+    const shade = shadeContext.createLinearGradient(edgeX, 0, shadeCanvas.width / 2, 0);
+    shade.addColorStop(0, "rgba(0, 0, 0, 0.24)");
+    shade.addColorStop(1, "transparent");
+    shadeContext.fillStyle = shade;
+    shadeContext.fillRect(0, 0, shadeCanvas.width, shadeCanvas.height);
+    return shadeCanvas;
+  });
 });
 kestrelImage.src = "ship-workshop/assets/kestrel.svg";
 
@@ -142,6 +175,19 @@ const [crownMawBody, crownMawCore, crownMawJaw] = ["body", "core", "jaw"].map((p
   return artwork;
 });
 
+// Choose decorative aliens once per menu load, independently of gameplay randomness.
+const menuAlienImages = [clackImage, anvilImage, riftImage, ...hatchlingArtwork.map(({ image }) => image)];
+const menuAliens = document.getElementById("menu-aliens");
+const menuRandom = crypto.getRandomValues(new Uint32Array(4));
+for (const [index, random] of menuRandom.entries()) {
+  const choice = index + Math.floor((random / 0x100000000) * (menuAlienImages.length - index));
+  [menuAlienImages[index], menuAlienImages[choice]] = [menuAlienImages[choice], menuAlienImages[index]];
+  const image = document.createElement("img");
+  image.src = menuAlienImages[index].src;
+  image.alt = "";
+  menuAliens.append(image);
+}
+
 const keysDown = new Set();
 const shots = [];
 const enemyShots = [];
@@ -199,8 +245,30 @@ const supplyCrateArtwork = createCombatArtwork([
 
 const shotSpeed = 420;
 const shotInterval = 0.80;
-const rapidFireRateMultiplier = 2;
+const rapidFireShotInterval = 0.40;
 const level2WeaponDuration = 10;
+const doubleShotSpacing = 14;
+const spreadShotAngle = 12 * Math.PI / 180;
+const straightShotPattern = [[0, 0]];
+const playerWeapons = {
+  machinegun: {
+    message: "Machinegun!",
+    pattern: straightShotPattern,
+    artwork: rapidFireShotArtwork,
+    interval: rapidFireShotInterval,
+  },
+  double: {
+    message: "Double shot!",
+    pattern: [[-doubleShotSpacing / 2, 0], [doubleShotSpacing / 2, 0]],
+    color: "#527dff",
+  },
+  spread: {
+    message: "Spread shot!",
+    pattern: [[0, -spreadShotAngle], [0, 0], [0, spreadShotAngle]],
+    color: "#20f58a",
+  },
+};
+const supplyRewards = ["shield", ...Object.keys(playerWeapons)];
 const level2PickupMessageDuration = 2;
 const enemyShotSpeed = 210;
 const enemyShotIntervalMin = 900;
@@ -211,7 +279,7 @@ const bossChargeDuration = 0.5;
 const bossWideShotWidth = 24;
 const bossSpreadHorizontalSpeed = 150;
 const bossIntroSlideDuration = 0.8;
-const bossDialogueDuration = 4.5;
+const varnokTransitionDuration = 1;
 const level1BossHealth = 15;
 const level1BossDefeatBonus = 100;
 const level2BossHealth = 20;
@@ -300,6 +368,8 @@ const vesperArtHeight = vesperArtWidth * 232 / 248;
 const level2BonusShipHeight = vesperArtHeight;
 const level2ShieldPickupSpeed = 150;
 const level2ShieldChargesMax = 2;
+const level2ShieldDuration = 10;
+const level2ShieldFadeDuration = 2;
 const maxEnemySpeedMultiplier = 1.75;
 const level1WaveCount = 2;
 const level2WaveCount = 2;
@@ -325,7 +395,8 @@ let level2BonusShip = null;
 let level2BonusShipTimer = 0;
 const level2Pickups = [];
 let level2ShieldCharges = 0;
-let level2WeaponTimeRemaining = 0;
+let level2ShieldTimeRemaining = 0;
+let level2ActiveWeapon = null;
 let level2PickupMessageText = "";
 let level2PickupMessageTimeRemaining = 0;
 let barriers = [];
@@ -497,9 +568,9 @@ function startLevel3BossFight() {
   level2BonusShip = null;
   level2BonusShipTimer = randomLevel2BonusShipDelay();
   level2Pickups.length = 0;
-  level2ShieldCharges = 0;
+  clearLevel2Shield();
   playerShieldProtectedUntil = 0;
-  level2WeaponTimeRemaining = 0;
+  level2ActiveWeapon = null;
   level2PickupMessageTimeRemaining = 0;
   level2FormationOffsetX = 0;
   resetLevel3Descent();
@@ -552,10 +623,10 @@ function startVarnokBossFight(showIntro = false) {
   level2BonusShip = null;
   level2BonusShipTimer = randomLevel2BonusShipDelay();
   level2Pickups.length = 0;
-  level2ShieldCharges = 0;
+  clearLevel2Shield();
   playerInvulnerableUntil = 0;
   playerShieldProtectedUntil = 0;
-  level2WeaponTimeRemaining = 0;
+  level2ActiveWeapon = null;
   level2PickupMessageTimeRemaining = 0;
   level2FormationOffsetX = 0;
   resetLevel3Descent();
@@ -638,7 +709,7 @@ function startBossIntro() {
 
 function updateBossIntro(deltaSeconds) {
   const slideDuration = bossIntroStartY === null ? 0 : bossIntroSlideDuration;
-  const introDuration = slideDuration + (boss.level === 2 ? 0 : bossDialogueDuration);
+  const introDuration = boss.level === 4 ? varnokTransitionDuration : slideDuration;
   bossIntroElapsed = Math.min(bossIntroElapsed + deltaSeconds, introDuration);
   if (slideDuration > 0) {
     const slideProgress = Math.min(bossIntroElapsed / slideDuration, 1);
@@ -657,6 +728,9 @@ function updateBossIntro(deltaSeconds) {
 }
 
 function startLevel2() {
+  if (developerForcedSupplyReward !== null) setDeveloperSupplyReward(null);
+  tracedBoss = null;
+  playerBank = 0;
   developerBossTestLevel = null;
   currentLevel = 2;
   currentWave = 1;
@@ -679,9 +753,9 @@ function startLevel2() {
   level2BonusShip = null;
   level2BonusShipTimer = randomLevel2BonusShipDelay();
   level2Pickups.length = 0;
-  level2ShieldCharges = 0;
+  clearLevel2Shield();
   playerShieldProtectedUntil = 0;
-  level2WeaponTimeRemaining = 0;
+  level2ActiveWeapon = null;
   level2PickupMessageTimeRemaining = 0;
   nextEnemyShotTime = null;
   keysDown.clear();
@@ -694,6 +768,9 @@ function startLevel2() {
 }
 
 function startLevel3() {
+  if (developerForcedSupplyReward !== null) setDeveloperSupplyReward(null);
+  tracedBoss = null;
+  playerBank = 0;
   developerBossTestLevel = null;
   currentLevel = 3;
   currentWave = 1;
@@ -717,9 +794,9 @@ function startLevel3() {
   level2BonusShip = null;
   level2BonusShipTimer = randomLevel2BonusShipDelay();
   level2Pickups.length = 0;
-  level2ShieldCharges = 0;
+  clearLevel2Shield();
   playerShieldProtectedUntil = 0;
-  level2WeaponTimeRemaining = 0;
+  level2ActiveWeapon = null;
   level2PickupMessageTimeRemaining = 0;
   nextEnemyShotTime = null;
   keysDown.clear();
@@ -755,9 +832,9 @@ function showLevel2ClearedScreen() {
   level2BonusShip = null;
   level2BonusShipTimer = 0;
   level2Pickups.length = 0;
-  level2ShieldCharges = 0;
+  clearLevel2Shield();
   playerShieldProtectedUntil = 0;
-  level2WeaponTimeRemaining = 0;
+  level2ActiveWeapon = null;
   level2PickupMessageTimeRemaining = 0;
   restartButton.hidden = false;
   level2Button.hidden = true;
@@ -771,9 +848,9 @@ function showLevel3BossDefeatedScreen() {
   level2BonusShip = null;
   level2BonusShipTimer = 0;
   level2Pickups.length = 0;
-  level2ShieldCharges = 0;
+  clearLevel2Shield();
   playerShieldProtectedUntil = 0;
-  level2WeaponTimeRemaining = 0;
+  level2ActiveWeapon = null;
   level2PickupMessageTimeRemaining = 0;
   keysDown.clear();
   shots.length = 0;
@@ -795,9 +872,9 @@ function finishVarnokEncounter() {
   level2BonusShip = null;
   level2BonusShipTimer = 0;
   level2Pickups.length = 0;
-  level2ShieldCharges = 0;
+  clearLevel2Shield();
   playerShieldProtectedUntil = 0;
-  level2WeaponTimeRemaining = 0;
+  level2ActiveWeapon = null;
   level2PickupMessageTimeRemaining = 0;
   keysDown.clear();
   shots.length = 0;
@@ -1096,7 +1173,7 @@ function updateVarnokAlienFormation(deltaSeconds, frameTime) {
   }
   while (formation.nextLaunchSlot < formation.slots.length
     && formation.elapsed >= formation.nextLaunchTime) {
-    const body = getLevel3BossBodyBounds(boss);
+    const body = getCenteredBounds(boss);
     const alien = {
       x: boss.x,
       y: body.top,
@@ -1483,12 +1560,12 @@ function getLevel3BossCoreBounds(targetBoss) {
   };
 }
 
-function getLevel3BossBodyBounds(targetBoss) {
+function getCenteredBounds({ x, y, width, height }) {
   return {
-    left: targetBoss.x - targetBoss.width / 2,
-    right: targetBoss.x + targetBoss.width / 2,
-    top: targetBoss.y - targetBoss.height / 2,
-    bottom: targetBoss.y + targetBoss.height / 2,
+    left: x - width / 2,
+    right: x + width / 2,
+    top: y - height / 2,
+    bottom: y + height / 2,
   };
 }
 
@@ -1515,7 +1592,7 @@ function getLevel3BossProjectilePassageBounds(targetBoss) {
 }
 
 function getLevel3BossArmorCollisionRegions(targetBoss) {
-  const body = getLevel3BossBodyBounds(targetBoss);
+  const body = getCenteredBounds(targetBoss);
   const passage = getLevel3BossProjectilePassageBounds(targetBoss);
   if (passage === null) return [body];
   return subtractCollisionBounds(body, passage);
@@ -1526,8 +1603,34 @@ function collisionBoundsOverlap(first, second) {
     && first.bottom >= second.top && first.top <= second.bottom;
 }
 
+function getShotContactTime(shot, target) {
+  if (shot.previousX === undefined) {
+    return collisionBoundsOverlap(getPlayerShotBounds(shot), target) ? 0 : Infinity;
+  }
+
+  // Expand the rectangle by the bullet's footprint and sweep its top center through it.
+  let entry = 0;
+  let exit = 1;
+  for (const [start, end, min, max] of [
+    [shot.previousX, shot.x, target.left - shot.width / 2, target.right + shot.width / 2],
+    [shot.previousY, shot.y, target.top - shot.height, target.bottom],
+  ]) {
+    const distance = end - start;
+    if (distance === 0) {
+      if (start < min || start > max) return Infinity;
+      continue;
+    }
+    const first = (min - start) / distance;
+    const last = (max - start) / distance;
+    entry = Math.max(entry, Math.min(first, last));
+    exit = Math.min(exit, Math.max(first, last));
+    if (entry > exit) return Infinity;
+  }
+  return entry;
+}
+
 function getVarnokEyeGeometry(targetBoss) {
-  const body = getLevel3BossBodyBounds(targetBoss);
+  const body = getCenteredBounds(targetBoss);
   const openingAmount = Math.max(0, Math.min(1, targetBoss.eyeOpeningAmount));
   return [-varnokEyeOffsetX, varnokEyeOffsetX].map((offsetX) => {
     const centerX = targetBoss.x + offsetX;
@@ -1583,7 +1686,7 @@ function subtractCollisionBounds(source, hole) {
 function getVarnokArmorCollisionRegions(targetBoss) {
   return getVarnokProjectilePassages(targetBoss).reduce((regions, passage) => (
     regions.flatMap((region) => subtractCollisionBounds(region, passage))
-  ), [getLevel3BossBodyBounds(targetBoss)]);
+  ), [getCenteredBounds(targetBoss)]);
 }
 
 function clearLevel3BossEncounterState() {
@@ -1722,7 +1825,7 @@ function updateLevel2Boss(deltaSeconds, frameTime) {
       player.y + player.height / 2 + hitHalfHeight,
     );
     if (touchingPlayer && !bossState.ramHitApplied && damagePlayer(frameTime)) {
-      level2ShieldCharges = 0;
+      clearLevel2Shield();
       bossState.ramHitApplied = true;
       if (boss === null) return;
     }
@@ -1763,15 +1866,8 @@ function createBarriers() {
 }
 
 function damageBarrierWithShot(shot) {
-  const shotLeft = shot.x - shot.width / 2;
-  const shotRight = shot.x + shot.width / 2;
-  const shotBottom = shot.y + shot.height;
-  const barrierIndex = barriers.findIndex((barrier) => (
-    shotRight >= barrier.x - barrier.width / 2
-    && shotLeft <= barrier.x + barrier.width / 2
-    && shotBottom >= barrier.y - barrier.height / 2
-    && shot.y <= barrier.y + barrier.height / 2
-  ));
+  const barrierIndex = barriers.findIndex((barrier) =>
+    getShotContactTime(shot, getCenteredBounds(barrier)) < Infinity);
 
   if (barrierIndex === -1) return false;
 
@@ -1802,9 +1898,9 @@ function finishGame(result) {
   level2BonusShip = null;
   level2BonusShipTimer = 0;
   level2Pickups.length = 0;
-  level2ShieldCharges = 0;
+  clearLevel2Shield();
   playerShieldProtectedUntil = 0;
-  level2WeaponTimeRemaining = 0;
+  level2ActiveWeapon = null;
   level2PickupMessageTimeRemaining = 0;
   keysDown.clear();
   restartButton.hidden = false;
@@ -1814,22 +1910,24 @@ function finishGame(result) {
 
 function damagePlayer(frameTime) {
   if (frameTime < playerInvulnerableUntil) return false;
-  lives = Math.max(0, lives - 1);
-  livesDisplay.textContent = lives;
-  playerInvulnerableUntil = frameTime + 1000;
-  if (lives === 0) finishGame("loss");
-  return true;
+  return losePlayerLife(frameTime);
 }
 
 function damagePlayerFromProjectile(frameTime) {
   if (frameTime < playerShieldProtectedUntil) return false;
   if ((currentLevel === 2 || currentLevel === 3) && level2ShieldCharges > 0) {
     level2ShieldCharges -= 1;
+    if (level2ShieldCharges === 0) level2ShieldTimeRemaining = 0;
     playerShieldProtectedUntil = frameTime + 1000;
     playerInvulnerableUntil = Math.max(playerInvulnerableUntil, playerShieldProtectedUntil);
     return false;
   }
 
+  return losePlayerLife(frameTime);
+}
+
+function losePlayerLife(frameTime) {
+  level2ActiveWeapon = null;
   lives = Math.max(0, lives - 1);
   livesDisplay.textContent = lives;
   playerInvulnerableUntil = frameTime + 1000;
@@ -1838,6 +1936,9 @@ function damagePlayerFromProjectile(frameTime) {
 }
 
 function restartGame() {
+  if (developerForcedSupplyReward !== null) setDeveloperSupplyReward(null);
+  tracedBoss = null;
+  playerBank = 0;
   developerBossTestLevel = null;
   creditsY = null;
   score = 0;
@@ -1849,9 +1950,9 @@ function restartGame() {
   level2BonusShip = null;
   level2BonusShipTimer = 0;
   level2Pickups.length = 0;
-  level2ShieldCharges = 0;
+  clearLevel2Shield();
   playerShieldProtectedUntil = 0;
-  level2WeaponTimeRemaining = 0;
+  level2ActiveWeapon = null;
   level2PickupMessageTimeRemaining = 0;
   currentWave = 1;
   scoreDisplay.textContent = score;
@@ -1889,6 +1990,58 @@ function restartGame() {
   previousFrameTime = 0;
 }
 
+function setDeveloperSupplyReward(reward) {
+  developerForcedSupplyReward = reward;
+  for (const button of developerRewardButtons) {
+    button.setAttribute("aria-pressed", String(button.dataset.developerReward === reward));
+  }
+}
+
+function measureDeveloperCanvas() {
+  if (developerMeasureCanvasButton.disabled) return;
+  const rect = canvas.getBoundingClientRect();
+  const style = window.getComputedStyle(canvas);
+  const pixels = (property) => Number.parseFloat(style[property]) || 0;
+  const width = rect.width - pixels("borderLeftWidth") - pixels("borderRightWidth")
+    - pixels("paddingLeft") - pixels("paddingRight");
+  const height = rect.height - pixels("borderTopWidth") - pixels("borderBottomWidth")
+    - pixels("paddingTop") - pixels("paddingBottom");
+  const ratio = (bitmap, display) => display > 0 ? (bitmap / display).toFixed(3) : "—";
+  const sampleDuration = 3000;
+  const summary = [
+    `Bitmap ${canvas.width} × ${canvas.height} px`,
+    `Display content ${width.toFixed(2)} × ${height.toFixed(2)} CSS px`,
+    `Device pixel ratio ${window.devicePixelRatio}`,
+    `Bitmap px per CSS px  X ${ratio(canvas.width, width)}  Y ${ratio(canvas.height, height)}`,
+    "",
+    "Browser animation-frame intervals",
+  ].join("\n");
+
+  developerMeasureCanvasButton.disabled = true;
+  developerCanvasReadout.textContent = `${summary}\nMeasuring for 3 s…`;
+  const intervals = [];
+  let startTime;
+  let previousTime;
+  function sample(frameTime) {
+    if (startTime === undefined) startTime = frameTime;
+    if (previousTime !== undefined) intervals.push(frameTime - previousTime);
+    previousTime = frameTime;
+    if (frameTime - startTime < sampleDuration) {
+      requestAnimationFrame(sample);
+      return;
+    }
+
+    intervals.sort((a, b) => a - b);
+    const middle = Math.floor(intervals.length / 2);
+    const median = intervals.length % 2 === 0
+      ? (intervals[middle - 1] + intervals[middle]) / 2
+      : intervals[middle];
+    developerCanvasReadout.textContent = `${summary}\nMedian ${median.toFixed(2)} ms\nLongest ${intervals.at(-1).toFixed(2)} ms`;
+    developerMeasureCanvasButton.disabled = false;
+  }
+  requestAnimationFrame(sample);
+}
+
 function startDeveloperTestLevel(level) {
   if (!DEVELOPER_MODE) return;
   restartGame();
@@ -1909,9 +2062,9 @@ function startDeveloperTestBoss(level) {
   enemyShots.length = 0;
   level2BonusShip = null;
   level2Pickups.length = 0;
-  level2ShieldCharges = 0;
+  clearLevel2Shield();
   playerShieldProtectedUntil = 0;
-  level2WeaponTimeRemaining = 0;
+  level2ActiveWeapon = null;
   level2PickupMessageTimeRemaining = 0;
   nextEnemyShotTime = null;
   waveEntranceElapsed = null;
@@ -1954,6 +2107,10 @@ restartButton.addEventListener("click", restartGame);
 if (DEVELOPER_MODE) {
   gameMain.classList.add("developer-mode");
   developerTestingPanel.hidden = false;
+  developerMeasureCanvasButton.addEventListener("click", measureDeveloperCanvas);
+  developerBankEffect.addEventListener("click", (event) => {
+    if (gameState === "playing" && event.detail > 0) canvas.focus({ preventScroll: true });
+  });
   developerLevelButtons.forEach((button) => {
     button.addEventListener("click", () => {
       startDeveloperTestLevel(Number(button.dataset.developerLevel));
@@ -1962,6 +2119,11 @@ if (DEVELOPER_MODE) {
   developerBossButtons.forEach((button) => {
     button.addEventListener("click", () => {
       startDeveloperTestBoss(Number(button.dataset.developerBoss));
+    });
+  });
+  developerRewardButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      setDeveloperSupplyReward(button.dataset.developerReward);
     });
   });
 }
@@ -1980,7 +2142,8 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
     applyBossDamage(boss.health);
   } else if (event.code === "Space") {
-    if (event.target === musicToggle) return;
+    if (event.target === developerBankEffect) return;
+    if (event.target === musicToggle || (gameState === "loss" && event.target === restartButton)) return;
     event.preventDefault();
     if (gameState !== "credits") keysDown.add("space");
   } else if (["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "d", "w", "s"].includes(key)) {
@@ -2006,6 +2169,7 @@ function updatePlayer(deltaSeconds) {
   if (keysDown.has("arrowup") || keysDown.has("w")) verticalDirection -= 1;
   if (keysDown.has("arrowdown") || keysDown.has("s")) verticalDirection += 1;
 
+  const previousX = player.x;
   player.x += direction * player.speed * deltaSeconds;
   player.y += verticalDirection * player.speed * deltaSeconds;
   const halfWidth = player.width / 2;
@@ -2013,28 +2177,72 @@ function updatePlayer(deltaSeconds) {
   player.x = Math.max(halfWidth, Math.min(canvas.width - halfWidth, player.x));
   player.y = Math.max(playerMinY, Math.min(playerMaxY, player.y));
   player.y = Math.max(halfHeight, Math.min(canvas.height - halfHeight, player.y));
+
+  const horizontalMovement = player.x - previousX;
+  const targetBank = Math.abs(horizontalMovement) > playerBankDeadZoneSpeed * deltaSeconds
+    ? Math.sign(horizontalMovement)
+    : 0;
+  playerBank += (targetBank - playerBank) * (1 - Math.exp(-playerBankEaseSpeed * deltaSeconds));
+}
+
+function traceDeveloperShot(shot, direction) {
+  if (!DEVELOPER_MODE || boss === null) return;
+  if (tracedBoss !== boss) {
+    tracedBoss = boss;
+    developerShotNumber = 0;
+    developerShotLog.length = 0;
+  }
+
+  const lane = direction < 0 ? "Left" : direction > 0 ? "Right" : "Center";
+  shot.developerTrace = { label: `#${++developerShotNumber} ${lane}` };
+  developerShotLog.push(shot.developerTrace);
+  if (developerShotLog.length > 8) developerShotLog.shift();
+  setDeveloperShotOutcome(shot, "In flight");
+}
+
+function setDeveloperShotOutcome(shot, outcome) {
+  if (!shot.developerTrace) return;
+  shot.developerTrace.outcome = outcome;
+  const rows = developerShotLog.map((entry) => `${entry.label} · ${entry.outcome}`);
+  bossShotReadout.textContent = [`Boss ${tracedBoss.level} shots`, ...rows].join("\n");
 }
 
 function updateShots(deltaSeconds, frameTime) {
   if (keysDown.has("space") && frameTime >= nextShotTime) {
-    const rapidFireActive = (currentLevel === 2 || currentLevel === 3) && level2WeaponTimeRemaining > 0;
-    shots.push({
-      x: player.x,
-      y: player.y - player.height / 2 - 5,
-      width: 5,
-      height: 14,
-      artwork: rapidFireActive ? rapidFireShotArtwork : null,
-    });
-    const firingInterval = rapidFireActive ? shotInterval / rapidFireRateMultiplier : shotInterval;
-    nextShotTime = frameTime + firingInterval * 1000;
+    const weapon = playerWeapons[level2ActiveWeapon?.type];
+    const pattern = weapon?.pattern ?? straightShotPattern;
+    const damagedBosses = pattern.length > 1 ? new WeakSet() : null;
+    for (const [offsetX, angle] of pattern) {
+      const shot = {
+        x: player.x + offsetX,
+        y: player.y - player.height / 2 - 5,
+        width: 5,
+        height: 14,
+        vx: shotSpeed * Math.sin(angle),
+        vy: -shotSpeed * Math.cos(angle),
+        artwork: weapon?.artwork ?? null,
+        color: weapon?.color ?? "#ffe08a",
+        damagedBosses,
+      };
+      traceDeveloperShot(shot, angle || offsetX);
+      shots.push(shot);
+    }
+    nextShotTime = frameTime + (weapon?.interval ?? shotInterval) * 1000;
   }
 
   for (const shot of shots) {
-    shot.y -= shotSpeed * deltaSeconds;
+    if (shot.vx) {
+      shot.previousX = shot.x;
+      shot.previousY = shot.y;
+      shot.x += shot.vx * deltaSeconds;
+    }
+    shot.y += (shot.vy ?? -shotSpeed) * deltaSeconds;
   }
 
   for (let index = shots.length - 1; index >= 0; index -= 1) {
-    if (shots[index].y + shots[index].height < 0) {
+    const shot = shots[index];
+    if (!shot.vx && shot.y + shot.height < 0) {
+      setDeveloperShotOutcome(shot, "Missed");
       shots.splice(index, 1);
     }
   }
@@ -2261,7 +2469,7 @@ function updateLevel2Bomber(deltaSeconds, frameTime) {
       && bomber.y + bomber.height / 2 >= player.y - player.height / 2
       && bomber.y - bomber.height / 2 <= player.y + player.height / 2;
     if (touchingPlayer && !bomber.contactingPlayer && damagePlayer(frameTime)) {
-      level2ShieldCharges = 0;
+      clearLevel2Shield();
       removeEnemy(bomber);
       level2Bomber = null;
       level2BomberTimer = gameState === "playing" ? level2BomberCooldown : 0;
@@ -2341,6 +2549,11 @@ function removeEnemy(enemy) {
   }
 }
 
+function clearLevel2Shield() {
+  level2ShieldCharges = 0;
+  level2ShieldTimeRemaining = 0;
+}
+
 function updateLevel2Pickups(deltaSeconds) {
   for (let index = level2Pickups.length - 1; index >= 0; index -= 1) {
     const pickup = level2Pickups[index];
@@ -2352,13 +2565,13 @@ function updateLevel2Pickups(deltaSeconds) {
     if (touchingPlayer) {
       if (pickup.type === "shield") {
         level2ShieldCharges = level2ShieldChargesMax;
+        level2ShieldTimeRemaining = level2ShieldDuration;
         level2PickupMessageText = "Shield!";
-        level2PickupMessageTimeRemaining = level2PickupMessageDuration;
-      } else if (pickup.type === "weapon") {
-        level2WeaponTimeRemaining = level2WeaponDuration;
-        level2PickupMessageText = "Machinegun!";
-        level2PickupMessageTimeRemaining = level2PickupMessageDuration;
+      } else {
+        level2ActiveWeapon = { type: pickup.type, timeRemaining: level2WeaponDuration };
+        level2PickupMessageText = playerWeapons[pickup.type].message;
       }
+      level2PickupMessageTimeRemaining = level2PickupMessageDuration;
       level2Pickups.splice(index, 1);
     } else if (pickup.y - pickup.height / 2 > canvas.height) {
       level2Pickups.splice(index, 1);
@@ -2368,8 +2581,14 @@ function updateLevel2Pickups(deltaSeconds) {
 
 function updateLevel2PickupTimers(deltaSeconds) {
   if (currentLevel !== 2 && currentLevel !== 3) return;
-  level2WeaponTimeRemaining = Math.max(0, level2WeaponTimeRemaining - deltaSeconds);
-  if (level2WeaponTimeRemaining < 0.000001) level2WeaponTimeRemaining = 0;
+  if (level2ShieldTimeRemaining > 0) {
+    level2ShieldTimeRemaining -= deltaSeconds;
+    if (level2ShieldTimeRemaining < 0.000001) clearLevel2Shield();
+  }
+  if (level2ActiveWeapon !== null) {
+    level2ActiveWeapon.timeRemaining -= deltaSeconds;
+    if (level2ActiveWeapon.timeRemaining < 0.000001) level2ActiveWeapon = null;
+  }
   level2PickupMessageTimeRemaining = Math.max(
     0,
     level2PickupMessageTimeRemaining - deltaSeconds,
@@ -2414,11 +2633,10 @@ function handleShotCollisions(deltaSeconds, frameTime) {
   for (let shotIndex = shots.length - 1; shotIndex >= 0; shotIndex -= 1) {
     const shot = shots[shotIndex];
     const shotBounds = getPlayerShotBounds(shot);
-    const shotLeft = shotBounds.left;
-    const shotRight = shotBounds.right;
     let hitEnemyIndex = -1;
 
     if (damageBarrierWithShot(shot)) {
+      setDeveloperShotOutcome(shot, "Hit barrier");
       shots.splice(shotIndex, 1);
       continue;
     }
@@ -2426,12 +2644,7 @@ function handleShotCollisions(deltaSeconds, frameTime) {
     for (let enemyIndex = enemies.length - 1; enemyIndex >= 0; enemyIndex -= 1) {
       const enemy = enemies[enemyIndex];
       if (enemy.isVarnokAlien && enemy.varnokState !== "formation") continue;
-      const enemyLeft = enemy.x - enemy.width / 2;
-      const enemyRight = enemy.x + enemy.width / 2;
-      const enemyTop = enemy.y - enemy.height / 2;
-      const enemyBottom = enemy.y + enemy.height / 2;
-      if (shotRight >= enemyLeft && shotLeft <= enemyRight
-        && shot.y <= enemyBottom && shot.y + shot.height >= enemyTop) {
+      if (getShotContactTime(shot, getCenteredBounds(enemy)) < Infinity) {
         hitEnemyIndex = enemyIndex;
         break;
       }
@@ -2443,6 +2656,7 @@ function handleShotCollisions(deltaSeconds, frameTime) {
         level2BomberTimer = level2BomberCooldown;
       }
       const destroyedEnemy = enemies[hitEnemyIndex];
+      setDeveloperShotOutcome(shot, destroyedEnemy.isVarnokAlien ? "Hit minion" : "Hit alien");
       removeEnemy(destroyedEnemy);
       shots.splice(shotIndex, 1);
       score += 10;
@@ -2466,42 +2680,43 @@ function handleShotCollisions(deltaSeconds, frameTime) {
         return;
       }
     } else if ((currentLevel === 2 || currentLevel === 3) && level2BonusShip !== null
-      && shotRight >= level2BonusShip.x - level2BonusShip.width / 2
-      && shotLeft <= level2BonusShip.x + level2BonusShip.width / 2
-      && shot.y <= level2BonusShip.y + level2BonusShip.height / 2
-      && shot.y + shot.height >= level2BonusShip.y - level2BonusShip.height / 2) {
-      const shipLeft = level2BonusShip.x - level2BonusShip.width / 2;
-      const shipRight = level2BonusShip.x + level2BonusShip.width / 2;
-      const shipTop = level2BonusShip.y - level2BonusShip.height / 2;
-      const shipBottom = level2BonusShip.y + level2BonusShip.height / 2;
-      if (shotRight >= shipLeft && shotLeft <= shipRight
-        && shot.y <= shipBottom && shot.y + shot.height >= shipTop) {
-        const pickupX = level2BonusShip.x;
-        const pickupY = level2BonusShip.y;
-        shots.splice(shotIndex, 1);
-        score += 50;
-        scoreDisplay.textContent = score;
-        level2BonusShip = null;
-        level2BonusShipTimer = randomLevel2BonusShipDelay();
-        level2Pickups.push({
-          x: pickupX,
-          y: pickupY,
-          width: 22,
-          height: 22,
-          type: Math.random() < 0.5 ? "shield" : "weapon",
-        });
-      }
+      && getShotContactTime(shot, getCenteredBounds(level2BonusShip)) < Infinity) {
+      const pickupX = level2BonusShip.x;
+      const pickupY = level2BonusShip.y;
+      setDeveloperShotOutcome(shot, "Hit Vesper");
+      shots.splice(shotIndex, 1);
+      score += 50;
+      scoreDisplay.textContent = score;
+      level2BonusShip = null;
+      level2BonusShipTimer = randomLevel2BonusShipDelay();
+      const reward = developerForcedSupplyReward
+        ?? supplyRewards[Math.floor(Math.random() * supplyRewards.length)];
+      if (developerForcedSupplyReward !== null) setDeveloperSupplyReward(null);
+      level2Pickups.push({
+        x: pickupX,
+        y: pickupY,
+        width: 22,
+        height: 22,
+        type: reward,
+      });
     } else if (boss !== null) {
-      const bossBounds = boss.level === 3
-        ? getLevel3BossBodyBounds(boss)
-        : {
-          left: boss.x - boss.width / 2,
-          right: boss.x + boss.width / 2,
-          top: boss.y - boss.height / 2,
-          bottom: boss.y + boss.height / 2,
-        };
+      const bossBounds = getCenteredBounds(boss);
       let damagesBoss = false;
-      if (boss.level === 3) {
+      let hitsArmour = false;
+      if (shot.previousX !== undefined && (boss.level === 3 || boss.level === 4)) {
+        const armour = boss.level === 3
+          ? getLevel3BossArmorCollisionRegions(boss)
+          : getVarnokArmorCollisionRegions(boss);
+        const targets = boss.level === 3
+          ? [getLevel3BossCoreBounds(boss)]
+          : getVarnokEyeGeometry(boss).map((eye) => eye.exposed);
+        const armourTime = Math.min(...armour.map((region) => getShotContactTime(shot, region)));
+        const targetTime = Math.min(...targets.map((region) => getShotContactTime(shot, region)));
+        // Armour wins ties, but armour behind a vulnerable target cannot stop its hit.
+        damagesBoss = targetTime < armourTime;
+        hitsArmour = armourTime < Infinity;
+        if (damagesBoss || hitsArmour) shots.splice(shotIndex, 1);
+      } else if (boss.level === 3) {
         if (collisionBoundsOverlap(shotBounds, bossBounds)) {
           const core = getLevel3BossCoreBounds(boss);
           // Check the entry point before a fast shot can cross the shallow opening in one frame.
@@ -2512,7 +2727,7 @@ function handleShotCollisions(deltaSeconds, frameTime) {
             top: bossBounds.bottom,
             bottom: bossBounds.bottom + shot.height,
           } : shotBounds;
-          const hitsArmour = getLevel3BossArmorCollisionRegions(boss)
+          hitsArmour = getLevel3BossArmorCollisionRegions(boss)
             .some((region) => collisionBoundsOverlap(contactBounds, region));
           damagesBoss = !hitsArmour && collisionBoundsOverlap(contactBounds, core);
           if (hitsArmour || damagesBoss) {
@@ -2521,7 +2736,7 @@ function handleShotCollisions(deltaSeconds, frameTime) {
         }
       } else if (boss.level === 4) {
         if (collisionBoundsOverlap(shotBounds, bossBounds)) {
-          const hitsArmour = getVarnokArmorCollisionRegions(boss)
+          hitsArmour = getVarnokArmorCollisionRegions(boss)
             .some((region) => collisionBoundsOverlap(shotBounds, region));
           const hitsEye = getVarnokEyeGeometry(boss)
             .some((eye) => collisionBoundsOverlap(shotBounds, eye.bounds)
@@ -2530,23 +2745,32 @@ function handleShotCollisions(deltaSeconds, frameTime) {
           if (hitsArmour || damagesBoss) shots.splice(shotIndex, 1);
         }
       } else {
-        const { left: bossLeft, right: bossRight, top: bossTop, bottom: bossBottom } = bossBounds;
-        const shotHitsBossBody = shotRight >= bossLeft && shotLeft <= bossRight
-          && shot.y <= bossBottom && shot.y + shot.height >= bossTop;
-        if (shotHitsBossBody) {
-          const hitWidth = boss.level === 2 ? boss.width * 0.58 : boss.width;
-          const hitHeight = boss.level === 2 ? boss.height * 0.62 : boss.height;
-          const hitLeft = boss.x - hitWidth / 2;
-          const hitRight = boss.x + hitWidth / 2;
-          const hitTop = boss.y - hitHeight / 2;
-          const hitBottom = boss.y + hitHeight / 2;
-          damagesBoss = shotRight >= hitLeft && shotLeft <= hitRight
-            && shot.y <= hitBottom && shot.y + shot.height >= hitTop;
-          if (damagesBoss) shots.splice(shotIndex, 1);
-        }
+        const hitWidth = boss.level === 2 ? boss.width * 0.58 : boss.width;
+        const hitHeight = boss.level === 2 ? boss.height * 0.62 : boss.height;
+        const hitBounds = getCenteredBounds({ x: boss.x, y: boss.y, width: hitWidth, height: hitHeight });
+        damagesBoss = getShotContactTime(shot, hitBounds) < Infinity;
+        if (damagesBoss) shots.splice(shotIndex, 1);
       }
 
-      if (damagesBoss && applyBossDamage(1, frameTime)) return;
+      if (damagesBoss) {
+        const target = boss.level === 4 ? "eye" : boss.level === 3 ? "mouth" : "boss";
+        if (shot.damagedBosses?.has(boss)) {
+          setDeveloperShotOutcome(shot, `Volley capped (${target})`);
+        } else {
+          setDeveloperShotOutcome(shot, `Hit ${target}`);
+          shot.damagedBosses?.add(boss);
+          if (applyBossDamage(1, frameTime)) return;
+        }
+      } else if (hitsArmour) {
+        setDeveloperShotOutcome(shot, "Hit armor");
+      }
+    }
+
+    // Check the last angled segment for collisions before removing an offscreen bullet.
+    if (shot.previousX !== undefined && shots[shotIndex] === shot
+      && (shot.y + shot.height < 0 || shotBounds.right < 0 || shotBounds.left > canvas.width)) {
+      setDeveloperShotOutcome(shot, "Missed");
+      shots.splice(shotIndex, 1);
     }
   }
 }
@@ -2660,6 +2884,8 @@ function updateEnemyShots(deltaSeconds, frameTime) {
 
 function drawPlayer(frameTime) {
   if ((currentLevel === 2 || currentLevel === 3) && level2ShieldCharges > 0) {
+    context.save();
+    context.globalAlpha *= Math.min(1, level2ShieldTimeRemaining / level2ShieldFadeDuration);
     context.lineWidth = 3;
     if (level2ShieldCharges >= 2) {
       context.strokeStyle = "rgba(112, 232, 255, 0.9)";
@@ -2671,17 +2897,36 @@ function drawPlayer(frameTime) {
     context.beginPath();
     context.ellipse(player.x, player.y, 27, 25, 0, 0, Math.PI * 2);
     context.stroke();
+    context.restore();
   }
   const isFlashing = frameTime < playerInvulnerableUntil
     && Math.floor(frameTime / 75) % 2 === 0;
+  const bankEffect = !DEVELOPER_MODE || developerBankEffect.checked;
+  const bankAmount = Math.abs(playerBank);
+  context.save();
+  if (bankEffect) {
+    const widthScale = 1 - (1 - playerFullBankWidthScale) * bankAmount;
+    context.translate(player.x, player.y);
+    context.rotate(playerBank * playerMaxBankRotation);
+    context.transform(widthScale, playerBank * playerMaxBankSkew, 0, 1, 0, 0);
+  }
   if (kestrelFlashImage !== null) {
     const height = 34;
     const width = height * kestrelFlashImage.width / kestrelFlashImage.height;
+    const centerX = bankEffect ? 0 : player.x;
+    const centerY = bankEffect ? 0 : player.y;
     context.drawImage(isFlashing ? kestrelFlashImage : kestrelImage,
-      player.x - width / 2, player.y - height / 2, width, height);
+      centerX - width / 2, centerY - height / 2, width, height);
+    const farWingShade = kestrelWingShades[playerBank < 0 ? 1 : 0];
+    if (bankEffect && !isFlashing && farWingShade && bankAmount > 0) {
+      context.globalAlpha *= bankAmount;
+      context.drawImage(farWingShade, -width / 2, -height / 2, width, height);
+    }
+    context.restore();
     return;
   }
 
+  if (bankEffect) context.translate(-player.x, -player.y);
   context.fillStyle = isFlashing ? "#ffffff" : "#48c9ef";
   context.beginPath();
   context.moveTo(player.x, player.y - player.height / 2);
@@ -2707,6 +2952,7 @@ function drawPlayer(frameTime) {
     context.fillRect(player.x - 3, player.y + player.height * 0.31, 2, 3);
     context.fillRect(player.x + 1, player.y + player.height * 0.31, 2, 3);
   }
+  context.restore();
 }
 
 function drawStarfield() {
@@ -2772,7 +3018,7 @@ function drawEnemy(enemy, index, x = enemy.x, y = enemy.y) {
 }
 
 function drawVarnokHatchlings(emerging, hatchOpening) {
-  const body = getLevel3BossBodyBounds(boss);
+  const body = getCenteredBounds(boss);
   const gap = getRootedCrownHatchGap(hatchOpening);
   context.save();
   context.beginPath();
@@ -2941,7 +3187,7 @@ function drawBossArtwork(context, frameTime, hatchOpening) {
   }
 
   if (boss.level === 3) {
-    const body = getLevel3BossBodyBounds(boss);
+    const body = getCenteredBounds(boss);
     if (!crownMawBody.ready) {
       context.fillStyle = "#89596b";
       context.fillRect(body.left, body.top, boss.width, boss.height);
@@ -3030,7 +3276,7 @@ function drawBossArtwork(context, frameTime, hatchOpening) {
 }
 
 function drawVarnokBoss(context, frameTime, hatchOpening) {
-  const body = getLevel3BossBodyBounds(boss);
+  const body = getCenteredBounds(boss);
   const eyeGeometry = getVarnokEyeGeometry(boss);
   if (drawRootedCrownArtwork(context, body, eyeGeometry, boss.eyeOpeningAmount, frameTime, hatchOpening)) return;
 
@@ -3137,35 +3383,107 @@ function drawBarriers() {
   }
 }
 
-function drawVictoryEnding() {
-  const centerX = canvas.width / 2;
-  const isRolling = gameState === "credits";
-  const headingY = isRolling ? creditsY : canvas.height / 2 - 44;
+const resultOverlay = document.getElementById("result-overlay");
+const resultPanel = document.getElementById("result-panel");
+const resultArt = document.getElementById("result-art");
+const resultTitle = document.getElementById("result-title");
+const resultDetails = document.getElementById("result-details");
+const resultBonus = document.getElementById("result-bonus");
+const resultScore = document.getElementById("result-score");
+const resultActions = document.getElementById("result-actions");
 
+const varnokPortrait = "finalboss-workshop/Varnok Artwork Workshop (complete ZIP)/assets/rooted-crown/body-maw.svg";
+const resultViews = {
+  level1Cleared: {
+    title: "Level 1 cleared",
+    details: "You defeated Xal'Gorath!\nA new enemy formation awaits in Level 2.",
+    bonus: level1BossDefeatBonus,
+    art: sporeChoirImage.src,
+    theme: "clear",
+    nextButton: level2Button,
+  },
+  level2Cleared: {
+    title: "Level 2 cleared",
+    details: "You defeated Lord Kaezar Vhul!\nGet ready for the final battle!\nChoose Level 3 to continue.",
+    bonus: level2BossDefeatBonus,
+    art: ironSepulchreImage.src,
+    theme: "clear",
+    nextButton: level3Button,
+  },
+  victory: { title: "Victory", art: varnokPortrait, theme: "victory" },
+  loss: { title: "Game over", theme: "loss" },
+  win: { title: "You win", details: "Choose Restart to play again", theme: "clear" },
+  level3BossDefeated: {
+    title: "Zhur-Kai defeated",
+    details: "Encounter complete. Choose Restart to play again.",
+    art: crownMawBody.image.src,
+    theme: "clear",
+  },
+  varnokBossDefeated: {
+    title: "Varnok defeated",
+    details: "Encounter complete. Choose Restart to play again.",
+    art: varnokPortrait,
+    theme: "victory",
+  },
+};
+let displayedResult = null;
+
+function updateResultPanel() {
+  const view = resultViews[gameState] ?? null;
+  if (view === displayedResult) return;
+  displayedResult = view;
+  if (restartButton.parentElement === resultActions) level2Button.before(restartButton);
+  if (level2Button.parentElement === resultActions) level3Button.before(level2Button);
+  if (level3Button.parentElement === resultActions) level2Button.after(level3Button);
+  resultOverlay.hidden = view === null;
+  if (view === null) return;
+
+  resultPanel.dataset.theme = view.theme;
+  resultTitle.textContent = view.title;
+  resultDetails.textContent = view.details ?? "";
+  resultBonus.textContent = view.bonus ? `Boss defeat bonus: +${view.bonus} points` : "";
+  resultScore.textContent = view.bonus ? `Score: ${score}   •   Lives: ${lives}` : "";
+  if (gameState === "victory") resultScore.textContent = `Final score: ${score}`;
+
+  const art = gameState === "loss"
+    ? [clackImage, anvilImage, riftImage][currentLevel - 1].src
+    : view.art;
+  resultArt.parentElement.hidden = !art;
+  if (art) resultArt.src = art;
+
+  if (view.nextButton) resultActions.append(view.nextButton);
+  if (gameState === "loss") {
+    resultActions.append(restartButton);
+    restartButton.focus({ preventScroll: true });
+  }
+}
+
+function drawRollingCredits() {
+  const centerX = canvas.width / 2;
   context.save();
   context.textAlign = "center";
   context.textBaseline = "top";
   context.fillStyle = "#ffffff";
   context.font = "bold 40px Arial, sans-serif";
-  context.fillText("Victory", centerX, headingY);
+  context.fillText("Victory", centerX, creditsY);
   context.fillStyle = "#bfd0e3";
   context.font = "20px Arial, sans-serif";
-  if (isRolling) {
-    creditsLines.forEach((line, index) => {
-      context.fillText(line, centerX, headingY + (index + 2) * creditsLineSpacing);
-    });
-  } else {
-    context.fillText(`Final score: ${score}`, centerX, headingY + 56);
-  }
+  creditsLines.forEach((line, index) => {
+    context.fillText(line, centerX, creditsY + (index + 2) * creditsLineSpacing);
+  });
   context.restore();
 }
 
 function drawFrame(frameTime) {
+  if (gameState !== "playing") playerBank = 0;
+  const showShotReadout = DEVELOPER_MODE && tracedBoss !== null;
+  if (bossShotReadout.hidden === showShotReadout) bossShotReadout.hidden = !showShotReadout;
+  updateResultPanel();
   context.clearRect(0, 0, canvas.width, canvas.height);
   drawStarfield();
-  if (gameState === "menu") return;
-  if (gameState === "credits" || gameState === "victory") {
-    drawVictoryEnding();
+  if (gameState === "menu" || gameState === "victory") return;
+  if (gameState === "credits") {
+    drawRollingCredits();
     return;
   }
   const varnokOnScreen = boss?.level === 4;
@@ -3192,12 +3510,12 @@ function drawFrame(frameTime) {
   drawBoss(frameTime, hatchOpening);
   if (emerging.length > 0) drawVarnokHatchlings(emerging, hatchOpening);
   drawBarriers();
-  context.fillStyle = "#ffe08a";
   for (const shot of shots) {
     const left = shot.x - shot.width / 2;
     if (shot.artwork) {
       drawCombatArtwork(shot.artwork, left, shot.y);
     } else {
+      context.fillStyle = shot.color ?? "#ffe08a";
       context.fillRect(left, shot.y, shot.width, shot.height);
     }
   }
@@ -3206,177 +3524,6 @@ function drawFrame(frameTime) {
   }
   drawPlayer(frameTime);
   drawLevel2PickupMessage();
-
-  if (gameState === "bossIntro" && (boss.level === 1 || boss.level === 4)) {
-    if (bossIntroStartY === null || bossIntroElapsed >= bossIntroSlideDuration) {
-      context.fillStyle = "rgba(0, 0, 0, 0.35)";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      const bubbleX = 24;
-      const bubbleY = 24;
-      const bubbleWidth = boss.level === 4 ? 260 : 300;
-      const bubbleHeight = 154;
-      const cornerRadius = 14;
-      const tailHalfWidth = 12;
-      const tailBaseY = bubbleY + bubbleHeight / 2;
-      const tailTipX = boss.x - boss.width / 2 - 8;
-      const tailTipY = Math.max(10, Math.min(canvas.height - 10, boss.y));
-
-      context.beginPath();
-      context.moveTo(bubbleX + cornerRadius, bubbleY);
-      context.lineTo(bubbleX + bubbleWidth - cornerRadius, bubbleY);
-      context.quadraticCurveTo(
-        bubbleX + bubbleWidth,
-        bubbleY,
-        bubbleX + bubbleWidth,
-        bubbleY + cornerRadius,
-      );
-      context.lineTo(bubbleX + bubbleWidth, tailBaseY - tailHalfWidth);
-      context.lineTo(tailTipX, tailTipY);
-      context.lineTo(bubbleX + bubbleWidth, tailBaseY + tailHalfWidth);
-      context.lineTo(bubbleX + bubbleWidth, bubbleY + bubbleHeight - cornerRadius);
-      context.quadraticCurveTo(
-        bubbleX + bubbleWidth,
-        bubbleY + bubbleHeight,
-        bubbleX + bubbleWidth - cornerRadius,
-        bubbleY + bubbleHeight,
-      );
-      context.lineTo(bubbleX + cornerRadius, bubbleY + bubbleHeight);
-      context.quadraticCurveTo(
-        bubbleX,
-        bubbleY + bubbleHeight,
-        bubbleX,
-        bubbleY + bubbleHeight - cornerRadius,
-      );
-      context.lineTo(bubbleX, bubbleY + cornerRadius);
-      context.quadraticCurveTo(bubbleX, bubbleY, bubbleX + cornerRadius, bubbleY);
-      context.closePath();
-      context.fillStyle = "#0d1b2d";
-      context.fill();
-      context.strokeStyle = "#48c9ef";
-      context.lineWidth = 2;
-      context.stroke();
-      context.fillStyle = "#FFFFFF";
-      context.textAlign = "center";
-      context.font = "16px Arial, sans-serif";
-      const dialogueLines = boss.level === 4
-        ? ["Zhur-Kai was only the beginning.", "I am Varnok.", "Your journey ends here."]
-        : ["Muwahahaha! You fool! You may", "have beaten my minions, but now", "you must face me!"];
-      dialogueLines.forEach((line, index) => {
-        context.fillText(line, bubbleX + bubbleWidth / 2, bubbleY + 48 + index * 31);
-      });
-    }
-  } else if (gameState === "level1Cleared") {
-    context.fillStyle = "rgba(0, 0, 0, 0.65)";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    const panelWidth = 640;
-    const panelHeight = 300;
-    const panelX = (canvas.width - panelWidth) / 2;
-    const panelY = (canvas.height - panelHeight) / 2;
-    context.fillStyle = "#0d1b2d";
-    context.fillRect(panelX, panelY, panelWidth, panelHeight);
-    context.strokeStyle = "#48c9ef";
-    context.lineWidth = 2;
-    context.strokeRect(panelX, panelY, panelWidth, panelHeight);
-    context.fillStyle = "#ffffff";
-    context.textAlign = "center";
-    context.font = "bold 32px Arial, sans-serif";
-    context.fillText("Level 1 cleared", canvas.width / 2, panelY + 55);
-    context.fillStyle = "#bfd0e3";
-    context.font = "17px Arial, sans-serif";
-    context.fillText("You defeated Xal’Gorath the Devourer!", canvas.width / 2, panelY + 108);
-    context.fillText("But reinforcements are closing in.", canvas.width / 2, panelY + 138);
-    context.fillText("Get ready for the next attack.", canvas.width / 2, panelY + 168);
-    context.fillStyle = "#bfd0e3";
-    context.font = "bold 19px Arial, sans-serif";
-    context.fillText(`Boss defeat bonus: +${level1BossDefeatBonus} points`, canvas.width / 2, panelY + 210);
-    context.fillStyle = "#ffffff";
-    context.fillText(`Score: ${score}     Lives: ${lives}`, canvas.width / 2, panelY + 242);
-  } else if (gameState === "level2Cleared") {
-    context.fillStyle = "rgba(0, 0, 0, 0.65)";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    const panelWidth = 640;
-    const panelHeight = 300;
-    const panelX = (canvas.width - panelWidth) / 2;
-    const panelY = (canvas.height - panelHeight) / 2;
-    context.fillStyle = "#0d1b2d";
-    context.fillRect(panelX, panelY, panelWidth, panelHeight);
-    context.strokeStyle = "#48c9ef";
-    context.lineWidth = 2;
-    context.strokeRect(panelX, panelY, panelWidth, panelHeight);
-    context.fillStyle = "#ffffff";
-    context.textAlign = "center";
-    context.font = "bold 32px Arial, sans-serif";
-    context.fillText("Level 2 cleared", canvas.width / 2, panelY + 55);
-    context.fillStyle = "#bfd0e3";
-    context.font = "17px Arial, sans-serif";
-    context.fillText("You defeated Lord Kaezar Vhul!", canvas.width / 2, panelY + 108);
-    context.fillText("get ready for the final battle!", canvas.width / 2, panelY + 136);
-    context.fillText(`Boss defeat bonus: +${level2BossDefeatBonus} points`, canvas.width / 2, panelY + 160);
-    context.fillStyle = "#ffffff";
-    context.font = "bold 19px Arial, sans-serif";
-    context.fillText(`Score: ${score}     Lives: ${lives}`, canvas.width / 2, panelY + 220);
-    context.font = "16px Arial, sans-serif";
-    context.fillText("Choose Level 3 to continue", canvas.width / 2, panelY + 258);
-  } else if (gameState === "level3BossDefeated") {
-    context.fillStyle = "rgba(0, 0, 0, 0.65)";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    const panelWidth = 600;
-    const panelHeight = 150;
-    const panelX = (canvas.width - panelWidth) / 2;
-    const panelY = (canvas.height - panelHeight) / 2;
-    context.fillStyle = "#0d1b2d";
-    context.fillRect(panelX, panelY, panelWidth, panelHeight);
-    context.strokeStyle = "#48c9ef";
-    context.lineWidth = 2;
-    context.strokeRect(panelX, panelY, panelWidth, panelHeight);
-    context.fillStyle = "#ffffff";
-    context.textAlign = "center";
-    context.font = "bold 24px Arial, sans-serif";
-    context.fillText("Zhur-Kai defeated — boss foundation complete", canvas.width / 2, panelY + 58);
-    context.font = "16px Arial, sans-serif";
-    context.fillText("Choose Restart to play again", canvas.width / 2, panelY + 104);
-  } else if (gameState === "varnokBossDefeated") {
-    context.fillStyle = "rgba(0, 0, 0, 0.65)";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    const panelWidth = 640;
-    const panelHeight = 150;
-    const panelX = (canvas.width - panelWidth) / 2;
-    const panelY = (canvas.height - panelHeight) / 2;
-    context.fillStyle = "#0d1b2d";
-    context.fillRect(panelX, panelY, panelWidth, panelHeight);
-    context.strokeStyle = "#48c9ef";
-    context.lineWidth = 2;
-    context.strokeRect(panelX, panelY, panelWidth, panelHeight);
-    context.fillStyle = "#ffffff";
-    context.textAlign = "center";
-    context.font = "bold 25px Arial, sans-serif";
-    context.fillText("Varnok defeated — encounter foundation complete", canvas.width / 2, panelY + 58);
-    context.font = "16px Arial, sans-serif";
-    context.fillText("Choose Restart to play again", canvas.width / 2, panelY + 104);
-  } else if (gameState !== "playing" && gameState !== "bossIntro") {
-    context.fillStyle = "rgba(0, 0, 0, 0.65)";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    const panelWidth = 360;
-    const panelHeight = 126;
-    const panelX = (canvas.width - panelWidth) / 2;
-    const panelY = (canvas.height - panelHeight) / 2;
-    context.fillStyle = "#0d1b2d";
-    context.fillRect(panelX, panelY, panelWidth, panelHeight);
-    context.strokeStyle = gameState === "win" ? "#48c9ef" : "#df6685";
-    context.lineWidth = 2;
-    context.strokeRect(panelX, panelY, panelWidth, panelHeight);
-    context.fillStyle = "#ffffff";
-    context.textAlign = "center";
-    context.font = "bold 40px Arial, sans-serif";
-    context.fillText(
-      gameState === "win" ? "You win" : "Game over",
-      canvas.width / 2,
-      canvas.height / 2 - 4,
-    );
-    context.fillStyle = "#bfd0e3";
-    context.font = "16px Arial, sans-serif";
-    context.fillText("Choose Restart to play again", canvas.width / 2, canvas.height / 2 + 32);
-  }
 }
 
 function gameLoop(frameTime) {
@@ -3394,6 +3541,9 @@ function gameLoop(frameTime) {
     updateLevel2PickupTimers(deltaSeconds);
     if (waveEntranceElapsed !== null) {
       updateWaveEntrance(deltaSeconds, frameTime);
+      if (level2BonusShip !== null) {
+        updateLevel2BonusShip(deltaSeconds);
+      }
     } else {
       updateShots(deltaSeconds, frameTime);
       if (boss === null) {
