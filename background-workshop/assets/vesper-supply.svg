@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 232">
+  <title>Vesper supply ship, right-facing level flight</title>
+  <defs>
+    <linearGradient id="pearl" x1="0%" y1="0%" x2="18%" y2="100%">
+      <stop stop-color="#f3ffff"/>
+      <stop offset=".5" stop-color="#bedce4"/>
+      <stop offset="1" stop-color="#7195aa"/>
+    </linearGradient>
+    <linearGradient id="canopy" x1="0%" y1="0%" x2="18%" y2="100%">
+      <stop stop-color="#c8fff0"/>
+      <stop offset=".5" stop-color="#64ccc2"/>
+      <stop offset="1" stop-color="#2d7f8a"/>
+    </linearGradient>
+  </defs>
+  <!-- The far foil sweeps back from the spine into a low crescent tip. -->
+  <path fill="#375b72" d="M6 50C51 43 107 60 146 88l23 22-43 12C89 88 43 69 6 50Z"/>
+  <path fill="#a3c4d1" d="M11 51c47-3 97 13 132 40l17 16-24 8C95 85 51 66 11 51Z"/>
+  <path fill="#79d9d0" d="M17 53c52 7 96 27 131 54l-11 5C97 84 57 67 17 53Z"/>
+  <!-- The raised pearl spine and the mint nose share a level flight axis. -->
+  <path fill="#29495f" d="M14 119c25-21 58-35 99-40 29-5 53 2 72 13l40 11q15 4 19 12-5 11-22 15l-41 9c-53 18-125 17-167-20Z"/>
+  <path fill="url(#pearl)" d="M19 119c28-19 62-31 97-35 26-4 47 2 67 12l40 11q13 3 17 8-9 4-19 6l-40 9c-48 15-116 19-162-11Z"/>
+  <path fill="#698fa3" d="M29 123c43 20 104 19 151 5l42-8 18-5q-5 8-19 11l-40 9c-54 18-114 15-152-12Z"/>
+  <path fill="#254b63" d="M92 105c10-13 27-23 46-22 18 1 38 9 57 22-28 2-51 12-77 12-13 0-23-4-26-12Z"/>
+  <path fill="url(#canopy)" d="M99 105c11-12 25-17 39-17 16 1 32 8 43 15-21 1-43 10-63 10-8 0-16-3-19-8Z"/>
+  <path fill="#defff6" d="M105 103c10-9 25-13 41-11-15 1-28 5-37 12Z"/>
+  <path fill="#d8fff3" d="M203 106h18q13 3 18 8-16 4-36 2l-14-3Z"/>
+  <path fill="#78e5d0" d="M199 113q24 1 40 1-5 4-16 5h-28Z"/>
+  <!-- A small rear foil shows through below the broad near crescent. -->
+  <path fill="#52788e" d="M82 144c-4 18-18 31-39 43 28-5 47-19 56-38Z"/>
+  <path fill="#b6d7dd" d="M84 147c-8 16-19 26-39 39 20-7 36-18 46-35Z"/>
+  <path fill="#31566d" d="M178 125C133 158 72 185 4 176c28-10 44-35 75-47 31-12 66-16 99-4Z"/>
+  <path fill="url(#pearl)" d="M168 125C126 155 67 180 11 175c29-13 44-33 71-44 28-11 58-15 86-6Z"/>
+  <path fill="#e6ffff" d="M11 175c28-16 43-34 71-44 22-9 49-13 70-9-29 1-47 6-66 14-28 12-48 29-75 39Z"/>
+  <path fill="#7de4d7" d="M15 174c33-12 72-41 125-48l15 1C102 140 66 167 15 174Z"/>
+  <path fill="#365c73" d="M24 112c13-5 30-6 52 0-17 8-34 12-51 10l-8-3Z"/>
+  <path fill="#a8eee3" d="M25 114c8-3 17-3 27-1-9 4-19 6-30 6l-3-1Z"/>
+</svg>

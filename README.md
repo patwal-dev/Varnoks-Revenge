@@ -16,14 +16,11 @@ The game uses HTML, CSS, vanilla JavaScript and HTML Canvas. It has no game engi
 - Score and lives
 - Win/loss states and restart
 
-## Current final-version direction — planned, not started
+## Current final-game build
 
-- Add a menu and review keyboard controls.
-- Extend gameplay to three levels, each with a unique boss.
-- Add sound effects, particle effects and transitions.
-- Test and balance the game, then complete final documentation and demonstration.
+The local build has a menu, ship and difficulty selection, three playable levels, four boss encounters, and a full-height cast credits roll that returns to the menu. The layout and behavior have focused browser checks. Full regression and final submission checks are pending.
 
-Upgrade choices and difficulty options from the earlier plan will be reconsidered after the teacher's target features have been implemented. These plans do not indicate completed work. Multiplayer, a shop, a skill tree, saved progress and mobile controls were outside the earlier scope.
+The user considers the game done and accepted the final credits. The independent local Qwen and Gemma reviews are next. [TODO.md](TODO.md) and [NEXT_SESSION.md](NEXT_SESSION.md) distinguish reported browser acceptance, automated checks and remaining verification coverage.
 
 ## AI-assisted development
 
@@ -37,7 +34,7 @@ I approve requirements and changes, manually playtest the game, and decide which
 
 **Perplexity source review:** Perplexity reviewed `game.js` and `index.html` from GitHub without running the game or automated tests. It found no blocking gameplay issue and noted the existing rectangular player hitbox, that winning takes priority over enemy-shot damage in the frame the last enemy is destroyed, and that the Space shooting instruction was missing. The instruction is now present above the game. This review is not a runtime test or a claim that the game is bug-free.
 
-## Current status
+## Prototype submission status
 
 The one-level prototype and its five gameplay milestones are implemented. User-reported manual checks cover the recorded movement, shooting, enemy, score/lives, win/loss and restart behaviors. The original unnamed checks once described as Milestone 3's “newest checks pending” could not be identified; later enemy-shot checks are recorded but do not establish completion of that unknown checklist. Manual reports are not agent-run or automated tests.
 

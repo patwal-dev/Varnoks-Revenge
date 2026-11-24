@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Supply Ship Artwork Workshop</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <script src="workshop.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>Supply Ship Artwork Workshop</h1>
+    <p>Compare Kestrel and Vesper in level flight. Use 100% browser zoom for the game-size views.</p>
+  </header>
+  <main>
+    <input type="checkbox" id="show-bounds">
+    <label for="show-bounds">Show bounds</label>
+    <ul class="overlay-key" aria-label="Bounds legend">
+      <li class="art-key">Artwork rectangle, including transparent padding</li>
+      <li class="hit-key">Current shot hitbox · 52.80 × 46.31 px</li>
+    </ul>
+    <div class="previews">
+      <section class="ships" aria-label="Proposed artwork">
+        <article class="card kestrel">
+          <h2>Kestrel</h2>
+          <p>Angular ivory wings, red panels and twin blue exhausts.</p>
+          <div class="scale-label enlarged-label">Enlarged · <span class="wide">3×</span><span class="narrow">2×</span></div>
+          <div class="views space enlarged">
+            <figure>
+              <div class="frame"><div class="sprite left"><img src="assets/kestrel.svg" alt="Kestrel in shallow three-quarter view"></div></div>
+              <figcaption>Left</figcaption>
+            </figure>
+            <figure>
+              <div class="frame"><div class="sprite"><img src="assets/kestrel.svg" alt="Kestrel in shallow three-quarter view"></div></div>
+              <figcaption>Right</figcaption>
+            </figure>
+          </div>
+          <div class="scale-label">Game size · 40.72 × 46.31 px</div>
+          <div class="views space game-size">
+            <figure>
+              <div class="frame"><div class="sprite left"><img src="assets/kestrel.svg" alt="Kestrel at game size"></div></div>
+              <figcaption>Left</figcaption>
+            </figure>
+            <figure>
+              <div class="frame"><div class="sprite"><img src="assets/kestrel.svg" alt="Kestrel at game size"></div></div>
+              <figcaption>Right</figcaption>
+            </figure>
+          </div>
+        </article>
+        <article class="card vesper">
+          <h2>Vesper</h2>
+          <p>Pearl hull, curved crescent wings and mint accents.</p>
+          <div class="scale-label enlarged-label">Enlarged · <span class="wide">3×</span><span class="narrow">2×</span></div>
+          <div class="views space enlarged">
+            <figure>
+              <div class="frame"><div class="sprite left"><img src="assets/vesper.svg" alt="Vesper in shallow three-quarter view"></div></div>
+              <figcaption>Left</figcaption>
+            </figure>
+            <figure>
+              <div class="frame"><div class="sprite"><img src="assets/vesper.svg" alt="Vesper in shallow three-quarter view"></div></div>
+              <figcaption>Right</figcaption>
+            </figure>
+          </div>
+          <div class="scale-label">Game size · 49.50 × 46.31 px</div>
+          <div class="views space game-size">
+            <figure>
+              <div class="frame"><div class="sprite left"><img src="assets/vesper.svg" alt="Vesper at game size"></div></div>
+              <figcaption>Left</figcaption>
+            </figure>
+            <figure>
+              <div class="frame"><div class="sprite"><img src="assets/vesper.svg" alt="Vesper at game size"></div></div>
+              <figcaption>Right</figcaption>
+            </figure>
+          </div>
+        </article>
+      </section>
+      <section class="flights" aria-labelledby="flight-heading">
+        <div class="flight-header">
+          <div>
+            <h2 id="flight-heading">Horizontal flight</h2>
+            <p>Game size · 162 px/s · Direction alternates offscreen</p>
+          </div>
+          <button type="button" id="flight-toggle">Play flight</button>
+        </div>
+        <div class="lanes">
+          <figure class="kestrel">
+            <figcaption>Kestrel</figcaption>
+            <div class="lane space"><div class="sprite"><img src="assets/kestrel.svg" alt="Kestrel on the flight path"></div></div>
+          </figure>
+          <figure class="vesper">
+            <figcaption>Vesper</figcaption>
+            <div class="lane space"><div class="sprite"><img src="assets/vesper.svg" alt="Vesper on the flight path"></div></div>
+          </figure>
+        </div>
+      </section>
+    </div>
+  </main>
+  <footer><a href="Tools-and-prompt-log.md">Tools and prompt log</a></footer>
+</body>
+</html>

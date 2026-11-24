@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 204 232">
+  <title>Kestrel supply ship, right-facing level flight</title>
+  <defs>
+    <linearGradient id="armor" x1="0%" y1="0%" x2="16%" y2="100%">
+      <stop stop-color="#fff5d9"/>
+      <stop offset=".55" stop-color="#deded4"/>
+      <stop offset="1" stop-color="#95a7bc"/>
+    </linearGradient>
+    <linearGradient id="canopy" x1="0%" y1="0%" x2="15%" y2="100%">
+      <stop stop-color="#a6efff"/>
+      <stop offset=".5" stop-color="#4aabd7"/>
+      <stop offset="1" stop-color="#285779"/>
+    </linearGradient>
+  </defs>
+  <!-- The far wing is foreshortened; the fuselage stays level. -->
+  <path fill="#364b67" d="M14 54 43 58 127 103 85 122 34 94 11 86Z"/>
+  <path fill="#a9b7c6" d="M18 59 41 62 116 103 86 112 37 89 16 83Z"/>
+  <path fill="#d65046" d="M18 59 41 62 54 69 40 89 37 89 16 83Z"/>
+  <path fill="#374e67" d="M11 93h57l19 12-17 19H12l-8-8V99Z"/>
+  <path fill="#8cddf1" d="M5 99h15v16H5Z"/>
+  <!-- Ivory armor, stepped red nose and blue canopy. -->
+  <path fill="#26394f" d="M29 104 89 84 119 77 145 82 169 96 192 104 200 111v10l-24 12-47 14H48l-26-15Z"/>
+  <path fill="url(#armor)" d="M30 107 91 89 121 81 143 86 166 100 189 108 196 114 172 123 130 135H45l-19-9Z"/>
+  <path fill="#7589a2" d="M45 135h85l42-12 24-9v5l-22 11-46 13H49Z"/>
+  <path fill="#d94d43" d="m157 93 12 7 17 7-6 14-19 6-9-10 11-6-12-12Z"/>
+  <path fill="#ff886c" d="m157 93 12 7 11 4-9 4-20-9Z"/>
+  <path fill="#ffe4ad" d="m189 106 11 5v10l-14 3Z"/>
+  <path fill="#233951" d="M87 101 104 83 120 78 143 85 155 100 127 113 99 112Z"/>
+  <path fill="url(#canopy)" d="m94 101 14-14 12-4 21 6 8 10-24 10-24-1Z"/>
+  <path fill="#ddfaff" d="m99 99 11-11 12-3 11 3-17 2Z"/>
+  <!-- Near swept wing, red wing flash and the nearer rectangular thruster. -->
+  <path fill="#344b64" d="m11 176 40-28 25-24 27-7 39 9-87 47-18 13H8Z"/>
+  <path fill="url(#armor)" d="m15 178 39-27 25-23 24-7 29 6-81 43-16 12H12Z"/>
+  <path fill="#fff3d7" d="m15 178 39-27 25-23 24-7 29 6-49 7-42 35Z"/>
+  <path fill="#db4b42" d="m15 178 35-25 11 12-10 5-16 12H12Z"/>
+  <path fill="#ff886c" d="m15 178 35-25 4 4-35 22Z"/>
+  <path fill="#74889f" d="m63 158 22-17 26-7-39 23Z"/>
+  <path fill="#2d425c" d="M12 124h46l19 11-17 16H12l-8-8v-12Z"/>
+  <path fill="#8ea9bd" d="M20 126h37l11 7H17Z"/>
+  <path fill="#78d4ee" d="M5 131h15v13H5Z"/>
+  <path fill="#ccf9ff" d="M6 131h5v13H6Z"/>
+</svg>

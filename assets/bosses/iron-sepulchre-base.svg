@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="56" height="58" viewBox="0 0 56 58">
+  <defs>
+    <linearGradient id="metal" x2=".16" y2="1"><stop stop-color="#f0bd81"/><stop offset=".46" stop-color="#bb8352"/><stop offset="1" stop-color="#81523e"/></linearGradient>
+    <g id="plate">
+      <path fill="#704d40" d="M5 12h10V7h26l9 8v27l-8 6H31v4H15v-6H5Z"/>
+      <path fill="url(#metal)" d="M7 14h10V9h23l7 7v24l-7 6H29v4H17v-6H7Z"/>
+      <path fill="#f8c991" d="M7 14h10V9h23l4 4H20v5H7Z"/>
+      <path fill="#b5704d" d="M8 28h12l5-9h16l-3 9H28l-6 11H8Z"/>
+      <path fill="#e7ae76" d="m26 39 4-8h8l5-6v13l-5 5H25Z"/>
+      <path fill="#8d5a3f" d="M9 39h10v3H9Zm9 6h8v2h-8Z"/>
+      <path fill="#f8d69f" d="M20 15h4l-2 5h-4Z"/>
+      <path fill="#b17858" d="M12 19h19l-3 20H12Z"/>
+      <path fill="#4e342f" d="M13 20h17l-3 18H13Z"/>
+    </g>
+  </defs>
+  <use href="#plate"/>
+</svg>

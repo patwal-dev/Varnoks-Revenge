@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#141a20">
+  <meta name="description" content="Five 800 × 600 deep-space background studies for the HAMK Space Shooter project.">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./base.css">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./backgrounds.js" defer></script>
+  <script src="./readability.js" defer></script>
+  <script src="./workshop.js" defer></script>
+  <title>Background Art Workshop | Space Shooter</title>
+</head>
+<body>
+  <a class="skip" href="#comparison">Skip to scene selection</a>
+  <header class="wrap masthead">
+    <div class="mast"><span>Space Shooter <span class="dim">/ HAMK AI Project</span></span><span class="dim">Environment art / Review</span></div>
+    <div class="heading"><h1>Background Art Workshop</h1><p>Five scenes, from open space to Varnok’s territory. Toggle the placeholder layer to judge what stays readable over the artwork.</p></div>
+  </header>
+  <main class="wrap layout" id="comparison">
+    <nav class="scenes" aria-labelledby="scene-label">
+      <h2 id="scene-label">Select a scene</h2>
+      <div class="scene-buttons">
+        <button type="button" data-scene="menu" aria-pressed="true"><img src="./assets/backgrounds/menu-the-veil.webp" width="72" height="54" alt=""><span><small>01 / Main menu</small><strong>The Veil</strong></span></button>
+        <button type="button" data-scene="level-1" aria-pressed="false"><img src="./assets/backgrounds/level-1-outer-debris.webp" width="72" height="54" alt=""><span><small>02 / Level 1</small><strong>Outer Debris</strong></span></button>
+        <button type="button" data-scene="level-2" aria-pressed="false"><img src="./assets/backgrounds/level-2-wreck-tide.webp" width="72" height="54" alt=""><span><small>03 / Level 2</small><strong>Wreck Tide</strong></span></button>
+        <button type="button" data-scene="level-3" aria-pressed="false"><img src="./assets/backgrounds/level-3-hollow-reach.webp" width="72" height="54" alt=""><span><small>04 / Level 3 &amp; boss</small><strong>Hollow Reach</strong></span></button>
+        <button type="button" data-scene="credits" aria-pressed="false"><img src="./assets/backgrounds/credits-afterlight.webp" width="72" height="54" alt=""><span><small>05 / Credits</small><strong>Afterlight</strong></span></button>
+      </div>
+    </nav>
+    <section class="viewer" aria-labelledby="active-title">
+      <div class="view-head">
+        <div><p id="active-kind" class="kicker">01 / Main menu</p><h2 id="active-title">The Veil</h2></div>
+        <div class="controls">
+          <label class="toggle"><input id="overlay-toggle" type="checkbox" aria-controls="readability-overlay" disabled> Readability overlay</label>
+          <label class="pick" id="sample-label" hidden>Level 3 sample
+            <select id="sample" aria-controls="readability-overlay">
+              <option value="boss">Final boss</option><option value="formation">Alien formation</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <figure aria-labelledby="active-title" aria-describedby="scene-caption">
+        <div class="stage">
+          <img id="background" src="./assets/backgrounds/menu-the-veil.webp" width="800" height="600" alt="Slate-blue dust at the upper left fades into dark central space.">
+          <canvas id="readability-overlay" width="800" height="600" hidden role="img" aria-label="Representative menu overlay, for contrast testing only"></canvas>
+        </div>
+        <figcaption id="scene-caption"><span>800 × 600 px / <span id="view-state">Artwork only</span></span><span id="view-scale">4:3 source</span></figcaption>
+      </figure>
+      <noscript><p class="nojs">Enable JavaScript to select scenes and try the placeholder overlay.</p></noscript>
+    </section>
+    <aside class="notes" aria-labelledby="scene-note">
+      <h2 id="scene-note">Composition</h2>
+      <p id="description">A thin shelf of slate-blue dust drifts in from the upper left. The central and right areas are left open for the menu.</p>
+      <p class="overlay-note"><strong>Readability overlay:</strong> the ships, aliens, boss, pickups, projectiles, HUD, menu, and credits are illustrative placeholders, not replacements for game artwork.</p>
+    </aside>
+  </main>
+  <footer class="wrap footer"><a href="./Tools-and-prompt-log.md" target="_blank" rel="noopener noreferrer">Tools &amp; prompt log</a><span>Created with Perplexity Computer</span></footer>
+</body>
+</html>

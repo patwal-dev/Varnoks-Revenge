@@ -14,6 +14,7 @@
     </header>
     <div id="game-status" class="status" aria-live="polite" hidden>
       <span>Score: <strong id="score">0</strong></span>
+      <span id="difficulty">Easy</span>
       <span>Lives: <strong id="lives">3</strong></span>
     </div>
     <div class="game-stage">
@@ -27,7 +28,10 @@
               <div class="menu-controls">
                 <button id="start-game" type="button">Start Game</button>
                 <button id="show-how-to-play" type="button">How to Play</button>
-                <button type="button" data-music-toggle aria-label="Music" aria-pressed="false">Music: Off</button>
+                <div class="menu-audio-controls" role="group" aria-label="Audio settings">
+                  <button type="button" data-music-toggle aria-label="Music" aria-pressed="false">Music: Off</button>
+                  <button type="button" data-sound-effects-toggle aria-label="Sound effects" aria-pressed="false">Sound effects: Off</button>
+                </div>
               </div>
               <img class="menu-kestrel" src="ship-workshop/assets/kestrel.svg" alt="">
             </nav>
@@ -37,6 +41,49 @@
               <p>Clear the alien waves and defeat the bosses to survive all three levels.</p>
               <button id="menu-back" type="button">Back</button>
             </section>
+            <form id="ship-selection" aria-labelledby="ship-selection-title" hidden>
+              <h2 id="ship-selection-title">Select your ship</h2>
+              <div class="ship-options" role="group" aria-labelledby="ship-selection-title">
+                <label class="ship-option">
+                  <input type="radio" name="ship" value="kestrel" checked>
+                  <img src="ship-workshop/assets/kestrel.svg" alt="">
+                  Kestrel
+                </label>
+                <label class="ship-option">
+                  <input type="radio" name="ship" value="vesper">
+                  <img src="ship-workshop/assets/vesper.svg" alt="">
+                  Vesper
+                </label>
+                <label class="ship-option">
+                  <input type="radio" name="ship" value="bastion">
+                  <img src="ship-workshop/assets/bastion.svg" alt="">
+                  Bastion
+                </label>
+              </div>
+              <fieldset class="ship-options difficulty-options">
+                <legend>Difficulty</legend>
+                <label class="ship-option">
+                  <input type="radio" name="difficulty" value="easy" checked>
+                  Easy
+                </label>
+                <label class="ship-option">
+                  <input type="radio" name="difficulty" value="hard">
+                  Hard
+                </label>
+                <label class="ship-option">
+                  <input type="radio" name="difficulty" value="ridiculous">
+                  Ridiculous
+                </label>
+              </fieldset>
+              <button id="ship-selection-back" type="button">Back</button>
+              <button id="start-selected-ship" type="submit">Start</button>
+            </form>
+          </section>
+        </div>
+        <div id="varnok-dialogue" class="screen-overlay" hidden>
+          <section class="neon-panel varnok-dialogue-panel" role="dialog" aria-labelledby="varnok-dialogue-name" aria-describedby="varnok-dialogue-text">
+            <p id="varnok-dialogue-text">You thought you had won??? You will never defeat <span id="varnok-dialogue-name"></span>!</p>
+            <button id="varnok-fight" type="button">Fight</button>
           </section>
         </div>
         <div id="result-overlay" class="screen-overlay" hidden>
@@ -48,10 +95,10 @@
               <p id="result-bonus"></p>
               <p id="result-score"></p>
               <div id="result-actions"></div>
+              <button id="continue-to-credits" type="button" hidden>Continue</button>
             </div>
           </section>
         </div>
-        <pre id="boss-shot-readout" class="boss-shot-readout" aria-label="Developer boss shot readout" hidden></pre>
       </div>
       <aside id="developer-testing" class="developer-panel" aria-labelledby="developer-testing-title" hidden>
         <h2 id="developer-testing-title">Developer testing</h2>
@@ -64,13 +111,23 @@
           <button type="button" data-developer-level="2">Level 2</button>
           <button type="button" data-developer-level="3">Level 3</button>
         </div>
+        <output id="developer-wave-entrance" class="developer-wave-entrance" aria-live="polite" hidden></output>
         <h2>Boss tests</h2>
         <div class="developer-boss-buttons">
           <button type="button" data-developer-boss="1">Test Boss 1</button>
           <button type="button" data-developer-boss="2">Test Boss 2</button>
           <button type="button" data-developer-boss="3">Test Boss 3</button>
           <button type="button" data-developer-boss="4">Test Boss 4</button>
+          <button id="developer-test-credits" type="button">Test Credits</button>
         </div>
+        <section id="developer-boss-animation" class="developer-boss-animation" aria-labelledby="developer-boss-animation-title" hidden>
+          <h2 id="developer-boss-animation-title">Boss animation diagnostics</h2>
+          <label class="developer-bank-toggle">
+            <input id="developer-exaggerate-animation" type="checkbox" autocomplete="off">
+            Exaggerate animation
+          </label>
+          <div id="developer-boss-animation-readout"></div>
+        </section>
         <h2>Force next supply drop</h2>
         <div class="developer-boss-buttons developer-reward-buttons">
           <button type="button" data-developer-reward="shield" aria-pressed="false">Shield</button>
@@ -90,6 +147,10 @@
   </main>
   <script src="finalboss-workshop/Varnok%20Artwork%20Workshop%20(complete%20ZIP)/artwork.js"></script>
   <script src="assets/bosses/rooted-crown.js"></script>
+  <script src="sound-effects-preview/sounds.js"></script>
+  <script src="Voices/pickup-voice-data.js"></script>
+  <script src="sound-effects.js"></script>
+  <script src="Background-Art-Workshop/backgrounds.js"></script>
   <script src="game.js"></script>
   <script src="music.js"></script>
 </body>

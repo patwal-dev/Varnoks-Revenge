@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09121e">
+  <title>Supply Ship Artwork Workshop</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./workshop.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="masthead">
+      <p class="eyebrow">Space Shooter / Artwork review</p>
+      <h1>Supply Ship Artwork Workshop</h1>
+      <p>Two level-flight proposals for Kestrel and Vesper. Compare both directions at game scale and in motion.</p>
+    </header>
+
+    <section class="comparison" aria-labelledby="comparison-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="comparison-title">Silhouette comparison</h2>
+          <p>1× matches the game’s canvas pixels at 100% browser zoom. 4× shows the hull details.</p>
+        </div>
+        <label class="control"><input id="show-bounds" type="checkbox"> Show bounds</label>
+      </div>
+      <div class="legend">
+        <span><i class="swatch art-key" aria-hidden="true"></i> SVG artwork bounds</span>
+        <span><i class="swatch hit-key" aria-hidden="true"></i> Current shot hitbox</span>
+      </div>
+      <div id="comparison-grid" class="comparison-grid"></div>
+    </section>
+
+    <section class="flight" aria-labelledby="flight-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="flight-title">Horizontal flight</h2>
+          <p>Both ships fly at 1× and <span id="flight-speed"></span> px/s, changing direction between passes.</p>
+        </div>
+        <button id="flight-toggle" class="control" type="button">Pause flight</button>
+      </div>
+      <div id="flight-lanes" class="flight-lanes"></div>
+    </section>
+    <footer><a href="./Tools-and-prompt-log.md">Tools and prompt log</a></footer>
+    <noscript><p>Enable JavaScript to view the ship previews.</p></noscript>
+  </main>
+
+  <template id="ship-card">
+    <article class="ship-card">
+      <header class="identity">
+        <h3></h3>
+        <p class="description"></p>
+      </header>
+      <div class="view-pair enlarged" role="group" aria-label="4× enlargement">
+        <figure>
+          <div class="space">
+            <div class="ship faces-left"><img alt=""></div>
+          </div>
+          <figcaption>← Left</figcaption>
+        </figure>
+        <figure>
+          <div class="space">
+            <div class="ship"><img alt=""></div>
+          </div>
+          <figcaption>Right →</figcaption>
+        </figure>
+      </div>
+      <div class="view-pair actual" role="group" aria-label="1× actual game size">
+        <figure>
+          <div class="space">
+            <div class="ship faces-left"><img alt=""></div>
+          </div>
+          <figcaption>← Left</figcaption>
+        </figure>
+        <figure>
+          <div class="space">
+            <div class="ship"><img alt=""></div>
+          </div>
+          <figcaption>Right →</figcaption>
+        </figure>
+      </div>
+      <p class="measurements">
+        <span class="art-size"></span>
+        <span class="hit-size"></span>
+      </p>
+    </article>
+  </template>
+
+  <template id="flight-lane">
+    <div class="flight-lane">
+      <h3></h3>
+      <div class="space runway">
+        <div class="ship"><img alt=""></div>
+      </div>
+    </div>
+  </template>
+</body>
+</html>

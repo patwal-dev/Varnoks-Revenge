@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1421">
+  <title>Space Shooter Background Workshop</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./backgrounds.js" defer></script>
+  <script src="./workshop.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Background workshop</h1>
+      <p>Five Space Shooter scenes at the game’s native 800 × 600 canvas size.</p>
+    </header>
+    <nav aria-label="Choose a background">
+      <button type="button" data-scene="menu" aria-controls="scene-preview" aria-pressed="true">Main menu</button>
+      <button type="button" data-scene="level1" aria-controls="scene-preview" aria-pressed="false">Level 1</button>
+      <button type="button" data-scene="level2" aria-controls="scene-preview" aria-pressed="false">Level 2</button>
+      <button type="button" data-scene="level3" aria-controls="scene-preview" aria-pressed="false">Level 3</button>
+      <button type="button" data-scene="credits" aria-controls="scene-preview" aria-pressed="false">Credits</button>
+    </nav>
+
+    <figure id="scene-preview" aria-labelledby="scene-title">
+      <figcaption>
+        <div>
+          <h2 id="scene-title">Blue orbit</h2>
+          <p id="scene-description" aria-live="polite">A cropped blue gas giant frames the menu.</p>
+        </div>
+        <div class="controls">
+          <label><input type="checkbox" id="show-overlay" checked> Show foreground</label>
+          <button type="button" id="motion-toggle">Pause twinkle</button>
+        </div>
+      </figcaption>
+      <div class="viewport" tabindex="0" aria-label="Canvas preview, scroll horizontally if needed">
+        <div class="stage">
+          <div id="preview-hud" class="hud" hidden>
+            <span>Score <strong>120</strong></span><span>Easy</span><span>Lives <strong>3</strong></span>
+          </div>
+          <canvas width="800" height="600" id="preview-canvas" role="img" aria-label="Main menu background with sample menu panel">
+            Space Shooter background preview.
+          </canvas>
+        </div>
+      </div>
+    </figure>
+    <noscript>Enable JavaScript to draw the previews.</noscript>
+    <footer><a href="./Tools-and-design-log.md">Tools and design log</a></footer>
+  </main>
+</body>
+</html>

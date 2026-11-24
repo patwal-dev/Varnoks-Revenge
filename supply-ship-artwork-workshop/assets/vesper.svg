@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 232">
+  <title>Vesper supply ship facing right</title>
+  <defs>
+    <linearGradient id="pearl" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#efffff"/>
+      <stop offset=".46" stop-color="#c8e1e7"/>
+      <stop offset="1" stop-color="#7096ab"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#c2fff0"/>
+      <stop offset=".48" stop-color="#61c6bf"/>
+      <stop offset="1" stop-color="#31868c"/>
+    </linearGradient>
+  </defs>
+  <!-- Far crescent foil curves from its swept tip into the hull. -->
+  <path fill="#34556e" d="M3 59c25-7 64-3 100 12 24 10 44 25 63 43l-45 8C89 96 42 79 3 59Z"/>
+  <path fill="#a4c1d0" d="M8 59c33-4 61 2 93 15 23 10 43 23 58 37l-24 4C97 87 51 69 8 59Z"/>
+  <path fill="#72d9cd" d="M14 62c52 3 102 24 133 49l-11 4C95 88 59 73 14 62Z"/>
+  <!-- Pearl spine, raised teardrop canopy and pale mint nose. -->
+  <path fill="#2f5068" d="M17 115c23-22 53-33 88-35 19-4 36-4 57 3 20 7 36 17 58 20 13 2 23 6 25 12-3 7-14 12-30 15-30 5-53 15-84 18-47 5-89-8-114-33Z"/>
+  <path fill="url(#pearl)" d="M23 115c24-19 54-30 86-31 21-4 35-3 52 3 20 7 36 16 59 20 12 2 19 5 22 8-6 3-15 4-27 6-28 4-55 13-83 16-41 4-81-4-109-22Z"/>
+  <path fill="#6f95a8" d="M32 120c31 13 64 18 100 14 28-3 55-12 83-15 13-1 20-3 26-4-6 8-17 9-27 11-29 5-52 15-84 18-37 4-73-5-98-24Z"/>
+  <path fill="#294f66" d="M92 106c11-14 28-21 45-20 19 1 36 11 52 22-30-2-62 10-86 7-6-1-10-4-11-9Z"/>
+  <path fill="url(#glass)" d="M99 106c11-11 24-17 38-16 16 1 30 8 41 14-28 1-54 10-75 7-2 0-4-2-4-5Z"/>
+  <path fill="#dbfff6" d="M104 103c12-10 29-13 41-10-13 0-26 5-36 10Z"/>
+  <path fill="#d6fff1" d="M205 107c17 0 29 3 34 7-9 3-22 3-34 2l-12-3Z"/>
+  <path fill="#83e4d5" d="m202 114 32 1-15 4-23 1Z"/>
+  <!-- Near crescent foil, with a mint stripe wide enough to read at game scale. -->
+  <path fill="#31526b" d="M171 123c-43 32-100 58-168 52 26-11 38-30 63-44 30-17 67-22 105-8Z"/>
+  <path fill="url(#pearl)" d="M162 124c-41 30-94 53-152 49 24-12 39-29 60-40 27-14 58-20 92-9Z"/>
+  <path fill="#e5f8fa" d="M10 173c25-14 40-30 60-40 23-12 51-17 76-11-26-2-49 5-70 17-21 11-41 29-66 34Z"/>
+  <path fill="#7de4d7" d="M13 172c40-9 67-32 117-43l15-1c-46 18-79 43-132 44Z"/>
+  <path fill="#365c73" d="M28 110c9-5 29-5 51 3-15 6-35 9-53 7l-7-5Z"/>
+  <path fill="#a8eee3" d="M27 112c7-2 16-2 26 0-8 4-18 5-29 5l-4-2Z"/>
+</svg>

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09121e">
+  <title>Space Shooter Sound Effects Preview</title>
+  <script src="./sounds.js" defer></script>
+  <script src="./preview.js" defer></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, sans-serif;
+      background: #09121e;
+      color: #edf5ff;
+      --muted: #b0bfd1;
+      --border: #2d4058;
+      --accent: #8ceadf;
+    }
+    body { margin: 0; }
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: clamp(24px, 5vw, 56px) clamp(16px, 4vw, 40px);
+    }
+    h1 { margin: 0; font-size: clamp(1.9rem, 5vw, 3.2rem); line-height: 1.08; }
+    header p, footer, .cue p, #playback-status { color: var(--muted); }
+    header p { margin: 10px 0 0; }
+    #playback-status {
+      margin: 24px 0 12px;
+      min-height: 1.4em;
+      font-size: .9rem;
+    }
+    .cue-groups {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    section {
+      padding: 15px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #101c2c;
+    }
+    h2 { margin: 0 0 10px; font-size: 1.15rem; color: var(--accent); }
+    h3 { margin: 0; font-size: 1rem; }
+    .cue {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+    }
+    .cue p { margin: 4px 0 0; font-size: .83rem; line-height: 1.4; }
+    button {
+      min-width: 56px;
+      min-height: 40px;
+      padding: 6px 10px;
+      color: inherit;
+      border: 1px solid #5a7593;
+      border-radius: 5px;
+      background: #1a2d43;
+      font: inherit;
+      cursor: pointer;
+    }
+    button:hover { background: #28425e; }
+    button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    footer { margin-top: 18px; font-size: .85rem; }
+    a { color: var(--accent); }
+    @media (max-width: 850px) { .cue-groups { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Space Shooter sound effects</h1>
+      <p>Listen to the proposed arcade cues. A new cue replaces the one currently playing.</p>
+    </header>
+    <p id="playback-status" role="status">Choose a sound to play.</p>
+    <noscript><p>Enable JavaScript to play the sounds.</p></noscript>
+
+    <div class="cue-groups">
+      <section aria-labelledby="weapons">
+        <h2 id="weapons">Weapons</h2>
+        <div class="cue">
+          <div><h3>Player shot</h3><p>A soft, falling laser blip. Shared by standard, Double shot, and Spread shot.</p></div>
+          <button type="button" data-effect="playerShot" aria-label="Play player shot">Play</button>
+        </div>
+        <div class="cue">
+          <div><h3>Machinegun burst</h3><p>Four quieter pulses at the current 0.40-second firing interval.</p></div>
+          <button type="button" data-effect="machinegun" aria-label="Play Machinegun burst">Play</button>
+        </div>
+        <div class="cue">
+          <div><h3>Enemy shot</h3><p>A low rising chirp for alien and boss fire.</p></div>
+          <button type="button" data-effect="enemyShot" aria-label="Play enemy shot">Play</button>
+        </div>
+      </section>
+
+      <section aria-labelledby="impacts">
+        <h2 id="impacts">Impacts</h2>
+        <div class="cue">
+          <div><h3>Enemy destroyed</h3><p>A short crackle for aliens and supply ships.</p></div>
+          <button type="button" data-effect="enemyDestroyed" aria-label="Play enemy destroyed">Play</button>
+        </div>
+        <div class="cue">
+          <div><h3>Boss hit</h3><p>A muted metallic tick for a damaging hit.</p></div>
+          <button type="button" data-effect="bossHit" aria-label="Play boss hit">Play</button>
+        </div>
+        <div class="cue">
+          <div><h3>Shield absorbs a shot</h3><p>A hollow, rising ping.</p></div>
+          <button type="button" data-effect="shieldAbsorb" aria-label="Play shield absorb">Play</button>
+        </div>
+        <div class="cue">
+          <div><h3>Player loses a life</h3><p>A low impact with a falling tail.</p></div>
+          <button type="button" data-effect="lifeLost" aria-label="Play player loses a life">Play</button>
+        </div>
+      </section>
+
+      <section aria-labelledby="outcomes">
+        <h2 id="outcomes">Pickups and results</h2>
+        <div class="cue">
+          <div><h3>Supply pickup</h3><p>Two bright steps for collecting any crate.</p></div>
+          <button type="button" data-effect="pickup" aria-label="Play supply pickup">Play</button>
+        </div>
+        <div class="cue">
+          <div><h3>Boss defeated</h3><p>A brief low burst followed by a rising three-note cue.</p></div>
+          <button type="button" data-effect="bossDefeated" aria-label="Play boss defeated">Play</button>
+        </div>
+        <div class="cue">
+          <div><h3>Game over</h3><p>Three descending notes with a soft final tone.</p></div>
+          <button type="button" data-effect="gameOver" aria-label="Play game over">Play</button>
+        </div>
+      </section>
+    </div>
+    <footer><a href="./Tools-and-design-log.md">Tools and design log</a></footer>
+  </main>
+</body>
+</html>

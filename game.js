@@ -1,5 +1,13 @@
 const canvas = document.getElementById("game");
 const context = canvas.getContext("2d");
+const sceneBackgrounds = new Map(Object.entries(globalThis.BackgroundPlates ?? {}).map(([scene, plate]) => {
+  const image = new Image();
+  image.addEventListener("error", () => {
+    console.warn("Using the default starfield after background load failure:", image.src);
+  }, { once: true });
+  image.src = `Background-Art-Workshop/${plate.src}`;
+  return [scene, image];
+}));
 const bossFlashCanvas = document.createElement("canvas");
 bossFlashCanvas.width = canvas.width;
 bossFlashCanvas.height = canvas.height;
@@ -7,35 +15,46 @@ const bossFlashContext = bossFlashCanvas.getContext("2d");
 const bossHitFlashDuration = 100;
 const scoreDisplay = document.getElementById("score");
 const livesDisplay = document.getElementById("lives");
+const difficultyDisplay = document.getElementById("difficulty");
 const gameStatus = document.getElementById("game-status");
 const mainMenu = document.getElementById("main-menu");
 const menuOptions = document.getElementById("menu-options");
+const startGameButton = document.getElementById("start-game");
+const shipSelection = document.getElementById("ship-selection");
+const shipSelectionBackButton = document.getElementById("ship-selection-back");
 const howToPlay = document.getElementById("how-to-play");
 const howToPlayButton = document.getElementById("show-how-to-play");
 const menuBackButton = document.getElementById("menu-back");
 const musicToggle = document.getElementById("music-toggle");
+const soundEffectsToggle = document.querySelector("[data-sound-effects-toggle]");
+const soundEffectsStorageKey = "hamk-space-shooter-sound-effects";
+let soundEffectsEnabled = false;
 const restartButton = document.getElementById("restart");
 const level2Button = document.getElementById("level-2");
 const level3Button = document.getElementById("level-3");
+const varnokDialogue = document.getElementById("varnok-dialogue");
+const varnokFightButton = document.getElementById("varnok-fight");
 const developerTestingPanel = document.getElementById("developer-testing");
 const developerBankEffect = document.getElementById("developer-bank-effect");
+const developerBossAnimationPanel = document.getElementById("developer-boss-animation");
+const developerExaggerateAnimation = document.getElementById("developer-exaggerate-animation");
+const developerBossAnimationReadout = document.getElementById("developer-boss-animation-readout");
 const developerMeasureCanvasButton = document.getElementById("developer-measure-canvas");
 const developerCanvasReadout = document.getElementById("developer-canvas-readout");
+const developerWaveEntranceReadout = document.getElementById("developer-wave-entrance");
 const developerLevelButtons = document.querySelectorAll("[data-developer-level]");
 const developerBossButtons = document.querySelectorAll("[data-developer-boss]");
+const developerCreditsButton = document.getElementById("developer-test-credits");
 const developerRewardButtons = document.querySelectorAll("[data-developer-reward]");
-const bossShotReadout = document.getElementById("boss-shot-readout");
 const gameMain = document.querySelector("main");
 const DEVELOPER_MODE = true;
 let developerBossTestLevel = null;
 let developerForcedSupplyReward = null;
-let tracedBoss = null;
-let developerShotNumber = 0;
-const developerShotLog = [];
 
 const playerSpawnY = canvas.height - 52;
 const playerMinY = playerSpawnY - 60;
 const playerMaxY = playerSpawnY;
+const playerShotMuzzleOffset = 5;
 const playerFullBankWidthScale = 0.84;
 const playerMaxBankSkew = 0.12;
 const playerMaxBankRotation = 2 * Math.PI / 180;
@@ -50,51 +69,81 @@ const player = {
   speed: 300,
 };
 
-const kestrelImage = new Image();
-let kestrelFlashImage = null;
-let kestrelWingShades = [];
-kestrelImage.addEventListener("load", () => {
-  const flashCanvas = document.createElement("canvas");
-  flashCanvas.width = 232;
-  flashCanvas.height = 204;
-  const flashContext = flashCanvas.getContext("2d");
-  if (flashContext === null) return;
+function loadShipArtwork(id, width, height) {
+  const image = new Image();
+  const artwork = { image, width, height, ready: false, flashImage: null, wingShades: [] };
+  image.addEventListener("load", () => {
+    artwork.ready = true;
+    const flashCanvas = document.createElement("canvas");
+    flashCanvas.width = width;
+    flashCanvas.height = height;
+    const flashContext = flashCanvas.getContext("2d");
+    if (flashContext === null) return;
 
-  flashContext.drawImage(kestrelImage, 0, 0, flashCanvas.width, flashCanvas.height);
-  // Color only the visible parts of the ship for the existing white hit flash.
-  flashContext.globalCompositeOperation = "source-in";
-  flashContext.fillStyle = "#ffffff";
-  flashContext.fillRect(0, 0, flashCanvas.width, flashCanvas.height);
-  kestrelFlashImage = flashCanvas;
+    flashContext.drawImage(image, 0, 0, width, height);
+    // Color only the visible parts of the ship for the existing white hit flash.
+    flashContext.globalCompositeOperation = "source-in";
+    flashContext.fillStyle = "#ffffff";
+    flashContext.fillRect(0, 0, width, height);
+    artwork.flashImage = flashCanvas;
 
-  // Shade each wing from the same unflipped alpha mask to preserve the engine outlines.
-  kestrelWingShades = [0, flashCanvas.width].map((edgeX) => {
-    const shadeCanvas = document.createElement("canvas");
-    shadeCanvas.width = flashCanvas.width;
-    shadeCanvas.height = flashCanvas.height;
-    const shadeContext = shadeCanvas.getContext("2d");
-    if (shadeContext === null) return null;
-    shadeContext.drawImage(flashCanvas, 0, 0);
-    shadeContext.globalCompositeOperation = "source-in";
-    const shade = shadeContext.createLinearGradient(edgeX, 0, shadeCanvas.width / 2, 0);
-    shade.addColorStop(0, "rgba(0, 0, 0, 0.24)");
-    shade.addColorStop(1, "transparent");
-    shadeContext.fillStyle = shade;
-    shadeContext.fillRect(0, 0, shadeCanvas.width, shadeCanvas.height);
-    return shadeCanvas;
+    // Shade each wing from the same unflipped alpha mask to preserve the engine outlines.
+    artwork.wingShades = [0, width].map((edgeX) => {
+      const shadeCanvas = document.createElement("canvas");
+      shadeCanvas.width = width;
+      shadeCanvas.height = height;
+      const shadeContext = shadeCanvas.getContext("2d");
+      if (shadeContext === null) return null;
+      shadeContext.drawImage(flashCanvas, 0, 0);
+      shadeContext.globalCompositeOperation = "source-in";
+      const shade = shadeContext.createLinearGradient(edgeX, 0, width / 2, 0);
+      shade.addColorStop(0, "rgba(0, 0, 0, 0.24)");
+      shade.addColorStop(1, "transparent");
+      shadeContext.fillStyle = shade;
+      shadeContext.fillRect(0, 0, width, height);
+      return shadeCanvas;
+    });
   });
-});
-kestrelImage.src = "ship-workshop/assets/kestrel.svg";
+  image.addEventListener("error", () => {
+    console.error("Could not load ship artwork:", image.src);
+  }, { once: true });
+  image.src = `ship-workshop/assets/${id}.svg`;
+  return artwork;
+}
 
-const vesperImage = new Image();
-let vesperImageReady = false;
-vesperImage.addEventListener("load", () => {
-  vesperImageReady = true;
-});
-vesperImage.addEventListener("error", () => {
-  console.error("Could not load the Vesper supply-ship artwork:", vesperImage.src);
-}, { once: true });
-vesperImage.src = "ship-workshop/assets/vesper.svg";
+const defaultShipId = "kestrel";
+const defaultDifficulty = "easy";
+// Each wave shot timing lists the full-wave value first and the depleted-wave limit second.
+const enemyDifficultySettings = {
+  hard: {
+    movementMultiplier: 1.15,
+    waveKillSpeedBonus: 0.55,
+    waveShotMinimum: [700, 480],
+    waveShotJitter: [400, 240],
+    level2WaveSpeedScale: 1.12,
+    boss1SpeedScale: 1.12,
+    boss1AttackInterval: 1350,
+    boss1SpreadChargeDuration: 0.45,
+    boss2MovementScale: 1.08,
+    boss2PatrolDuration: 1.85,
+  },
+  ridiculous: {
+    movementMultiplier: 1.2,
+    waveKillSpeedBonus: 1,
+    waveShotMinimum: [560, 360],
+    waveShotJitter: [340, 190],
+  },
+};
+const shipArtwork = {
+  kestrel: loadShipArtwork("kestrel", 232, 204),
+  vesper: loadShipArtwork("vesper", 232, 248),
+  bastion: loadShipArtwork("bastion", 232, 159),
+};
+const playerLifeBurstPalettes = {
+  kestrel: ["#98a8bc", "#ff846a", "#fff6df"],
+  vesper: ["#c7e4e7", "#7de4d7", "#f3ffff"],
+  bastion: ["#dbc4a9", "#f8af66", "#ffe2ad"],
+};
 
 const clackImage = new Image();
 let clackImageReady = false;
@@ -126,9 +175,24 @@ riftImage.addEventListener("error", () => {
 }, { once: true });
 riftImage.src = "alien-workshop/Alien Art Workshop (complete ZIP)/assets/level-3-rift.svg";
 
-const hatchlingArtwork = ["bud", "hook", "crown"].map((name) => {
+function loadAlienFormationPose(name) {
   const image = new Image();
   const artwork = { image, ready: false };
+  image.addEventListener("load", () => {
+    artwork.ready = true;
+  }, { once: true });
+  image.addEventListener("error", () => {
+    console.error("Could not load alien formation pose:", image.src);
+  }, { once: true });
+  image.src = `assets/aliens/${name}-formation-pose-2.svg`;
+  return artwork;
+}
+
+const regularAlienPose2 = ["clack", "anvil", "rift"].map(loadAlienFormationPose);
+
+const hatchlingArtwork = ["bud", "hook", "crown"].map((name) => {
+  const image = new Image();
+  const artwork = { image, ready: false, pose2: loadAlienFormationPose(`hatchling-${name}`) };
   image.addEventListener("load", () => {
     artwork.ready = true;
   });
@@ -140,7 +204,23 @@ const hatchlingArtwork = ["bud", "hook", "crown"].map((name) => {
 });
 const hatchlingVisualChoices = new WeakMap();
 const hatchlingLaunchVisualTimes = new WeakMap();
+const hatchlingReturnBatches = new WeakMap();
+const hatchlingReturnVisuals = new WeakMap();
+const hatchlingReturnPatterns = ["split", "sweep", "stagger"];
 const alienAngles = new WeakMap();
+const alienBurstPalettes = [
+  ["#a2c259", "#8da743", "#e5f9c2"], // Clack
+  ["#e49c61", "#d27654", "#ffe1a6"], // Anvil
+  ["#ed7184", "#d35b73", "#ffaca0"], // Rift
+];
+const hatchlingBurstPalette = ["#aa78d7", "#cfa5ee", "#f9b8da"];
+const alienBurstFragmentCount = 12;
+const supplyShipBurstFragmentCount = 16;
+const playerLifeBurstFragmentCount = 16;
+const playerDeathBurstFragmentCount = 40;
+const playerDeathDurationMs = 700;
+const destructionFragmentLimit = 144;
+const destructionFragments = [];
 
 const sporeChoirImage = new Image();
 let sporeChoirImageReady = false;
@@ -161,6 +241,31 @@ ironSepulchreImage.addEventListener("error", () => {
   console.error("Could not load the Iron Sepulchre boss artwork:", ironSepulchreImage.src);
 }, { once: true });
 ironSepulchreImage.src = "boss-workshop/Xal’Gorath Boss Art Workshop/assets/iron-sepulchre.svg";
+
+const [sporeChoirSac, sporeChoirMembrane, sporeChoirFace,
+  ironSepulchreArmour, ironSepulchreVents, ironSepulchreCenter] = [
+  "spore-choir-base", "spore-choir-membrane", "spore-choir-face",
+  "iron-sepulchre-base", "iron-sepulchre-seams", "iron-sepulchre-center",
+].map((name) => {
+  const image = new Image();
+  const artwork = { image, ready: false, failed: false };
+  image.addEventListener("load", () => {
+    artwork.ready = true;
+  }, { once: true });
+  image.addEventListener("error", () => {
+    artwork.failed = true;
+    console.error("Could not load boss animation layer:", image.src);
+  }, { once: true });
+  image.src = `assets/bosses/${name}.svg`;
+  return artwork;
+});
+
+// Use the SVG interiors as masks and paint the centre oval separately from its socket.
+const sporeChoirSacInterior = new Path2D("M44 17c-6-9-15-12-23-8C12 12 7 18 6 26c-1 6 2 12 9 15 4 5 10 8 17 8 10 0 15-8 15-13 6-6 3-14-3-19Z");
+const sporeChoirMembraneInterior = new Path2D("M56 4c11 0 21 7 21 20 0 8-4 14-10 16l-1 7c-2 5-6 9-10 9s-8-4-10-9l-1-7c-6-2-10-8-10-16C35 11 45 4 56 4Z");
+const sporeChoirSideOval = new Path2D("M20 24c4-3 9-3 11 0-1 3-4 5-8 5-3 0-4-2-3-5Z");
+const sporeChoirCentreOval = new Path2D("M50 28c3-1 9-1 12 0-1 2-4 3-6 3s-5-1-6-3Z");
+const sporeChoirBlinkDuration = 0.62;
 
 const [crownMawBody, crownMawCore, crownMawJaw] = ["body", "core", "jaw"].map((part) => {
   const image = new Image();
@@ -191,6 +296,7 @@ for (const [index, random] of menuRandom.entries()) {
 const keysDown = new Set();
 const shots = [];
 const enemyShots = [];
+let pendingEnemyRepeats = [];
 const varnokMinionShots = new WeakSet();
 const enemies = [];
 // Keep the artwork in the existing projectile and pickup footprints.
@@ -273,13 +379,20 @@ const level2PickupMessageDuration = 2;
 const enemyShotSpeed = 210;
 const enemyShotIntervalMin = 900;
 const enemyShotIntervalRange = 600;
+const enemyRepeatGap = 0.15;
 const bossAttackInterval = 1600;
 const bossWideShotChance = 0.5;
 const bossChargeDuration = 0.5;
 const bossWideShotWidth = 24;
 const bossSpreadHorizontalSpeed = 150;
 const bossIntroSlideDuration = 0.8;
-const varnokTransitionDuration = 1;
+const varnokRevealDuration = 1.5;
+const bossDisplayNames = {
+  xalGorath: "Xal’Gorath, the Devourer",
+  kaezarVhul: "Lord Kaezar Vhul",
+  zhurKai: "Zhur-Kai, Matriarch of the Swarm",
+  varnok: "Varnok, Destroyer of Worlds",
+};
 const level1BossHealth = 15;
 const level1BossDefeatBonus = 100;
 const level2BossHealth = 20;
@@ -346,11 +459,13 @@ const level2BossRetreatDuration = 0.8;
 const level2BossLaneOpacity = 0.12;
 const level2BossLaneFadeDuration = 0.2;
 const enemySize = 30;
+const formationBeatIntervalMs = 450;
 const enemySpeed = 65;
 const formationColumns = 6;
 const defaultFormationRows = 2;
 const level2FormationRows = 3;
 const level3FormationRows = 4;
+const regularFormationShapes = ["Grid", "Chevron", "Staggered"];
 const level3FormationDescentStep = 55;
 const level3FormationDescentDuration = 0.35;
 const level3DestructionBonusMultiplier = 1.15;
@@ -363,9 +478,29 @@ const level2BonusShipDelayMax = 15;
 const level2BonusShipSpeed = 162;
 const level2BonusShipWidth = 52.8;
 const vesperArtWidth = 49.5;
-// The rotated 232 × 248 SVG uses its original width as the on-screen height.
+// Preserve the on-screen height of the original rotated Vesper artwork.
 const vesperArtHeight = vesperArtWidth * 232 / 248;
 const level2BonusShipHeight = vesperArtHeight;
+
+function loadSupplyShipArtwork(id, width, burstPalette) {
+  const image = new Image();
+  const artwork = { image, width, burstPalette, ready: false };
+  image.addEventListener("load", () => {
+    artwork.ready = true;
+  }, { once: true });
+  image.addEventListener("error", () => {
+    console.error("Could not load supply ship artwork:", image.src);
+  }, { once: true });
+  image.src = `supply-ship-workshop/level-flight/assets/${id}.svg`;
+  return artwork;
+}
+
+const supplyShipArtwork = {
+  kestrel: loadSupplyShipArtwork("kestrel", vesperArtHeight * 204 / 232, ["#95a7bc", "#ff886c", "#fff5d9"]),
+  vesper: loadSupplyShipArtwork("vesper", vesperArtWidth, ["#bedce4", "#64ccc2", "#f3ffff"]),
+};
+const supplyShipFallbackBurstPalette = ["#72d9ed", "#4aabd7", "#fff0c2"];
+
 const level2ShieldPickupSpeed = 150;
 const level2ShieldChargesMax = 2;
 const level2ShieldDuration = 10;
@@ -375,9 +510,52 @@ const level1WaveCount = 2;
 const level2WaveCount = 2;
 const level3WaveCount = 2;
 const waveEntranceDuration = 1.5;
-const creditsScrollSpeed = 100;
-const creditsLineSpacing = 32;
-const creditsLines = ["Game Design", "Development", "Playtesting"];
+const wave2ColumnEntryOrder = [0, 2, 4, 1, 3, 5];
+const level1Wave2Entrances = [
+  {
+    name: "Split entry",
+    duration: 1.62,
+    getPath(enemy, index) {
+      const column = index % formationColumns;
+      const fromLeft = column < formationColumns / 2;
+      const columnFromEdge = fromLeft ? column : formationColumns - 1 - column;
+      return { startX: enemy.x + (fromLeft ? -195 : 195), delay: columnFromEdge * 0.12 };
+    },
+  },
+  {
+    name: "Sweeping curve",
+    duration: 1.45,
+    getPath(enemy, index) {
+      const column = index % formationColumns;
+      return {
+        startX: 105 + column * 25,
+        startY: -enemy.height / 2 - 8,
+        delay: index * 0.065,
+        bendX: 110,
+        bendY: -38,
+      };
+    },
+  },
+  {
+    name: "Alternating columns",
+    duration: 1.45,
+    getPath(_enemy, index) {
+      const column = index % formationColumns;
+      return { delay: wave2ColumnEntryOrder.indexOf(column) * 0.14 };
+    },
+  },
+];
+// Local MP3 duration reported by afinfo. The media clock uses its runtime duration when available.
+const creditsTrackDuration = 188.304;
+const creditsClosingHold = 5.5;
+const creditsClosingFade = 4;
+const creditsBackgroundTail = 7;
+const creditsPostSongHold = 5;
+const creditsEntryHeight = 218;
+const creditsEntryPitch = 525;
+const creditsBodyFont = "21px Arial, sans-serif";
+const creditsNameFont = "bold 32px Arial, sans-serif";
+const endingFadeDuration = 0.6;
 const barrierWidth = 110;
 const barrierHeight = 28;
 const barrierHitPoints = 3;
@@ -402,10 +580,18 @@ let level2PickupMessageTimeRemaining = 0;
 let barriers = [];
 let enemyDirection = 1;
 let currentLevel = 1;
+let selectedShipId = defaultShipId;
+let selectedDifficulty = defaultDifficulty;
 let currentWave = 1;
-let waveEntranceElapsed = null;
-let waveEntrancePositions = null;
+let waveEntrance = null;
+let regularFormation = null;
+let formationBeatElapsedMs = 0;
+let formationAlternatePose = false;
 let boss = null;
+const level2Bosses = [];
+let level2AttackOwner = null;
+let nextLevel2Attacker = null;
+let level2DefeatBonusTotal = 0;
 let bossChargeElapsed = null;
 let nextBossAttackTime = null;
 let bossIntroElapsed = null;
@@ -415,10 +601,14 @@ let score = 0;
 let lives = 3;
 let nextShotTime = 0;
 let nextEnemyShotTime = null;
+let combatElapsed = 0;
+let sporeChoirBlink = null;
 let playerInvulnerableUntil = 0;
 let playerShieldProtectedUntil = 0;
+let playerDeathStartedAt = null;
 let gameState = "menu";
-let creditsY = null;
+let summaryFadeElapsed = null;
+let creditsRun = null;
 let previousFrameTime = 0;
 const stars = [];
 let starSeed = 74821;
@@ -437,24 +627,45 @@ for (let index = 0; index < 90; index += 1) {
 }
 
 function createEnemies() {
+  destructionFragments.length = 0;
+  formationBeatElapsedMs = 0;
+  formationAlternatePose = false;
   const formationRows = getFormationRowCount();
+  const useVariety = currentLevel !== 1 || currentWave !== 1;
+  const roll = useVariety ? crypto.getRandomValues(new Uint32Array(1))[0] / 0x100000000 : 0;
+  const shape = useVariety ? regularFormationShapes[Math.floor(roll * regularFormationShapes.length)] : null;
+  const slots = [];
   if (currentLevel === 3) {
     resetLevel3Descent();
   }
   for (let row = 0; row < formationRows; row += 1) {
     for (let column = 0; column < formationColumns; column += 1) {
+      const chevronDepth = shape === "Chevron" ? Math.min(column, formationColumns - 1 - column) * 16 : 0;
+      const staggered = shape === "Staggered";
+      const slot = {
+        x: 230 + column * (staggered ? 59 : 65) + (staggered ? (row % 2) * 30 : 0),
+        y: 90 + row * 55 + chevronDepth,
+      };
       const enemy = {
-        x: 230 + column * 65,
-        y: 90 + row * 55,
+        ...slot,
         width: enemySize,
         height: enemySize,
       };
       if (currentLevel === 2 || currentLevel === 3) {
-        enemy.formationSlot = row * formationColumns + column;
+        enemy.formationSlot = slots.length;
       }
+      slots.push(slot);
       enemies.push(enemy);
     }
   }
+  regularFormation = useVariety ? {
+    shape,
+    slots,
+    left: Math.min(...slots.map((slot) => slot.x)) - enemySize / 2,
+    right: Math.max(...slots.map((slot) => slot.x)) + enemySize / 2,
+    bottom: Math.max(...slots.map((slot) => slot.y)) + enemySize / 2,
+  } : null;
+  updateWaveReadout();
   startingEnemyCount = enemies.length;
 }
 
@@ -470,38 +681,93 @@ function getFormationRowCount() {
   return defaultFormationRows;
 }
 
+function isRegularFormationAlien(enemy) {
+  return !enemy.isVarnokAlien && (enemy.bomberState === undefined || enemy.bomberState === "formation");
+}
+
+function updateFormationBeat(deltaSeconds) {
+  if (gameState !== "playing" || waveEntrance !== null) return;
+  const hasFormation = boss?.level === 4
+    ? varnokAlienFormation?.aliens.some(isSettledVarnokAlien)
+    : boss === null && level2Bosses.length === 0 && enemies.some(isRegularFormationAlien);
+  if (!hasFormation) return;
+
+  formationBeatElapsedMs += deltaSeconds * 1000;
+  if (formationBeatElapsedMs < formationBeatIntervalMs) return;
+
+  formationBeatElapsedMs -= formationBeatIntervalMs;
+  formationAlternatePose = !formationAlternatePose;
+  playSoundEffect(formationAlternatePose ? "formationTick" : "formationTock");
+}
+
+function updateWaveReadout(pattern = null) {
+  if (!DEVELOPER_MODE) return;
+  const lines = [];
+  if (pattern) lines.push(`Wave 2 entrance: ${pattern.name}`);
+  if (regularFormation) lines.push(`Formation: ${regularFormation.shape}`);
+  developerWaveEntranceReadout.textContent = lines.join("\n");
+  developerWaveEntranceReadout.hidden = lines.length === 0;
+}
+
+function clearWaveEntrance() {
+  waveEntrance = null;
+  regularFormation = null;
+  updateWaveReadout();
+}
+
 function startWaveEntrance() {
+  pendingEnemyRepeats.length = 0;
+  let pattern = null;
+  if (currentLevel === 1 && currentWave === 2) {
+    const roll = crypto.getRandomValues(new Uint32Array(1))[0] / 0x100000000;
+    pattern = level1Wave2Entrances[Math.floor(roll * level1Wave2Entrances.length)];
+  }
+  updateWaveReadout(pattern);
+
   const lowestEdge = Math.max(...enemies.map((enemy) => enemy.y + enemy.height / 2));
   const entranceOffset = -lowestEdge - 1;
-  waveEntrancePositions = enemies.map((enemy) => {
-    const targetY = enemy.y;
-    const startY = targetY + entranceOffset;
-    enemy.y = startY;
-    return { startY, targetY };
+  const paths = enemies.map((enemy, index) => {
+    const path = {
+      startX: enemy.x,
+      startY: enemy.y + entranceOffset,
+      targetX: enemy.x,
+      targetY: enemy.y,
+      delay: 0,
+      bendX: 0,
+      bendY: 0,
+      duration: pattern?.duration ?? waveEntranceDuration,
+      ...pattern?.getPath(enemy, index),
+    };
+    enemy.x = path.startX;
+    enemy.y = path.startY;
+    return path;
   });
-  waveEntranceElapsed = 0;
+  const duration = Math.max(waveEntranceDuration, ...paths.map((path) => path.delay + path.duration));
+  waveEntrance = { paths, duration, elapsed: 0 };
   nextEnemyShotTime = null;
 }
 
 function updateWaveEntrance(deltaSeconds, frameTime) {
-  waveEntranceElapsed = Math.min(
-    waveEntranceElapsed + deltaSeconds,
-    waveEntranceDuration,
-  );
-  const progress = waveEntranceElapsed / waveEntranceDuration;
-  const easedProgress = progress * progress * (3 - 2 * progress);
-
+  waveEntrance.elapsed = Math.min(waveEntrance.elapsed + deltaSeconds, waveEntrance.duration);
+  const finished = waveEntrance.elapsed === waveEntrance.duration;
   enemies.forEach((enemy, index) => {
-    const { startY, targetY } = waveEntrancePositions[index];
-    enemy.y = progress === 1
-      ? targetY
-      : startY + (targetY - startY) * easedProgress;
+    const { startX, startY, targetX, targetY, delay, duration, bendX, bendY } = waveEntrance.paths[index];
+    if (finished || waveEntrance.elapsed >= delay + duration) {
+      enemy.x = targetX;
+      enemy.y = targetY;
+      return;
+    }
+    const progress = Math.max(0, (waveEntrance.elapsed - delay) / duration);
+    const easedProgress = progress * progress * (3 - 2 * progress);
+    // At the midpoint, the bend is at its maximum offset from the straight path.
+    const curve = 4 * easedProgress * (1 - easedProgress);
+    enemy.x = startX + (targetX - startX) * easedProgress + bendX * curve;
+    enemy.y = startY + (targetY - startY) * easedProgress + bendY * curve;
   });
 
-  if (progress === 1) {
-    waveEntranceElapsed = null;
-    waveEntrancePositions = null;
-    nextEnemyShotTime = frameTime + enemyShotIntervalMin;
+  if (finished) {
+    waveEntrance = null;
+    nextEnemyShotTime = frameTime + getOrdinaryWaveShotTiming().minimum;
     if (currentLevel === 2 || currentLevel === 3) {
       level2BomberTimer = level2BomberDelay;
     }
@@ -509,6 +775,9 @@ function updateWaveEntrance(deltaSeconds, frameTime) {
 }
 
 function startBossFight() {
+  clearWaveEntrance();
+  destructionFragments.length = 0;
+  pendingEnemyRepeats.length = 0;
   shots.length = 0;
   enemyShots.length = 0;
   boss = {
@@ -522,23 +791,50 @@ function startBossFight() {
     health: level1BossHealth,
     maxHealth: level1BossHealth,
   };
+  sporeChoirBlink = { organ: -1, startedAt: combatElapsed, nextStart: combatElapsed };
   bossChargeElapsed = null;
   nextBossAttackTime = null;
 }
 
 function startLevel2BossFight() {
-  if (currentLevel !== 2 || boss !== null || enemies.length !== 0 || lives <= 0) return;
+  if (currentLevel !== 2 || boss !== null || level2Bosses.length > 0
+    || enemies.length !== 0 || lives <= 0) return;
 
+  clearWaveEntrance();
+  destructionFragments.length = 0;
+  pendingEnemyRepeats.length = 0;
   shots.length = 0;
   enemyShots.length = 0;
-  boss = {
+  level2DefeatBonusTotal = 0;
+  if (selectedDifficulty === "ridiculous") {
+    level2Bosses.push(
+      createLevel2Boss(200, -1, { minX: 66, maxX: 302 }),
+      createLevel2Boss(600, 1, { minX: 498, maxX: 734 }),
+    );
+  } else {
+    level2Bosses.push(createLevel2Boss(canvas.width / 2, 1));
+  }
+  nextLevel2Attacker = level2Bosses[0];
+  bossChargeElapsed = null;
+  nextBossAttackTime = null;
+  bossIntroElapsed = 0;
+  bossIntroStartY = -level2Bosses[0].height / 2;
+  bossIntroTargetY = level2Bosses[0].y;
+  for (const targetBoss of level2Bosses) targetBoss.y = bossIntroStartY;
+  gameState = "bossIntro";
+  keysDown.clear();
+}
+
+function createLevel2Boss(x, direction, patrolBounds = null) {
+  return {
     level: 2,
-    x: canvas.width / 2,
+    x,
     y: 104,
     width: 132,
     height: 68,
     speed: level2BossMovementSpeed,
-    direction: 1,
+    direction,
+    patrolBounds,
     health: level2BossHealth,
     maxHealth: level2BossHealth,
     attackPhase: "move",
@@ -546,20 +842,20 @@ function startLevel2BossFight() {
     chargePath: null,
     ramHitApplied: false,
   };
-  bossChargeElapsed = null;
-  nextBossAttackTime = null;
-  bossIntroElapsed = 0;
-  bossIntroStartY = -boss.height / 2;
-  bossIntroTargetY = boss.y;
-  boss.y = bossIntroStartY;
-  gameState = "bossIntro";
-  keysDown.clear();
+}
+
+function clearLevel2BossEncounter() {
+  level2Bosses.length = 0;
+  level2AttackOwner = null;
+  nextLevel2Attacker = null;
 }
 
 function startLevel3BossFight() {
   if (currentLevel !== 3 || currentWave !== level3WaveCount || enemies.length !== 0
     || lives <= 0 || gameState !== "playing") return;
 
+  destructionFragments.length = 0;
+  pendingEnemyRepeats.length = 0;
   clearDiveBomberState();
   enemies.length = 0;
   shots.length = 0;
@@ -567,7 +863,7 @@ function startLevel3BossFight() {
   barriers = [];
   level2BonusShip = null;
   level2BonusShipTimer = randomLevel2BonusShipDelay();
-  level2Pickups.length = 0;
+  // Boss 3 starts a fresh supply-ship countdown while dropped crates keep falling.
   clearLevel2Shield();
   playerShieldProtectedUntil = 0;
   level2ActiveWeapon = null;
@@ -576,8 +872,7 @@ function startLevel3BossFight() {
   resetLevel3Descent();
   enemyDirection = 1;
   nextEnemyShotTime = null;
-  waveEntranceElapsed = null;
-  waveEntrancePositions = null;
+  clearWaveEntrance();
   bossChargeElapsed = null;
   nextBossAttackTime = null;
   bossIntroElapsed = null;
@@ -613,6 +908,8 @@ function startLevel3BossFight() {
 function startVarnokBossFight(showIntro = false) {
   if (currentLevel !== 3 || lives <= 0 || boss !== null || gameState !== "playing") return;
 
+  destructionFragments.length = 0;
+  pendingEnemyRepeats.length = 0;
   clearVarnokAlienFormation();
   clearDiveBomberState();
   enemies.length = 0;
@@ -632,11 +929,10 @@ function startVarnokBossFight(showIntro = false) {
   resetLevel3Descent();
   enemyDirection = 1;
   nextEnemyShotTime = null;
-  waveEntranceElapsed = null;
-  waveEntrancePositions = null;
+  clearWaveEntrance();
   bossChargeElapsed = null;
   nextBossAttackTime = null;
-  bossIntroElapsed = showIntro ? 0 : null;
+  bossIntroElapsed = null;
   bossIntroStartY = null;
   bossIntroTargetY = null;
   boss = {
@@ -665,8 +961,16 @@ function startVarnokBossFight(showIntro = false) {
     formationDirection: 1,
     descentAnimation: null,
   };
+  formationBeatElapsedMs = 0;
+  formationAlternatePose = false;
   level2BomberTimer = level2BomberDelay;
   chooseNextRandomizedBossDestination(boss);
+  if (showIntro) {
+    bossIntroElapsed = 0;
+    bossIntroStartY = -boss.height;
+    bossIntroTargetY = boss.y;
+    boss.y = bossIntroStartY;
+  }
   nextShotTime = 0;
   currentWave = level3WaveCount;
   keysDown.clear();
@@ -678,7 +982,7 @@ function startVarnokBossFight(showIntro = false) {
 }
 
 function advanceLevel2Formation() {
-  if (currentLevel !== 2 || enemies.length !== 0 || lives <= 0
+  if (currentLevel !== 2 || level2Bosses.length > 0 || enemies.length !== 0 || lives <= 0
     || gameState !== "playing") return;
 
   if (currentWave < level2WaveCount) {
@@ -708,28 +1012,32 @@ function startBossIntro() {
 }
 
 function updateBossIntro(deltaSeconds) {
-  const slideDuration = bossIntroStartY === null ? 0 : bossIntroSlideDuration;
-  const introDuration = boss.level === 4 ? varnokTransitionDuration : slideDuration;
+  const isVarnok = boss?.level === 4;
+  const introDuration = isVarnok ? varnokRevealDuration : bossIntroSlideDuration;
   bossIntroElapsed = Math.min(bossIntroElapsed + deltaSeconds, introDuration);
-  if (slideDuration > 0) {
-    const slideProgress = Math.min(bossIntroElapsed / slideDuration, 1);
-    boss.y = slideProgress === 1
-      ? bossIntroTargetY
-      : bossIntroStartY + (bossIntroTargetY - bossIntroStartY) * slideProgress;
-  }
+  const progress = bossIntroElapsed / introDuration;
+  const slide = isVarnok ? progress * progress * (3 - 2 * progress) : progress;
+  const y = bossIntroStartY + (bossIntroTargetY - bossIntroStartY) * slide;
+  if (boss !== null) boss.y = y;
+  for (const targetBoss of level2Bosses) targetBoss.y = y;
 
-  if (bossIntroElapsed >= introDuration) {
+  if (progress === 1) {
     bossIntroElapsed = null;
     bossIntroStartY = null;
     bossIntroTargetY = null;
-    gameState = "playing";
+    gameState = isVarnok ? "varnokDialogue" : "playing";
     previousFrameTime = 0;
+    if (isVarnok) {
+      varnokDialogue.hidden = false;
+      varnokFightButton.focus({ preventScroll: true });
+    }
   }
 }
 
 function startLevel2() {
+  clearLevel2BossEncounter();
+  pendingEnemyRepeats.length = 0;
   if (developerForcedSupplyReward !== null) setDeveloperSupplyReward(null);
-  tracedBoss = null;
   playerBank = 0;
   developerBossTestLevel = null;
   currentLevel = 2;
@@ -744,8 +1052,7 @@ function startLevel2() {
   bossIntroElapsed = null;
   bossIntroStartY = null;
   bossIntroTargetY = null;
-  waveEntranceElapsed = null;
-  waveEntrancePositions = null;
+  clearWaveEntrance();
   enemyDirection = 1;
   level2FormationOffsetX = 0;
   level2Bomber = null;
@@ -768,8 +1075,9 @@ function startLevel2() {
 }
 
 function startLevel3() {
+  clearLevel2BossEncounter();
+  pendingEnemyRepeats.length = 0;
   if (developerForcedSupplyReward !== null) setDeveloperSupplyReward(null);
-  tracedBoss = null;
   playerBank = 0;
   developerBossTestLevel = null;
   currentLevel = 3;
@@ -785,8 +1093,7 @@ function startLevel3() {
   bossIntroElapsed = null;
   bossIntroStartY = null;
   bossIntroTargetY = null;
-  waveEntranceElapsed = null;
-  waveEntrancePositions = null;
+  clearWaveEntrance();
   enemyDirection = 1;
   level2FormationOffsetX = 0;
   level2Bomber = null;
@@ -809,6 +1116,7 @@ function startLevel3() {
 }
 
 function showLevel1ClearedScreen() {
+  pendingEnemyRepeats.length = 0;
   gameState = "level1Cleared";
   keysDown.clear();
   shots.length = 0;
@@ -822,6 +1130,8 @@ function showLevel1ClearedScreen() {
 }
 
 function showLevel2ClearedScreen() {
+  clearLevel2BossEncounter();
+  pendingEnemyRepeats.length = 0;
   gameState = "level2Cleared";
   keysDown.clear();
   shots.length = 0;
@@ -842,6 +1152,7 @@ function showLevel2ClearedScreen() {
 }
 
 function showLevel3BossDefeatedScreen() {
+  pendingEnemyRepeats.length = 0;
   gameState = "level3BossDefeated";
   boss = null;
   clearDiveBomberState();
@@ -860,10 +1171,13 @@ function showLevel3BossDefeatedScreen() {
   level3Button.hidden = true;
 }
 
-function finishVarnokEncounter() {
-  const isBossTest = developerBossTestLevel === 4;
-  gameState = isBossTest ? "varnokBossDefeated" : "credits";
+function clearCombatForEnding() {
+  destructionFragments.length = 0;
+  playerDeathStartedAt = null;
+  clearLevel2BossEncounter();
+  pendingEnemyRepeats.length = 0;
   clearVarnokAlienFormation();
+  enemies.length = 0;
   clearVarnokBossEncounterState();
   boss = null;
   bossChargeElapsed = null;
@@ -881,22 +1195,89 @@ function finishVarnokEncounter() {
   enemyShots.length = 0;
   nextShotTime = 0;
   nextEnemyShotTime = null;
-  if (!isBossTest) {
-    playerInvulnerableUntil = 0;
-    creditsY = canvas.height + creditsLineSpacing;
-  }
+}
+
+function finishVarnokEncounter() {
+  const isBossTest = developerBossTestLevel === 4;
+  gameState = isBossTest ? "varnokBossDefeated" : "endingSummary";
+  clearCombatForEnding();
   restartButton.hidden = !isBossTest;
   level2Button.hidden = true;
   level3Button.hidden = true;
 }
 
+function startCredits(fadeIn = false) {
+  gameState = "credits";
+  summaryFadeElapsed = null;
+  clearCombatForEnding();
+  developerBossTestLevel = null;
+  clearWaveEntrance();
+  resetLevel3Descent();
+  bossIntroElapsed = null;
+  bossIntroStartY = null;
+  bossIntroTargetY = null;
+  playerInvulnerableUntil = 0;
+  mainMenu.hidden = true;
+  varnokDialogue.hidden = true;
+  restartButton.hidden = true;
+  level2Button.hidden = true;
+  level3Button.hidden = true;
+  const layout = createCreditsLayout();
+  const run = {
+    elapsed: 0, layout, audioPosition: 0, readPlayback: null, audioFinished: false,
+    postSongElapsed: 0, fadeIn,
+  };
+  creditsRun = run;
+  previousFrameTime = 0;
+  notifyMusicTrack("credits", true, {
+    setClock(readPlayback) {
+      run.readPlayback = readPlayback;
+    },
+    finish(ended) {
+      syncCreditsToAudio(run);
+      if (ended && run.layout.duration - run.elapsed < 0.15) run.elapsed = run.layout.duration;
+      run.audioFinished = true;
+    },
+  });
+  if (!run.readPlayback) run.audioFinished = true;
+}
+
+function syncCreditsToAudio(run) {
+  if (!run.readPlayback) return;
+  const { position, duration } = run.readPlayback();
+  if (!Number.isFinite(position) || position <= run.audioPosition) return;
+  const audioDuration = Number.isFinite(duration) && duration > 0 ? duration : creditsTrackDuration;
+  const elapsedAudio = position - run.audioPosition;
+  const remainingAudio = audioDuration - run.audioPosition;
+  const remainingRoll = run.layout.duration - run.elapsed;
+  // Retime only the remaining roll when metadata arrives. Keep the current position intact.
+  const advance = remainingAudio > 0
+    ? remainingRoll * Math.min(1, elapsedAudio / remainingAudio)
+    : elapsedAudio;
+  run.elapsed = Math.min(run.elapsed + advance, run.layout.duration);
+  run.audioPosition = position;
+}
+
 function updateCredits(deltaSeconds) {
-  creditsY -= creditsScrollSpeed * deltaSeconds;
-  if (creditsY + (creditsLines.length + 2) * creditsLineSpacing <= 0) {
-    creditsY = null;
-    gameState = "victory";
-    restartButton.hidden = false;
+  const run = creditsRun;
+  if (!run.audioFinished) {
+    syncCreditsToAudio(run);
+    return;
   }
+  const rollStep = Math.min(deltaSeconds, run.layout.duration - run.elapsed);
+  run.elapsed += rollStep;
+  run.postSongElapsed += deltaSeconds - rollStep;
+  if (run.postSongElapsed < creditsPostSongHold) return;
+
+  creditsRun = null;
+  gameState = "menu";
+  gameStatus.hidden = true;
+  resetStartSelection();
+  shipSelection.hidden = true;
+  howToPlay.hidden = true;
+  menuOptions.hidden = false;
+  mainMenu.hidden = false;
+  notifyMusicTrack(1);
 }
 
 function advanceLevel3Formation() {
@@ -931,6 +1312,69 @@ function clearDiveBomberState() {
   level2BomberTimer = 0;
 }
 
+function getEnemyMovementMultiplier() {
+  return enemyDifficultySettings[selectedDifficulty]?.movementMultiplier ?? 1;
+}
+
+function getLevel2BossMovementMultiplier() {
+  return getEnemyMovementMultiplier() * (enemyDifficultySettings[selectedDifficulty]?.boss2MovementScale ?? 1);
+}
+
+function getLevel2BossPatrolDuration() {
+  return enemyDifficultySettings[selectedDifficulty]?.boss2PatrolDuration ?? level2BossMoveDuration;
+}
+
+function getWaveEliminatedFraction() {
+  return startingEnemyCount > 0 ? 1 - enemies.length / startingEnemyCount : 0;
+}
+
+function getOrdinaryWaveShotTiming() {
+  const tuning = enemyDifficultySettings[selectedDifficulty];
+  if (!tuning) return { minimum: enemyShotIntervalMin, jitter: enemyShotIntervalRange };
+
+  const fraction = getWaveEliminatedFraction();
+  const [fullMinimum, depletedMinimum] = tuning.waveShotMinimum;
+  const [fullJitter, depletedJitter] = tuning.waveShotJitter;
+  return {
+    minimum: fullMinimum + (depletedMinimum - fullMinimum) * fraction,
+    jitter: fullJitter + (depletedJitter - fullJitter) * fraction,
+  };
+}
+
+function scheduleEnemyRepeat(shooter, fire, shotsRemaining = 1, shotInterval = 0) {
+  if (selectedDifficulty !== "ridiculous") return;
+
+  pendingEnemyRepeats.push({
+    shooter,
+    encounterBoss: boss,
+    fire,
+    shotsRemaining,
+    shotInterval,
+    nextShotTime: combatElapsed + enemyRepeatGap,
+  });
+}
+
+function updateEnemyRepeats() {
+  if (pendingEnemyRepeats.length === 0) return false;
+  let firedRepeat = false;
+
+  // Recheck the original shooter after player-shot collisions and before firing.
+  pendingEnemyRepeats = pendingEnemyRepeats.filter((repeat) => {
+    const { shooter, encounterBoss } = repeat;
+    if (encounterBoss !== boss) return false;
+    if (shooter !== boss && (!enemies.includes(shooter)
+      || (shooter.isVarnokAlien && !isSettledVarnokAlien(shooter)))) return false;
+    if (combatElapsed + 1e-9 < repeat.nextShotTime) return true;
+
+    repeat.fire();
+    firedRepeat = true;
+    repeat.shotsRemaining -= 1;
+    repeat.nextShotTime += repeat.shotInterval;
+    return repeat.shotsRemaining > 0;
+  });
+  return firedRepeat;
+}
+
 function fireBossWideShot() {
   enemyShots.push({
     x: boss.x,
@@ -941,6 +1385,7 @@ function fireBossWideShot() {
     isBossShot: true,
     artwork: sporeBombArtwork,
   });
+  playSoundEffect("enemyShot");
 }
 
 function fireBossSpread() {
@@ -981,6 +1426,7 @@ function fireBossSpread() {
       artwork: sporeShotArtwork,
     },
   );
+  playSoundEffect("enemyShot");
 }
 
 function updateBoss(deltaSeconds, frameTime) {
@@ -995,31 +1441,32 @@ function updateBoss(deltaSeconds, frameTime) {
     updateVarnokAlienFormation(deltaSeconds, frameTime);
     return;
   }
-  if (boss.level === 2) {
-    updateLevel2Boss(deltaSeconds, frameTime);
-    return;
-  }
-
   const halfWidth = boss.width / 2;
   const minX = halfWidth;
   const maxX = canvas.width - halfWidth;
-  const nextX = boss.x + boss.direction * boss.speed * deltaSeconds;
+  const tuning = enemyDifficultySettings[selectedDifficulty];
+  const attackInterval = tuning?.boss1AttackInterval ?? bossAttackInterval;
+  const chargeDuration = tuning?.boss1SpreadChargeDuration ?? bossChargeDuration;
+  const nextX = boss.x + boss.direction * boss.speed * deltaSeconds
+    * getEnemyMovementMultiplier() * (tuning?.boss1SpeedScale ?? 1);
   if (nextX < minX || nextX > maxX) boss.direction *= -1;
   boss.x = Math.max(minX, Math.min(maxX, nextX));
 
   if (bossChargeElapsed !== null) {
-    bossChargeElapsed = Math.min(bossChargeElapsed + deltaSeconds, bossChargeDuration);
-    if (bossChargeElapsed >= bossChargeDuration) {
+    bossChargeElapsed = Math.min(bossChargeElapsed + deltaSeconds, chargeDuration);
+    if (bossChargeElapsed >= chargeDuration) {
       fireBossSpread();
+      scheduleEnemyRepeat(boss, fireBossSpread);
       bossChargeElapsed = null;
-      nextBossAttackTime = frameTime + bossAttackInterval;
+      nextBossAttackTime = frameTime + attackInterval;
     }
   } else if (nextBossAttackTime === null) {
-    nextBossAttackTime = frameTime + bossAttackInterval;
+    nextBossAttackTime = frameTime + attackInterval;
   } else if (frameTime >= nextBossAttackTime) {
     if (Math.random() < bossWideShotChance) {
       fireBossWideShot();
-      nextBossAttackTime = frameTime + bossAttackInterval;
+      scheduleEnemyRepeat(boss, fireBossWideShot);
+      nextBossAttackTime = frameTime + attackInterval;
     } else {
       bossChargeElapsed = 0;
       nextBossAttackTime = null;
@@ -1110,7 +1557,7 @@ function updateRandomizedBossMovement(deltaSeconds, targetBoss, speedMultiplier)
   if (targetBoss.movement === null || deltaSeconds <= 0) return;
   const movement = targetBoss.movement;
   movement.elapsed = Math.min(
-    movement.elapsed + deltaSeconds * speedMultiplier,
+    movement.elapsed + deltaSeconds * speedMultiplier * getEnemyMovementMultiplier(),
     movement.duration,
   );
   const progress = movement.elapsed / movement.duration;
@@ -1167,6 +1614,7 @@ function updateVarnokAlienFormation(deltaSeconds, frameTime) {
   const formation = varnokAlienFormation;
   if (boss?.level !== 4 || formation === null) return;
 
+  const movementDelta = deltaSeconds * getEnemyMovementMultiplier();
   formation.elapsed += deltaSeconds;
   if (formation.nextBatchTime !== null && formation.elapsed >= formation.nextBatchTime) {
     reserveVarnokAlienBatch(formation);
@@ -1189,6 +1637,8 @@ function updateVarnokAlienFormation(deltaSeconds, frameTime) {
     const visualRandom = crypto.getRandomValues(new Uint32Array(1))[0] / 0x100000000;
     hatchlingVisualChoices.set(alien, hatchlingArtwork[Math.floor(visualRandom * hatchlingArtwork.length)]);
     hatchlingLaunchVisualTimes.set(alien, formation.elapsed);
+    const batch = hatchlingReturnBatches.get(formation);
+    if (batch) hatchlingReturnVisuals.set(alien, { batch, index: alien.formationSlot - batch.firstSlot });
     varnokHatchLastRelease = formation.elapsed;
     formation.aliens.push(alien);
     enemies.push(alien);
@@ -1198,7 +1648,7 @@ function updateVarnokAlienFormation(deltaSeconds, frameTime) {
 
   for (const alien of formation.aliens) {
     if (alien.varnokState === "launching") {
-      alien.y -= varnokAlienLaunchSpeed * deltaSeconds;
+      alien.y -= varnokAlienLaunchSpeed * movementDelta;
       if (alien.y + alien.height / 2 < 0) {
         alien.varnokState = "waitingToReturn";
         alien.returnWait = varnokAlienReturnDelay;
@@ -1209,13 +1659,16 @@ function updateVarnokAlienFormation(deltaSeconds, frameTime) {
         alien.x = alien.launchX;
         alien.y = -alien.height / 2;
         alien.varnokState = "returning";
+        const arrival = hatchlingReturnVisuals.get(alien);
+        const slot = formation.slots[alien.formationSlot];
+        if (arrival) arrival.startDistance = Math.hypot(slot.x - alien.x, slot.y - alien.y);
       }
     } else if (alien.varnokState === "returning") {
       const slot = formation.slots[alien.formationSlot];
       const dx = slot.x - alien.x;
       const dy = slot.y - alien.y;
       const distance = Math.hypot(dx, dy);
-      const step = varnokAlienReturnSpeed * deltaSeconds;
+      const step = varnokAlienReturnSpeed * movementDelta;
       if (distance <= step || distance === 0) {
         alien.x = slot.x;
         alien.y = slot.y;
@@ -1236,6 +1689,7 @@ function updateVarnokAlienFormation(deltaSeconds, frameTime) {
   if (formation.initialBatchSettled && formation.aliens.length > 0) {
     updateVarnokFormation(formation, deltaSeconds);
     updateLevel2Bomber(deltaSeconds, frameTime);
+    if (gameState !== "playing") return;
   }
   updateAlienAngles(formation.aliens, deltaSeconds, formation);
   updateVarnokHatch(formation, deltaSeconds);
@@ -1278,6 +1732,12 @@ function reserveVarnokAlienBatch(formation) {
   formation.nextLaunchTime = formation.elapsed;
   formation.nextBatchTime = null;
   formation.previousShape = shape;
+  const roll = crypto.getRandomValues(new Uint32Array(1))[0] / 0x100000000;
+  hatchlingReturnBatches.set(formation, {
+    pattern: hatchlingReturnPatterns[Math.floor(roll * hatchlingReturnPatterns.length)],
+    firstSlot: occupiedSlots.length,
+    size,
+  });
   if (occupiedSlots.length === 0) formation.descentAnimation = null;
 }
 
@@ -1289,6 +1749,7 @@ function updateVarnokFormation(formation, deltaSeconds) {
   const aliens = formation.aliens.filter(isSettledVarnokAlien);
   if (deltaSeconds <= 0 || aliens.length === 0) return;
 
+  const movementDelta = deltaSeconds * getEnemyMovementMultiplier();
   // Keep both active aliens and all incoming reservations inside the canvas.
   const occupiedSlots = formation.aliens.map((alien) => formation.slots[alien.formationSlot])
     .concat(formation.slots.slice(formation.nextLaunchSlot));
@@ -1297,7 +1758,7 @@ function updateVarnokFormation(formation, deltaSeconds) {
   if (animation !== null) {
     const previousElapsed = animation.elapsed;
     animation.elapsed = Math.min(
-      animation.elapsed + deltaSeconds,
+      animation.elapsed + movementDelta,
       level3FormationDescentDuration,
     );
     descentThisFrame = animation.distance
@@ -1308,7 +1769,7 @@ function updateVarnokFormation(formation, deltaSeconds) {
   const halfSize = enemySize / 2;
   const leftEdge = Math.min(...occupiedSlots.map((slot) => slot.x - halfSize));
   const rightEdge = Math.max(...occupiedSlots.map((slot) => slot.x + halfSize));
-  let sidewaysStep = formation.formationDirection * enemySpeed * deltaSeconds;
+  let sidewaysStep = formation.formationDirection * enemySpeed * movementDelta;
   if (formation.formationDirection > 0 && rightEdge + sidewaysStep >= canvas.width) {
     sidewaysStep = canvas.width - rightEdge;
     formation.formationDirection = -1;
@@ -1491,9 +1952,16 @@ function updateLevel3BossArmor(deltaSeconds) {
     if (boss.attackType === "aimedBurst") fireLevel3BossAimedShot();
     else fireLevel3BossVolley();
     boss.nextAttackShotIndex += 1;
-    if (boss.attackType === "aimedBurst"
-      && boss.nextAttackShotIndex >= level3BossAimedShotCount) {
-      boss.targetMarker = null;
+    if (boss.nextAttackShotIndex === attackShotCount) {
+      if (boss.attackType === "aimedBurst") {
+        const lockedTarget = boss.targetMarker;
+        if (lockedTarget !== null) {
+          scheduleEnemyRepeat(boss, () => fireLevel3BossAimedShot(lockedTarget), attackShotCount, attackShotInterval);
+        }
+        boss.targetMarker = null;
+      } else {
+        scheduleEnemyRepeat(boss, fireLevel3BossVolley, attackShotCount, attackShotInterval);
+      }
     }
   }
   const phaseProgress = Math.min(
@@ -1529,14 +1997,15 @@ function fireLevel3BossVolley() {
       artwork: crownMawVolleyArtwork,
     },
   );
+  playSoundEffect("enemyShot");
 }
 
-function fireLevel3BossAimedShot() {
-  if (boss.targetMarker === null) return;
+function fireLevel3BossAimedShot(target = boss.targetMarker) {
+  if (target === null) return;
   const shotX = boss.x;
   const shotY = boss.y + boss.height / 2 - 4;
-  const dx = boss.targetMarker.x - shotX;
-  const dy = boss.targetMarker.y - shotY;
+  const dx = target.x - shotX;
+  const dy = target.y - shotY;
   const distance = Math.hypot(dx, dy) || 1;
   enemyShots.push({
     x: shotX,
@@ -1548,6 +2017,7 @@ function fireLevel3BossAimedShot() {
     isBossShot: true,
     artwork: crownMawAimedArtwork,
   });
+  playSoundEffect("enemyShot");
 }
 
 function getLevel3BossCoreBounds(targetBoss) {
@@ -1773,30 +2243,57 @@ function segmentIntersectsRectangle(x1, y1, x2, y2, left, right, top, bottom) {
   return true;
 }
 
-function updateLevel2Boss(deltaSeconds, frameTime) {
-  const bossState = boss;
+function updateLevel2BossEncounter(deltaSeconds, frameTime) {
+  for (const targetBoss of level2Bosses) {
+    const canStartAttack = level2AttackOwner === null && targetBoss === nextLevel2Attacker;
+    updateLevel2Boss(targetBoss, deltaSeconds, frameTime, canStartAttack);
+    if (gameState !== "playing") return;
+
+    if (canStartAttack && targetBoss.attackPhase === "prepare") {
+      level2AttackOwner = targetBoss;
+      nextLevel2Attacker = level2Bosses.find((candidate) => candidate !== targetBoss) ?? targetBoss;
+    } else if (level2AttackOwner === targetBoss && targetBoss.attackPhase === "move") {
+      level2AttackOwner = null;
+    }
+  }
+}
+
+function updateLevel2Boss(bossState, deltaSeconds, frameTime, canStartAttack) {
   bossState.attackPhaseElapsed += deltaSeconds;
+  const movementMultiplier = getLevel2BossMovementMultiplier();
 
   if (bossState.attackPhase === "move") {
     const halfWidth = bossState.width / 2;
-    const nextX = bossState.x + bossState.direction * bossState.speed * deltaSeconds;
-    if (nextX < halfWidth || nextX > canvas.width - halfWidth) {
+    const minX = bossState.patrolBounds?.minX ?? halfWidth;
+    const maxX = bossState.patrolBounds?.maxX ?? canvas.width - halfWidth;
+    const step = bossState.speed * deltaSeconds * movementMultiplier;
+    const laneX = Math.max(minX, Math.min(maxX, bossState.x));
+    if (laneX !== bossState.x) {
+      // Keep the original retreat endpoint and move back into the lane before attacking.
+      bossState.direction = Math.sign(laneX - bossState.x);
+      bossState.x += bossState.direction * Math.min(step, Math.abs(laneX - bossState.x));
+      return;
+    }
+    const nextX = bossState.x + bossState.direction * step;
+    if (nextX < minX || nextX > maxX) {
       bossState.direction *= -1;
     }
-    bossState.x = Math.max(halfWidth, Math.min(canvas.width - halfWidth, nextX));
-    if (bossState.attackPhaseElapsed >= level2BossMoveDuration) {
+    bossState.x = Math.max(minX, Math.min(maxX, nextX));
+    if (canStartAttack && bossState.attackPhaseElapsed >= getLevel2BossPatrolDuration()) {
       prepareLevel2BossCharge(bossState);
     }
     return;
   }
 
+  const movementElapsed = bossState.attackPhaseElapsed * movementMultiplier;
   if (bossState.attackPhase === "prepare") {
     const path = bossState.chargePath;
-    const progress = Math.min(bossState.attackPhaseElapsed / level2BossPrepareDuration, 1);
+    const progress = Math.min(movementElapsed / level2BossPrepareDuration, 1);
     const easedProgress = progress * progress * (3 - 2 * progress);
     bossState.x = path.startX + (path.launchX - path.startX) * easedProgress;
     bossState.y = path.startY + (path.launchY - path.startY) * easedProgress;
-    if (progress === 1) {
+    // Movement can finish before the warning window closes.
+    if (bossState.attackPhaseElapsed >= level2BossPrepareDuration) {
       bossState.attackPhase = "charge";
       bossState.attackPhaseElapsed = 0;
     }
@@ -1807,7 +2304,7 @@ function updateLevel2Boss(deltaSeconds, frameTime) {
     const path = bossState.chargePath;
     const previousX = bossState.x;
     const previousY = bossState.y;
-    const progress = Math.min(bossState.attackPhaseElapsed / path.duration, 1);
+    const progress = Math.min(movementElapsed / path.duration, 1);
     const easedProgress = progress * progress * (3 - 2 * progress);
     bossState.x = path.launchX + (path.endX - path.launchX) * easedProgress;
     bossState.y = path.launchY + (path.endY - path.launchY) * easedProgress;
@@ -1827,7 +2324,7 @@ function updateLevel2Boss(deltaSeconds, frameTime) {
     if (touchingPlayer && !bossState.ramHitApplied && damagePlayer(frameTime)) {
       clearLevel2Shield();
       bossState.ramHitApplied = true;
-      if (boss === null) return;
+      if (gameState !== "playing") return;
     }
 
     if (progress === 1) {
@@ -1841,7 +2338,7 @@ function updateLevel2Boss(deltaSeconds, frameTime) {
 
   if (bossState.attackPhase === "retreat") {
     const path = bossState.chargePath;
-    const progress = Math.min(bossState.attackPhaseElapsed / level2BossRetreatDuration, 1);
+    const progress = Math.min(movementElapsed / level2BossRetreatDuration, 1);
     const easedProgress = progress * progress * (3 - 2 * progress);
     bossState.x = bossState.retreatStartX
       + (path.retreatX - bossState.retreatStartX) * easedProgress;
@@ -1865,23 +2362,27 @@ function createBarriers() {
   }));
 }
 
-function damageBarrierWithShot(shot) {
-  const barrierIndex = barriers.findIndex((barrier) =>
+function damageBarrierWithShot(shot, targetBarriers = barriers) {
+  const barrierIndex = targetBarriers.findIndex((barrier) =>
     getShotContactTime(shot, getCenteredBounds(barrier)) < Infinity);
 
   if (barrierIndex === -1) return false;
 
-  barriers[barrierIndex].hitPoints -= 1;
-  if (barriers[barrierIndex].hitPoints === 0) {
-    barriers.splice(barrierIndex, 1);
+  targetBarriers[barrierIndex].hitPoints -= 1;
+  if (targetBarriers[barrierIndex].hitPoints === 0) {
+    targetBarriers.splice(barrierIndex, 1);
   }
   return true;
 }
 
 function finishGame(result) {
+  if (result === "loss" && gameState !== "loss") playSoundEffect("gameOver");
+  destructionFragments.length = 0;
+  playerDeathStartedAt = null;
+  clearLevel2BossEncounter();
+  pendingEnemyRepeats.length = 0;
   gameState = result;
-  waveEntranceElapsed = null;
-  waveEntrancePositions = null;
+  clearWaveEntrance();
   resetLevel3Descent();
   clearDiveBomberState();
   clearVarnokAlienFormation();
@@ -1909,17 +2410,18 @@ function finishGame(result) {
 }
 
 function damagePlayer(frameTime) {
-  if (frameTime < playerInvulnerableUntil) return false;
+  if (gameState !== "playing" || frameTime < playerInvulnerableUntil) return false;
   return losePlayerLife(frameTime);
 }
 
 function damagePlayerFromProjectile(frameTime) {
-  if (frameTime < playerShieldProtectedUntil) return false;
+  if (gameState !== "playing" || frameTime < playerShieldProtectedUntil) return false;
   if ((currentLevel === 2 || currentLevel === 3) && level2ShieldCharges > 0) {
     level2ShieldCharges -= 1;
     if (level2ShieldCharges === 0) level2ShieldTimeRemaining = 0;
     playerShieldProtectedUntil = frameTime + 1000;
     playerInvulnerableUntil = Math.max(playerInvulnerableUntil, playerShieldProtectedUntil);
+    playSoundEffect("shieldAbsorb");
     return false;
   }
 
@@ -1927,20 +2429,42 @@ function damagePlayerFromProjectile(frameTime) {
 }
 
 function losePlayerLife(frameTime) {
+  const { x, y } = player;
+  const palette = playerLifeBurstPalettes[selectedShipId];
+  pendingEnemyRepeats.length = 0;
   level2ActiveWeapon = null;
   lives = Math.max(0, lives - 1);
   livesDisplay.textContent = lives;
   playerInvulnerableUntil = frameTime + 1000;
-  if (lives === 0) finishGame("loss");
+  if (lives === 0) {
+    gameState = "playerDeath";
+    playerDeathStartedAt = frameTime;
+    keysDown.clear();
+    destructionFragments.length = 0;
+    spawnDestructionBurst(x, y, palette, playerDeathBurstFragmentCount, {
+      minDuration: 0.48,
+      durationRange: 0.22,
+      speedScale: 1.4,
+      sizeScale: 1.55,
+      startedAt: frameTime / 1000,
+    });
+  } else {
+    playSoundEffect("lifeLost");
+    spawnDestructionBurst(x, y, palette, playerLifeBurstFragmentCount, { durationRange: 0.10 });
+  }
   return true;
 }
 
 function restartGame() {
+  clearLevel2BossEncounter();
+  pendingEnemyRepeats.length = 0;
+  combatElapsed = 0;
+  playerDeathStartedAt = null;
   if (developerForcedSupplyReward !== null) setDeveloperSupplyReward(null);
-  tracedBoss = null;
   playerBank = 0;
   developerBossTestLevel = null;
-  creditsY = null;
+  summaryFadeElapsed = null;
+  creditsRun = null;
   score = 0;
   lives = 3;
   currentLevel = 1;
@@ -1957,6 +2481,7 @@ function restartGame() {
   currentWave = 1;
   scoreDisplay.textContent = score;
   livesDisplay.textContent = lives;
+  difficultyDisplay.textContent = selectedDifficulty;
 
   player.x = canvas.width / 2;
   player.y = playerSpawnY;
@@ -1974,8 +2499,7 @@ function restartGame() {
   createBarriers();
 
   enemyDirection = 1;
-  waveEntranceElapsed = null;
-  waveEntrancePositions = null;
+  clearWaveEntrance();
   nextShotTime = 0;
   nextEnemyShotTime = null;
   playerInvulnerableUntil = 0;
@@ -1983,11 +2507,19 @@ function restartGame() {
   keysDown.clear();
   gameState = "playing";
   mainMenu.hidden = true;
+  shipSelection.hidden = true;
+  varnokDialogue.hidden = true;
   gameStatus.hidden = false;
   restartButton.hidden = true;
   level2Button.hidden = true;
   level3Button.hidden = true;
   previousFrameTime = 0;
+}
+
+function notifyMusicTrack(track, crossfade = false, creditsTimeline) {
+  document.dispatchEvent(new CustomEvent("game-music-track", {
+    detail: { track, crossfade, creditsTimeline },
+  }));
 }
 
 function setDeveloperSupplyReward(reward) {
@@ -2042,16 +2574,49 @@ function measureDeveloperCanvas() {
   requestAnimationFrame(sample);
 }
 
+function updateDeveloperBossAnimationReadout(boss1DrawPath, boss2DrawPaths) {
+  const layerStatus = (artwork) => artwork.ready ? "Loaded" : artwork.failed ? "Failed" : "Loading";
+  const lines = developerBossTestLevel === 1 ? [
+    `Sacs: ${layerStatus(sporeChoirSac)}`,
+    `Membrane: ${layerStatus(sporeChoirMembrane)}`,
+    `Face: ${layerStatus(sporeChoirFace)}`,
+    "",
+    "Renderer",
+    boss1DrawPath,
+    `Clock: ${combatElapsed.toFixed(1)} s`,
+  ] : [
+    `Armour: ${layerStatus(ironSepulchreArmour)}`,
+    `Vents: ${layerStatus(ironSepulchreVents)}`,
+    `Center: ${layerStatus(ironSepulchreCenter)}`,
+  ];
+  level2Bosses.forEach((targetBoss, index) => {
+    let label = "Renderer";
+    if (targetBoss.patrolBounds !== null) {
+      label = targetBoss.patrolBounds.maxX < canvas.width / 2 ? "Left renderer" : "Right renderer";
+    }
+    lines.push("", label, boss2DrawPaths[index],
+      `Phase: ${targetBoss.attackPhase}`,
+      `Elapsed: ${targetBoss.attackPhaseElapsed.toFixed(1)} s`);
+  });
+  const readout = lines.join("\n");
+  if (developerBossAnimationReadout.textContent !== readout) {
+    developerBossAnimationReadout.textContent = readout;
+  }
+}
+
 function startDeveloperTestLevel(level) {
   if (!DEVELOPER_MODE) return;
+  selectedShipId = defaultShipId;
   restartGame();
   if (level === 2) startLevel2();
   else if (level === 3) startLevel3();
+  notifyMusicTrack(currentLevel);
 }
 
 function startDeveloperTestBoss(level) {
   if (!DEVELOPER_MODE || level < 1 || level > 4) return;
 
+  selectedShipId = defaultShipId;
   restartGame();
   if (level === 2) startLevel2();
   else if (level === 3 || level === 4) startLevel3();
@@ -2067,8 +2632,7 @@ function startDeveloperTestBoss(level) {
   level2ActiveWeapon = null;
   level2PickupMessageTimeRemaining = 0;
   nextEnemyShotTime = null;
-  waveEntranceElapsed = null;
-  waveEntrancePositions = null;
+  clearWaveEntrance();
   currentWave = level === 1 ? level1WaveCount
     : level === 2 ? level2WaveCount : level3WaveCount;
 
@@ -2083,11 +2647,38 @@ function startDeveloperTestBoss(level) {
     startVarnokBossFight();
   }
   developerBossTestLevel = level;
+  if (level === 1 || level === 2) developerExaggerateAnimation.checked = false;
   previousFrameTime = 0;
+  notifyMusicTrack(currentLevel);
 }
 
-document.getElementById("start-game").addEventListener("click", () => {
+function resetStartSelection() {
+  shipSelection.reset();
+  selectedDifficulty = defaultDifficulty;
+}
+
+startGameButton.addEventListener("click", () => {
+  resetStartSelection();
+  menuOptions.hidden = true;
+  shipSelection.hidden = false;
+  shipSelection.querySelector('input[name="ship"]:checked').focus();
+});
+shipSelectionBackButton.addEventListener("click", () => {
+  resetStartSelection();
+  shipSelection.hidden = true;
+  menuOptions.hidden = false;
+  startGameButton.focus();
+});
+shipSelection.addEventListener("change", (event) => {
+  if (event.target.name === "difficulty") selectedDifficulty = event.target.value;
+});
+shipSelection.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (gameState !== "menu") return;
+  selectedShipId = shipSelection.elements.namedItem("ship").value;
+  selectedDifficulty = shipSelection.elements.namedItem("difficulty").value;
   restartGame();
+  notifyMusicTrack(currentLevel);
   canvas.focus({ preventScroll: true });
 });
 howToPlayButton.addEventListener("click", () => {
@@ -2103,12 +2694,52 @@ menuBackButton.addEventListener("click", () => {
 musicToggle.addEventListener("click", (event) => {
   if (gameState === "playing" && event.detail > 0) canvas.focus({ preventScroll: true });
 });
-restartButton.addEventListener("click", restartGame);
+
+function updateSoundEffectsToggle() {
+  soundEffectsToggle.textContent = soundEffectsEnabled ? "Sound effects: On" : "Sound effects: Off";
+  soundEffectsToggle.setAttribute("aria-pressed", String(soundEffectsEnabled));
+}
+
+function playSoundEffect(name) {
+  if (soundEffectsEnabled) gameSoundEffects.play(name);
+}
+
+function unlockSoundEffects(event) {
+  if (soundEffectsEnabled && event.isTrusted && !event.repeat) gameSoundEffects.unlock();
+}
+
+try {
+  soundEffectsEnabled = window.localStorage.getItem(soundEffectsStorageKey) === "on";
+} catch {
+  // Keep the default when storage is unavailable.
+}
+updateSoundEffectsToggle();
+document.addEventListener("click", unlockSoundEffects, true);
+document.addEventListener("keydown", unlockSoundEffects, true);
+soundEffectsToggle.addEventListener("click", (event) => {
+  soundEffectsEnabled = !soundEffectsEnabled;
+  updateSoundEffectsToggle();
+  if (soundEffectsEnabled) unlockSoundEffects(event);
+  else gameSoundEffects.silence();
+  try {
+    window.localStorage.setItem(soundEffectsStorageKey, soundEffectsEnabled ? "on" : "off");
+  } catch {
+    // Keep the new value for the current page.
+  }
+});
+
+restartButton.addEventListener("click", () => {
+  restartGame();
+  notifyMusicTrack(currentLevel);
+});
 if (DEVELOPER_MODE) {
   gameMain.classList.add("developer-mode");
   developerTestingPanel.hidden = false;
   developerMeasureCanvasButton.addEventListener("click", measureDeveloperCanvas);
   developerBankEffect.addEventListener("click", (event) => {
+    if (gameState === "playing" && event.detail > 0) canvas.focus({ preventScroll: true });
+  });
+  developerExaggerateAnimation.addEventListener("click", (event) => {
     if (gameState === "playing" && event.detail > 0) canvas.focus({ preventScroll: true });
   });
   developerLevelButtons.forEach((button) => {
@@ -2121,6 +2752,7 @@ if (DEVELOPER_MODE) {
       startDeveloperTestBoss(Number(button.dataset.developerBoss));
     });
   });
+  developerCreditsButton.addEventListener("click", () => startCredits());
   developerRewardButtons.forEach((button) => {
     button.addEventListener("click", () => {
       setDeveloperSupplyReward(button.dataset.developerReward);
@@ -2128,27 +2760,51 @@ if (DEVELOPER_MODE) {
   });
 }
 level2Button.addEventListener("click", () => {
-  if (gameState === "level1Cleared") startLevel2();
+  if (gameState !== "level1Cleared") return;
+  startLevel2();
+  notifyMusicTrack(currentLevel, true);
 });
 level3Button.addEventListener("click", () => {
-  if (gameState === "level2Cleared") startLevel3();
+  if (gameState !== "level2Cleared") return;
+  startLevel3();
+  notifyMusicTrack(currentLevel, true);
+});
+
+document.getElementById("varnok-dialogue-name").textContent = bossDisplayNames.varnok;
+varnokFightButton.addEventListener("click", () => {
+  if (gameState !== "varnokDialogue") return;
+  varnokDialogue.hidden = true;
+  keysDown.clear();
+  gameState = "playing";
+  previousFrameTime = 0;
+  canvas.focus({ preventScroll: true });
 });
 
 window.addEventListener("keydown", (event) => {
-  if (gameState === "menu" || gameState === "victory") return;
+  if (gameState === "menu" || gameState === "playerDeath") return;
+  if (boss?.level === 4 && (gameState === "bossIntro" || gameState === "varnokDialogue")) {
+    if (event.target === varnokFightButton && event.repeat
+      && (event.code === "Space" || event.key === "Enter")) event.preventDefault();
+    return;
+  }
+  // A key held through the reveal needs a fresh press to control the player.
+  const ignoreHeldInput = boss?.level === 4 && developerBossTestLevel !== 4 && event.repeat;
   const key = event.key.toLowerCase();
   if (key === "k" && !event.repeat && DEVELOPER_MODE
     && developerBossTestLevel === 4 && gameState === "playing" && boss?.level === 4) {
     event.preventDefault();
     applyBossDamage(boss.health);
   } else if (event.code === "Space") {
-    if (event.target === developerBankEffect) return;
-    if (event.target === musicToggle || (gameState === "loss" && event.target === restartButton)) return;
+    if (event.target === developerBankEffect || event.target === developerExaggerateAnimation
+      || event.target === developerCreditsButton
+      || event.target === continueToCreditsButton) return;
+    if (event.target === musicToggle || event.target === soundEffectsToggle
+      || (gameState === "loss" && event.target === restartButton)) return;
     event.preventDefault();
-    if (gameState !== "credits") keysDown.add("space");
+    if (gameState !== "credits" && !ignoreHeldInput) keysDown.add("space");
   } else if (["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "d", "w", "s"].includes(key)) {
     event.preventDefault();
-    if (gameState !== "credits") keysDown.add(key);
+    if (gameState !== "credits" && !ignoreHeldInput) keysDown.add(key);
   }
 });
 
@@ -2185,28 +2841,6 @@ function updatePlayer(deltaSeconds) {
   playerBank += (targetBank - playerBank) * (1 - Math.exp(-playerBankEaseSpeed * deltaSeconds));
 }
 
-function traceDeveloperShot(shot, direction) {
-  if (!DEVELOPER_MODE || boss === null) return;
-  if (tracedBoss !== boss) {
-    tracedBoss = boss;
-    developerShotNumber = 0;
-    developerShotLog.length = 0;
-  }
-
-  const lane = direction < 0 ? "Left" : direction > 0 ? "Right" : "Center";
-  shot.developerTrace = { label: `#${++developerShotNumber} ${lane}` };
-  developerShotLog.push(shot.developerTrace);
-  if (developerShotLog.length > 8) developerShotLog.shift();
-  setDeveloperShotOutcome(shot, "In flight");
-}
-
-function setDeveloperShotOutcome(shot, outcome) {
-  if (!shot.developerTrace) return;
-  shot.developerTrace.outcome = outcome;
-  const rows = developerShotLog.map((entry) => `${entry.label} · ${entry.outcome}`);
-  bossShotReadout.textContent = [`Boss ${tracedBoss.level} shots`, ...rows].join("\n");
-}
-
 function updateShots(deltaSeconds, frameTime) {
   if (keysDown.has("space") && frameTime >= nextShotTime) {
     const weapon = playerWeapons[level2ActiveWeapon?.type];
@@ -2215,7 +2849,7 @@ function updateShots(deltaSeconds, frameTime) {
     for (const [offsetX, angle] of pattern) {
       const shot = {
         x: player.x + offsetX,
-        y: player.y - player.height / 2 - 5,
+        y: player.y - player.height / 2 - playerShotMuzzleOffset,
         width: 5,
         height: 14,
         vx: shotSpeed * Math.sin(angle),
@@ -2224,10 +2858,10 @@ function updateShots(deltaSeconds, frameTime) {
         color: weapon?.color ?? "#ffe08a",
         damagedBosses,
       };
-      traceDeveloperShot(shot, angle || offsetX);
       shots.push(shot);
     }
     nextShotTime = frameTime + (weapon?.interval ?? shotInterval) * 1000;
+    playSoundEffect(level2ActiveWeapon?.type === "machinegun" ? "machinegun" : "playerShot");
   }
 
   for (const shot of shots) {
@@ -2242,7 +2876,6 @@ function updateShots(deltaSeconds, frameTime) {
   for (let index = shots.length - 1; index >= 0; index -= 1) {
     const shot = shots[index];
     if (!shot.vx && shot.y + shot.height < 0) {
-      setDeveloperShotOutcome(shot, "Missed");
       shots.splice(index, 1);
     }
   }
@@ -2287,12 +2920,13 @@ function updateEnemies(deltaSeconds, frameTime) {
     return true;
   }
 
+  const movementMultiplier = getEnemyMovementMultiplier();
   let level3DescentThisFrame = 0;
   if (currentLevel === 3 && level3DescentAnimation !== null) {
     const animation = level3DescentAnimation;
     const previousOffset = level3FormationDescentOffset;
     animation.elapsed = Math.min(
-      animation.elapsed + deltaSeconds,
+      animation.elapsed + deltaSeconds * movementMultiplier,
       level3FormationDescentDuration,
     );
     const progress = animation.elapsed / level3FormationDescentDuration;
@@ -2305,9 +2939,9 @@ function updateEnemies(deltaSeconds, frameTime) {
   const hasDiveBombers = currentLevel === 2 || currentLevel === 3;
   if (hasDiveBombers) {
     updateLevel2Bomber(deltaSeconds, frameTime);
-    if (waveEntranceElapsed !== null) return false;
+    if (waveEntrance !== null || boss !== null) return false;
   }
-  if (currentLevel === 3 && gameState !== "playing") return true;
+  if (gameState !== "playing") return true;
   const formationEnemies = hasDiveBombers
     ? enemies.filter((enemy) => enemy.bomberState === undefined || enemy.bomberState === "formation")
     : enemies;
@@ -2315,26 +2949,27 @@ function updateEnemies(deltaSeconds, frameTime) {
     finishGame("loss");
     return true;
   }
-  const destroyedFraction = startingEnemyCount > 0
-    ? 1 - enemies.length / startingEnemyCount
-    : 0;
+  const destroyedFraction = getWaveEliminatedFraction();
   const waveSpeedMultiplier = currentWave === 2
     && (currentLevel === 1 || currentLevel === 2 || currentLevel === 3)
     ? wave2SpeedMultiplier
     : 1;
   const destructionSpeedBonus = (maxEnemySpeedMultiplier - 1)
     * (currentLevel === 3 ? level3DestructionBonusMultiplier : 1);
+  const tuning = enemyDifficultySettings[selectedDifficulty];
+  const difficultyRamp = 1 + destroyedFraction * (tuning?.waveKillSpeedBonus ?? 0);
+  const levelSpeedScale = currentLevel === 2 ? (tuning?.level2WaveSpeedScale ?? 1) : 1;
   const formationSpeed = enemySpeed * waveSpeedMultiplier
-    * (1 + destroyedFraction * destructionSpeedBonus);
-  // Keep Level 2's full slot grid inside the screen, including vacant return slots.
-  const nextLeftEdge = currentLevel === 2
-    ? 215 + level2FormationOffsetX + enemyDirection * formationSpeed * deltaSeconds
+    * (1 + destroyedFraction * destructionSpeedBonus) * movementMultiplier * difficultyRamp * levelSpeedScale;
+  // Keep vacant diver return slots within the playfield as well as occupied slots.
+  const nextLeftEdge = hasDiveBombers
+    ? regularFormation.left + level2FormationOffsetX + enemyDirection * formationSpeed * deltaSeconds
     : formationEnemies.length
       ? Math.min(...formationEnemies.map((enemy) => enemy.x - enemy.width / 2))
         + enemyDirection * formationSpeed * deltaSeconds
       : 0;
-  const nextRightEdge = currentLevel === 2
-    ? 570 + level2FormationOffsetX + enemyDirection * formationSpeed * deltaSeconds
+  const nextRightEdge = hasDiveBombers
+    ? regularFormation.right + level2FormationOffsetX + enemyDirection * formationSpeed * deltaSeconds
     : formationEnemies.length
       ? Math.max(...formationEnemies.map((enemy) => enemy.x + enemy.width / 2))
         + enemyDirection * formationSpeed * deltaSeconds
@@ -2349,8 +2984,9 @@ function updateEnemies(deltaSeconds, frameTime) {
     if (currentLevel === 3 && hitRightBoundary && formationEnemies.length > 0) {
       level3RightBoundaryContacts += 1;
       if (level3DescentAnimation === null) {
-        const maximumDescent = canvas.height
-          - (90 + (level3FormationRows - 1) * level3FormationDescentStep + enemySize / 2);
+        // Leave room to shoot from the player's lowest position without touching the formation.
+        const lowestMuzzleY = playerMaxY - player.height / 2 - playerShotMuzzleOffset;
+        const maximumDescent = lowestMuzzleY - regularFormation.bottom;
         const targetOffset = level3FormationDescentOffset + Math.min(
           level3FormationDescentStep,
           Math.max(0, maximumDescent - level3FormationDescentOffset),
@@ -2432,12 +3068,14 @@ function updateAlienAngles(aliens, deltaSeconds, formation = null) {
 
 function updateLevel2Bomber(deltaSeconds, frameTime) {
   const varnokFormation = boss?.level === 4 ? varnokAlienFormation : null;
+  const ordinaryLevel3 = currentLevel === 3 && varnokFormation === null;
   let bomber = level2Bomber;
   if (bomber === null) {
     level2BomberTimer -= deltaSeconds;
     if (level2BomberTimer <= 0) {
       const eligibleEnemies = varnokFormation === null
-        ? enemies.filter((enemy) => enemy.formationSlot !== null && enemy.bomberState === undefined)
+        ? enemies.filter((enemy) => enemy.formationSlot !== null && enemy.bomberState === undefined
+          && (!ordinaryLevel3 || enemy.y < player.y))
         : varnokFormation.aliens.filter((alien) => isSettledVarnokAlien(alien) && alien.y < player.y);
       if (eligibleEnemies.length > 0) {
         bomber = eligibleEnemies[Math.floor(Math.random() * eligibleEnemies.length)];
@@ -2461,9 +3099,10 @@ function updateLevel2Bomber(deltaSeconds, frameTime) {
     level2BomberTimer = level2BomberCooldown;
     return;
   }
+  const movementDelta = deltaSeconds * getEnemyMovementMultiplier();
   if (bomber.bomberState === "dive") {
-    bomber.x += bomber.diveVelocityX * deltaSeconds;
-    bomber.y += bomber.diveVelocityY * deltaSeconds;
+    bomber.x += bomber.diveVelocityX * movementDelta;
+    bomber.y += bomber.diveVelocityY * movementDelta;
     const touchingPlayer = bomber.x + bomber.width / 2 >= player.x - player.width / 2
       && bomber.x - bomber.width / 2 <= player.x + player.width / 2
       && bomber.y + bomber.height / 2 >= player.y - player.height / 2
@@ -2480,7 +3119,10 @@ function updateLevel2Bomber(deltaSeconds, frameTime) {
       return;
     }
     bomber.contactingPlayer = touchingPlayer;
-    if (bomber.y - bomber.height / 2 > canvas.height) {
+    const exitedBottom = bomber.y - bomber.height / 2 > canvas.height;
+    const exitedOtherEdge = ordinaryLevel3 && (bomber.x + bomber.width / 2 < 0
+      || bomber.x - bomber.width / 2 > canvas.width || bomber.y + bomber.height / 2 < 0);
+    if (exitedBottom || exitedOtherEdge) {
       const availableSlots = getDiveBomberReturnSlots(bomber, varnokFormation);
       const selectedSlot = availableSlots[Math.floor(Math.random() * availableSlots.length)];
       bomber.formationSlot = selectedSlot;
@@ -2494,7 +3136,7 @@ function updateLevel2Bomber(deltaSeconds, frameTime) {
     const dx = targetX - bomber.x;
     const dy = targetY - bomber.y;
     const distance = Math.hypot(dx, dy);
-    const step = level2BomberSpeed * deltaSeconds;
+    const step = level2BomberSpeed * movementDelta;
     if (distance <= step || distance === 0) {
       bomber.x = targetX;
       bomber.y = targetY;
@@ -2513,7 +3155,7 @@ function getDiveBomberReturnSlots(bomber, varnokFormation) {
     .filter((enemy) => enemy !== bomber && enemy.formationSlot !== null)
     .map((enemy) => enemy.formationSlot));
   if (varnokFormation === null) {
-    return Array.from({ length: getFormationRowCount() * formationColumns }, (_, slot) => slot)
+    return regularFormation.slots.map((_, slot) => slot)
       .filter((slot) => !occupiedSlots.has(slot));
   }
 
@@ -2534,18 +3176,64 @@ function getDiveBomberReturnPosition(slot, varnokFormation) {
   if (varnokFormation !== null) return varnokFormation.slots[slot];
 
   const level3DescentOffset = currentLevel === 3 ? level3FormationDescentOffset : 0;
+  const position = regularFormation.slots[slot];
   return {
-    x: 230 + (slot % formationColumns) * 65 + level2FormationOffsetX,
-    y: 90 + Math.floor(slot / formationColumns) * 55 + level3DescentOffset,
+    x: position.x + level2FormationOffsetX,
+    y: position.y + level3DescentOffset,
   };
 }
 
 function removeEnemy(enemy) {
   const enemyIndex = enemies.indexOf(enemy);
-  if (enemyIndex !== -1) enemies.splice(enemyIndex, 1);
+  if (enemyIndex !== -1) {
+    enemies.splice(enemyIndex, 1);
+    if (gameState === "playing") playSoundEffect("enemyDestroyed");
+  }
   if (enemy.isVarnokAlien && varnokAlienFormation !== null) {
     const batchIndex = varnokAlienFormation.aliens.indexOf(enemy);
     if (batchIndex !== -1) varnokAlienFormation.aliens.splice(batchIndex, 1);
+  }
+  return enemyIndex !== -1;
+}
+
+function spawnAlienBurst(enemy) {
+  const palette = enemy.isVarnokAlien ? hatchlingBurstPalette : alienBurstPalettes[currentLevel - 1];
+  spawnDestructionBurst(enemy.x, enemy.y, palette, alienBurstFragmentCount);
+}
+
+function spawnDestructionBurst(x, y, palette, fragmentCount, {
+  minDuration = 0.25,
+  durationRange = 0.20,
+  speedScale = 1,
+  sizeScale = 1,
+  startedAt = combatElapsed,
+} = {}) {
+  const rolls = crypto.getRandomValues(new Uint32Array(fragmentCount * 4));
+  const overflow = destructionFragments.length + fragmentCount - destructionFragmentLimit;
+  if (overflow > 0) destructionFragments.splice(0, overflow);
+
+  for (let index = 0; index < fragmentCount; index += 1) {
+    const offset = index * 4;
+    const angle = (index + rolls[offset] / 0x100000000) * 2 * Math.PI / fragmentCount;
+    const speed = (55 + 65 * rolls[offset + 1] / 0x100000000) * speedScale;
+    destructionFragments.push({
+      x,
+      y,
+      vx: speed * Math.cos(angle),
+      vy: speed * Math.sin(angle),
+      angle,
+      size: (1.6 + 1.5 * rolls[offset + 2] / 0x100000000) * sizeScale,
+      duration: minDuration + durationRange * rolls[offset + 3] / 0x100000000,
+      startedAt,
+      color: palette[index % 4 === 0 ? 2 : index % 2],
+    });
+  }
+}
+
+function updateDestructionFragments(visualTime = combatElapsed) {
+  for (let index = destructionFragments.length - 1; index >= 0; index -= 1) {
+    const fragment = destructionFragments[index];
+    if (visualTime - fragment.startedAt >= fragment.duration) destructionFragments.splice(index, 1);
   }
 }
 
@@ -2573,6 +3261,7 @@ function updateLevel2Pickups(deltaSeconds) {
       }
       level2PickupMessageTimeRemaining = level2PickupMessageDuration;
       level2Pickups.splice(index, 1);
+      if (soundEffectsEnabled) gameSoundEffects.playPickup(pickup.type);
     } else if (pickup.y - pickup.height / 2 > canvas.height) {
       level2Pickups.splice(index, 1);
     }
@@ -2629,6 +3318,35 @@ function updateLevel2BonusShip(deltaSeconds) {
   }
 }
 
+function updateSuppliesDuringEntrance(deltaSeconds) {
+  if (level2BonusShip !== null) updateLevel2BonusShip(deltaSeconds);
+  updateLevel2Pickups(deltaSeconds);
+}
+
+function getLevel2BossShotTarget(shot, deltaSeconds) {
+  // Compare both contact times even for straight shots, which usually test only the current position.
+  const contactShot = level2Bosses.length > 1 && shot.previousX === undefined
+    ? { ...shot, previousX: shot.x, previousY: shot.y - (shot.vy ?? -shotSpeed) * deltaSeconds }
+    : shot;
+  let target = null;
+  let earliestContact = Infinity;
+  for (const candidate of level2Bosses) {
+    const bounds = getCenteredBounds({
+      x: candidate.x, y: candidate.y,
+      width: candidate.width * 0.58, height: candidate.height * 0.62,
+    });
+    const contact = getShotContactTime(contactShot, bounds);
+    if (contact === Infinity) continue;
+    // From below, the lower boss wins a tie. Equal heights keep the existing list order.
+    if (target === null || contact < earliestContact
+      || (contact === earliestContact && candidate.y > target.y)) {
+      target = candidate;
+      earliestContact = contact;
+    }
+  }
+  return target;
+}
+
 function handleShotCollisions(deltaSeconds, frameTime) {
   for (let shotIndex = shots.length - 1; shotIndex >= 0; shotIndex -= 1) {
     const shot = shots[shotIndex];
@@ -2636,7 +3354,6 @@ function handleShotCollisions(deltaSeconds, frameTime) {
     let hitEnemyIndex = -1;
 
     if (damageBarrierWithShot(shot)) {
-      setDeveloperShotOutcome(shot, "Hit barrier");
       shots.splice(shotIndex, 1);
       continue;
     }
@@ -2651,17 +3368,18 @@ function handleShotCollisions(deltaSeconds, frameTime) {
     }
 
     if (hitEnemyIndex !== -1) {
+      const clearsWave = enemies.length === 1 && lives > 0 && level2Bosses.length === 0 && boss?.level !== 4;
+      if (clearsWave && resolveFinalHitBeforeClear(deltaSeconds, frameTime)) return;
       if (enemies[hitEnemyIndex] === level2Bomber) {
         level2Bomber = null;
         level2BomberTimer = level2BomberCooldown;
       }
       const destroyedEnemy = enemies[hitEnemyIndex];
-      setDeveloperShotOutcome(shot, destroyedEnemy.isVarnokAlien ? "Hit minion" : "Hit alien");
-      removeEnemy(destroyedEnemy);
+      if (removeEnemy(destroyedEnemy) && gameState === "playing") spawnAlienBurst(destroyedEnemy);
       shots.splice(shotIndex, 1);
       score += 10;
       scoreDisplay.textContent = score;
-      if (enemies.length === 0 && lives > 0 && boss?.level !== 4) {
+      if (clearsWave) {
         if (currentLevel === 1 && currentWave < level1WaveCount) {
           currentWave += 1;
           shots.length = 0;
@@ -2683,11 +3401,11 @@ function handleShotCollisions(deltaSeconds, frameTime) {
       && getShotContactTime(shot, getCenteredBounds(level2BonusShip)) < Infinity) {
       const pickupX = level2BonusShip.x;
       const pickupY = level2BonusShip.y;
-      setDeveloperShotOutcome(shot, "Hit Vesper");
       shots.splice(shotIndex, 1);
       score += 50;
       scoreDisplay.textContent = score;
       level2BonusShip = null;
+      playSoundEffect("enemyDestroyed");
       level2BonusShipTimer = randomLevel2BonusShipDelay();
       const reward = developerForcedSupplyReward
         ?? supplyRewards[Math.floor(Math.random() * supplyRewards.length)];
@@ -2699,6 +3417,20 @@ function handleShotCollisions(deltaSeconds, frameTime) {
         height: 22,
         type: reward,
       });
+      if (gameState === "playing") {
+        const artwork = getActiveSupplyShipArtwork();
+        const palette = artwork.ready ? artwork.burstPalette : supplyShipFallbackBurstPalette;
+        spawnDestructionBurst(pickupX, pickupY, palette, supplyShipBurstFragmentCount);
+      }
+    } else if (level2Bosses.length > 0) {
+      const target = getLevel2BossShotTarget(shot, deltaSeconds);
+      if (target !== null) {
+        shots.splice(shotIndex, 1);
+        if (!shot.damagedBosses?.has(target)) {
+          shot.damagedBosses?.add(target);
+          if (applyBossDamage(1, frameTime, target, deltaSeconds)) return;
+        }
+      }
     } else if (boss !== null) {
       const bossBounds = getCenteredBounds(boss);
       let damagesBoss = false;
@@ -2745,51 +3477,51 @@ function handleShotCollisions(deltaSeconds, frameTime) {
           if (hitsArmour || damagesBoss) shots.splice(shotIndex, 1);
         }
       } else {
-        const hitWidth = boss.level === 2 ? boss.width * 0.58 : boss.width;
-        const hitHeight = boss.level === 2 ? boss.height * 0.62 : boss.height;
-        const hitBounds = getCenteredBounds({ x: boss.x, y: boss.y, width: hitWidth, height: hitHeight });
-        damagesBoss = getShotContactTime(shot, hitBounds) < Infinity;
+        damagesBoss = getShotContactTime(shot, bossBounds) < Infinity;
         if (damagesBoss) shots.splice(shotIndex, 1);
       }
 
-      if (damagesBoss) {
-        const target = boss.level === 4 ? "eye" : boss.level === 3 ? "mouth" : "boss";
-        if (shot.damagedBosses?.has(boss)) {
-          setDeveloperShotOutcome(shot, `Volley capped (${target})`);
-        } else {
-          setDeveloperShotOutcome(shot, `Hit ${target}`);
-          shot.damagedBosses?.add(boss);
-          if (applyBossDamage(1, frameTime)) return;
-        }
-      } else if (hitsArmour) {
-        setDeveloperShotOutcome(shot, "Hit armor");
+      if (damagesBoss && !shot.damagedBosses?.has(boss)) {
+        shot.damagedBosses?.add(boss);
+        if (applyBossDamage(1, frameTime, boss, deltaSeconds)) return;
       }
     }
 
     // Check the last angled segment for collisions before removing an offscreen bullet.
     if (shot.previousX !== undefined && shots[shotIndex] === shot
       && (shot.y + shot.height < 0 || shotBounds.right < 0 || shotBounds.left > canvas.width)) {
-      setDeveloperShotOutcome(shot, "Missed");
       shots.splice(shotIndex, 1);
     }
   }
 }
 
-function applyBossDamage(damage, frameTime = performance.now()) {
-  if (gameState !== "playing" || boss === null || boss.health <= 0) return false;
+function applyBossDamage(damage, frameTime = performance.now(), targetBoss = boss, deltaSeconds = null) {
+  if (gameState !== "playing" || targetBoss === null || targetBoss.health <= 0) return false;
+  const level2BossIndex = targetBoss.level === 2 ? level2Bosses.indexOf(targetBoss) : -1;
+  if (targetBoss.level === 2 && level2BossIndex === -1) return false;
 
-  const healthBefore = boss.health;
-  boss.health -= damage;
-  if (boss.health < healthBefore) boss.hitFlashUntil = frameTime + bossHitFlashDuration;
+  const healthBefore = targetBoss.health;
+  const clearsEncounter = damage >= healthBefore && (targetBoss.level !== 2 || level2Bosses.length === 1);
+  if (clearsEncounter && deltaSeconds !== null && resolveFinalHitBeforeClear(deltaSeconds, frameTime)) return true;
+  targetBoss.health -= damage;
+  if (targetBoss.health < healthBefore) {
+    targetBoss.hitFlashUntil = frameTime + bossHitFlashDuration;
+    playSoundEffect(targetBoss.health > 0 ? "bossHit" : "bossDefeated");
+  }
   score += 10;
   scoreDisplay.textContent = score;
-  if (boss.health > 0) return false;
+  if (targetBoss.health > 0) return false;
 
-  if (boss.level === 2) {
+  if (targetBoss.level === 2) {
+    level2Bosses.splice(level2BossIndex, 1);
+    if (level2AttackOwner === targetBoss) level2AttackOwner = null;
+    if (nextLevel2Attacker === targetBoss) nextLevel2Attacker = level2Bosses[0] ?? null;
+    level2DefeatBonusTotal += level2BossDefeatBonus;
     score += level2BossDefeatBonus;
     scoreDisplay.textContent = score;
+    if (level2Bosses.length > 0) return false;
     showLevel2ClearedScreen();
-  } else if (boss.level === 3) {
+  } else if (targetBoss.level === 3) {
     score += level3BossDefeatBonus;
     scoreDisplay.textContent = score;
     if (developerBossTestLevel === 3) {
@@ -2799,7 +3531,7 @@ function applyBossDamage(damage, frameTime = performance.now()) {
       boss = null;
       startVarnokBossFight(true);
     }
-  } else if (boss.level === 4) {
+  } else if (targetBoss.level === 4) {
     score += varnokBossDefeatBonus;
     scoreDisplay.textContent = score;
     finishVarnokEncounter();
@@ -2811,75 +3543,106 @@ function applyBossDamage(damage, frameTime = performance.now()) {
   return true;
 }
 
-function updateAlienFiring(shooters, frameTime) {
+function fireAlienShot(shooter) {
+  const shot = {
+    x: shooter.x,
+    y: shooter.y + shooter.height / 2,
+    width: 7,
+    height: 13,
+    artwork: alienShotArtwork[shooter.isVarnokAlien ? 3 : currentLevel - 1],
+  };
+  if (shooter.isVarnokAlien) varnokMinionShots.add(shot);
+  enemyShots.push(shot);
+  playSoundEffect("enemyShot");
+}
+
+function updateAlienFiring(shooters, frameTime, ordinaryWave = false) {
   if (shooters.length === 0) {
     nextEnemyShotTime = null;
-  } else if (nextEnemyShotTime === null) {
-    nextEnemyShotTime = frameTime + enemyShotIntervalMin;
-  } else if (frameTime >= nextEnemyShotTime) {
-    const shooter = shooters[Math.floor(Math.random() * shooters.length)];
-    const shot = {
-      x: shooter.x,
-      y: shooter.y + shooter.height / 2,
-      width: 7,
-      height: 13,
-      artwork: alienShotArtwork[shooter.isVarnokAlien ? 3 : currentLevel - 1],
-    };
-    if (shooter.isVarnokAlien) varnokMinionShots.add(shot);
-    enemyShots.push(shot);
-    nextEnemyShotTime = frameTime + enemyShotIntervalMin
-      + Math.random() * enemyShotIntervalRange;
+    return;
   }
+  if (nextEnemyShotTime !== null && frameTime < nextEnemyShotTime) return;
+
+  const { minimum, jitter } = ordinaryWave
+    ? getOrdinaryWaveShotTiming()
+    : { minimum: enemyShotIntervalMin, jitter: enemyShotIntervalRange };
+  if (nextEnemyShotTime === null) {
+    nextEnemyShotTime = frameTime + minimum;
+    return;
+  }
+  const shooter = shooters[Math.floor(Math.random() * shooters.length)];
+  fireAlienShot(shooter);
+  scheduleEnemyRepeat(shooter, () => fireAlienShot(shooter));
+  nextEnemyShotTime = frameTime + minimum + Math.random() * jitter;
 }
 
 function updateEnemyShots(deltaSeconds, frameTime) {
-  if (boss === null) {
-    updateAlienFiring(enemies, frameTime);
-  } else if (boss.level === 4 && varnokAlienFormation !== null) {
+  const firedRepeat = updateEnemyRepeats();
+  if (boss === null && level2Bosses.length === 0) {
+    // Keep a Ridiculous repeat and the next primary shot apart even after a slow frame.
+    if (firedRepeat && nextEnemyShotTime !== null) {
+      nextEnemyShotTime = Math.max(nextEnemyShotTime, frameTime + enemyRepeatGap * 1000);
+    }
+    if (pendingEnemyRepeats.length === 0) updateAlienFiring(enemies, frameTime, true);
+  } else if (boss?.level === 4 && varnokAlienFormation !== null) {
     const settledAliens = varnokAlienFormation.aliens.filter(isSettledVarnokAlien);
     updateAlienFiring(settledAliens, frameTime);
   }
+  updateEnemyProjectiles(deltaSeconds, frameTime);
+}
 
-  for (const shot of enemyShots) {
-    shot.y += (shot.vy ?? enemyShotSpeed) * deltaSeconds;
-    if (shot.vx !== undefined) shot.x += shot.vx * deltaSeconds;
-  }
+function advanceEnemyProjectile(shot, deltaSeconds) {
+  shot.y += (shot.vy ?? enemyShotSpeed) * deltaSeconds;
+  if (shot.vx !== undefined) shot.x += shot.vx * deltaSeconds;
+}
 
-  const playerLeft = player.x - player.width / 2;
-  const playerRight = player.x + player.width / 2;
-  const playerTop = player.y - player.height / 2;
-  const playerBottom = player.y + player.height / 2;
-
-  for (let index = enemyShots.length - 1; index >= 0; index -= 1) {
-    const shot = enemyShots[index];
-    if (shot.bounceAtWalls) {
-      const halfWidth = shot.width / 2;
-      const minX = halfWidth;
-      const maxX = canvas.width - halfWidth;
-      if (shot.x < minX) {
-        shot.x = minX;
-        shot.vx = Math.abs(shot.vx);
-      } else if (shot.x > maxX) {
-        shot.x = maxX;
-        shot.vx = -Math.abs(shot.vx);
-      }
+function getEnemyProjectileOutcome(shot, playerBounds, targetBarriers = barriers) {
+  if (shot.bounceAtWalls) {
+    const minX = shot.width / 2;
+    const maxX = canvas.width - minX;
+    if (shot.x < minX) {
+      shot.x = minX;
+      shot.vx = Math.abs(shot.vx);
+    } else if (shot.x > maxX) {
+      shot.x = maxX;
+      shot.vx = -Math.abs(shot.vx);
     }
+  }
+  const isBelowCanvas = shot.isBossShot ? shot.y >= canvas.height : shot.y > canvas.height;
+  if (isBelowCanvas || damageBarrierWithShot(shot, targetBarriers)) return "remove";
+  return collisionBoundsOverlap(getPlayerShotBounds(shot), playerBounds) ? "hit" : "keep";
+}
 
-    const isBelowCanvas = shot.isBossShot
-      ? shot.y >= canvas.height
-      : shot.y > canvas.height;
-    if (isBelowCanvas) {
-      enemyShots.splice(index, 1);
-    } else if (damageBarrierWithShot(shot)) {
-      enemyShots.splice(index, 1);
-    } else if (shot.x + shot.width / 2 >= playerLeft
-      && shot.x - shot.width / 2 <= playerRight
-      && shot.y + shot.height >= playerTop && shot.y <= playerBottom) {
-      enemyShots.splice(index, 1);
+function updateEnemyProjectiles(deltaSeconds, frameTime) {
+  for (const shot of enemyShots) advanceEnemyProjectile(shot, deltaSeconds);
+
+  const playerBounds = getCenteredBounds(player);
+  for (let index = enemyShots.length - 1; index >= 0; index -= 1) {
+    const outcome = getEnemyProjectileOutcome(enemyShots[index], playerBounds);
+    if (outcome !== "keep") enemyShots.splice(index, 1);
+    if (outcome === "hit") {
       damagePlayerFromProjectile(frameTime);
       if (gameState !== "playing") break;
     }
   }
+}
+
+function resolveFinalHitBeforeClear(deltaSeconds, frameTime) {
+  if (lives !== 1 || enemyShots.length === 0 || frameTime < playerShieldProtectedUntil
+    || ((currentLevel === 2 || currentLevel === 3) && level2ShieldCharges > 0)) return false;
+
+  // Check the projectiles the clear would discard, with the usual collision order.
+  const predictedBarriers = barriers.map((barrier) => ({ ...barrier }));
+  const playerBounds = getCenteredBounds(player);
+  for (let index = enemyShots.length - 1; index >= 0; index -= 1) {
+    const shot = { ...enemyShots[index] };
+    advanceEnemyProjectile(shot, deltaSeconds);
+    if (getEnemyProjectileOutcome(shot, playerBounds, predictedBarriers) === "hit") {
+      updateEnemyProjectiles(deltaSeconds, frameTime);
+      return true;
+    }
+  }
+  return false;
 }
 
 function drawPlayer(frameTime) {
@@ -2910,17 +3673,20 @@ function drawPlayer(frameTime) {
     context.rotate(playerBank * playerMaxBankRotation);
     context.transform(widthScale, playerBank * playerMaxBankSkew, 0, 1, 0, 0);
   }
-  if (kestrelFlashImage !== null) {
-    const height = 34;
-    const width = height * kestrelFlashImage.width / kestrelFlashImage.height;
+  const artwork = shipArtwork[selectedShipId];
+  if (artwork.flashImage !== null) {
+    const height = Math.min(player.height, player.width * artwork.height / artwork.width);
+    const width = height * artwork.width / artwork.height;
     const centerX = bankEffect ? 0 : player.x;
     const centerY = bankEffect ? 0 : player.y;
-    context.drawImage(isFlashing ? kestrelFlashImage : kestrelImage,
-      centerX - width / 2, centerY - height / 2, width, height);
-    const farWingShade = kestrelWingShades[playerBank < 0 ? 1 : 0];
+    // Align each nose with the existing firing point, even when the sprite is shorter.
+    const top = centerY - player.height / 2;
+    context.drawImage(isFlashing ? artwork.flashImage : artwork.image,
+      centerX - width / 2, top, width, height);
+    const farWingShade = artwork.wingShades[playerBank < 0 ? 1 : 0];
     if (bankEffect && !isFlashing && farWingShade && bankAmount > 0) {
       context.globalAlpha *= bankAmount;
-      context.drawImage(farWingShade, -width / 2, -height / 2, width, height);
+      context.drawImage(farWingShade, -width / 2, top, width, height);
     }
     context.restore();
     return;
@@ -2955,6 +3721,16 @@ function drawPlayer(frameTime) {
   context.restore();
 }
 
+function drawBackground() {
+  const scene = gameState === "menu" || gameState === "credits" ? gameState : `level-${currentLevel}`;
+  const image = sceneBackgrounds.get(scene);
+  if (image?.complete && image.naturalWidth === canvas.width && image.naturalHeight === canvas.height) {
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return;
+  }
+  drawStarfield();
+}
+
 function drawStarfield() {
   context.fillStyle = "#07111f";
   context.fillRect(0, 0, canvas.width, canvas.height);
@@ -2967,21 +3743,54 @@ function drawStarfield() {
   }
 }
 
+function drawDestructionFragments(visualTime = combatElapsed) {
+  if (destructionFragments.length === 0) return;
+  context.save();
+  for (const fragment of destructionFragments) {
+    const age = visualTime - fragment.startedAt;
+    const progress = age / fragment.duration;
+    const travel = (age + 0.025) * (1 - 0.40 * progress);
+    const x = fragment.x + fragment.vx * travel;
+    const y = fragment.y + fragment.vy * travel;
+    const spin = fragment.angle + 11 * age;
+    const dx = Math.cos(spin) * fragment.size;
+    const dy = Math.sin(spin) * fragment.size;
+    context.globalAlpha = 1 - progress;
+    context.fillStyle = fragment.color;
+    context.beginPath();
+    context.moveTo(x + dx, y + dy);
+    context.lineTo(x - dy * 0.7, y + dx * 0.7);
+    context.lineTo(x - dx, y - dy);
+    context.lineTo(x + dy * 0.7, y - dx * 0.7);
+    context.closePath();
+    context.fill();
+  }
+  context.restore();
+}
+
 function drawEnemy(enemy, index, x = enemy.x, y = enemy.y) {
   const halfWidth = enemy.width / 2;
   const halfHeight = enemy.height / 2;
+  const alternatePose = formationAlternatePose && isRegularFormationAlien(enemy)
+    ? regularAlienPose2[currentLevel - 1]
+    : null;
+  const alternateImage = alternatePose?.ready ? alternatePose.image : null;
   if (currentLevel === 1 && clackImageReady) {
-    context.drawImage(clackImage, x - halfWidth, y - halfHeight, enemy.width, enemy.height);
+    context.drawImage(alternateImage ?? clackImage, x - halfWidth, y - halfHeight, enemy.width, enemy.height);
     return;
   }
   let alienImage = null;
   if (enemy.isVarnokAlien) {
     const artwork = hatchlingVisualChoices.get(enemy);
-    if (artwork?.ready) alienImage = artwork.image;
+    if (artwork?.ready) {
+      const usePose2 = formationAlternatePose && (gameState === "playing" || gameState === "playerDeath")
+        && boss?.level === 4 && isSettledVarnokAlien(enemy) && artwork.pose2.ready;
+      alienImage = usePose2 ? artwork.pose2.image : artwork.image;
+    }
   } else if (currentLevel === 2 && anvilImageReady) {
-    alienImage = anvilImage;
+    alienImage = alternateImage ?? anvilImage;
   } else if (currentLevel === 3 && riftImageReady) {
-    alienImage = riftImage;
+    alienImage = alternateImage ?? riftImage;
   }
   if (alienImage !== null) {
     context.save();
@@ -3017,6 +3826,37 @@ function drawEnemy(enemy, index, x = enemy.x, y = enemy.y) {
   context.fill();
 }
 
+function drawReturningVarnokHatchling(enemy, index, formation) {
+  const arrival = hatchlingReturnVisuals.get(enemy);
+  if (!arrival?.startDistance) {
+    drawEnemy(enemy, index);
+    return;
+  }
+
+  // Offset the drawing only. The existing return step still decides when the slot is reached.
+  const slot = formation.slots[enemy.formationSlot];
+  const remaining = Math.hypot(slot.x - enemy.x, slot.y - enemy.y);
+  const progress = Math.max(0, 1 - remaining / arrival.startDistance);
+  let { x, y } = enemy;
+  if (arrival.batch.pattern === "split") {
+    const entryX = arrival.index < Math.ceil(arrival.batch.size / 2) ? 64 : canvas.width - 64;
+    x += (entryX - enemy.launchX) * (1 - progress) ** 2;
+  } else if (arrival.batch.pattern === "sweep") {
+    const arc = Math.sin(Math.PI * progress) ** 2;
+    const direction = enemy.launchX < canvas.width / 2 ? 1 : -1;
+    x += direction * 120 * arc;
+    y -= 30 * arc;
+  } else {
+    const delay = 0.10 + (arrival.index % 3) * 0.14;
+    const descent = Math.max(0, (progress - delay) / (1 - delay));
+    y += (descent - progress) * (slot.y + enemy.height / 2);
+  }
+
+  const halfWidth = enemy.width / 2;
+  x = Math.max(halfWidth, Math.min(canvas.width - halfWidth, x));
+  drawEnemy(enemy, index, x, y);
+}
+
 function drawVarnokHatchlings(emerging, hatchOpening) {
   const body = getCenteredBounds(boss);
   const gap = getRootedCrownHatchGap(hatchOpening);
@@ -3043,14 +3883,20 @@ function drawVarnokHatchlings(emerging, hatchOpening) {
   context.restore();
 }
 
+function getActiveSupplyShipArtwork() {
+  return selectedShipId === "vesper" ? supplyShipArtwork.kestrel : supplyShipArtwork.vesper;
+}
+
 function drawLevel2BonusShip() {
   if (level2BonusShip === null) return;
   context.save();
   context.translate(level2BonusShip.x, level2BonusShip.y);
-  if (vesperImageReady) {
-    context.rotate(level2BonusShip.direction * Math.PI / 2);
-    context.drawImage(vesperImage, -vesperArtHeight / 2, -vesperArtWidth / 2,
-      vesperArtHeight, vesperArtWidth);
+  const artwork = getActiveSupplyShipArtwork();
+  if (artwork.ready) {
+    const { width } = artwork;
+    const height = vesperArtHeight;
+    if (level2BonusShip.direction < 0) context.scale(-1, 1);
+    context.drawImage(artwork.image, -width / 2, -height / 2, width, height);
     context.restore();
     return;
   }
@@ -3116,8 +3962,8 @@ function drawLevel2PickupMessage() {
   context.restore();
 }
 
-function drawLevel2BossChargeLane() {
-  if (boss === null || boss.level !== 2 || boss.chargePath === null) return;
+function drawLevel2BossChargeLane(boss) {
+  if (boss.chargePath === null) return;
   if (boss.attackPhase !== "prepare" && boss.attackPhase !== "charge") return;
 
   const path = boss.chargePath;
@@ -3159,18 +4005,25 @@ function drawLevel2BossChargeLane() {
   context.restore();
 }
 
-function drawBoss(frameTime, hatchOpening = 0) {
+function drawBoss(boss, frameTime, hatchOpening = 0) {
   if (boss === null) return;
+
+  if (boss.level === 4 && gameState === "bossIntro") {
+    context.save();
+    context.globalAlpha *= bossIntroElapsed / varnokRevealDuration;
+    drawBossArtwork(context, frameTime, hatchOpening, boss);
+    context.restore();
+    return;
+  }
 
   const remaining = (boss.hitFlashUntil ?? 0) - frameTime;
   if (remaining <= 0 || bossFlashContext === null) {
-    drawBossArtwork(context, frameTime, hatchOpening);
-    return;
+    return drawBossArtwork(context, frameTime, hatchOpening, boss);
   }
 
   bossFlashContext.clearRect(0, 0, bossFlashCanvas.width, bossFlashCanvas.height);
   bossFlashContext.save();
-  drawBossArtwork(bossFlashContext, frameTime, hatchOpening);
+  const drawPath = drawBossArtwork(bossFlashContext, frameTime, hatchOpening, boss);
   // Tint only the pixels of this frame's artwork, keeping its transparency and detail.
   bossFlashContext.globalCompositeOperation = "source-atop";
   bossFlashContext.globalAlpha = 0.28 * Math.min(1, remaining / bossHitFlashDuration);
@@ -3178,9 +4031,146 @@ function drawBoss(frameTime, hatchOpening = 0) {
   bossFlashContext.fillRect(0, 0, bossFlashCanvas.width, bossFlashCanvas.height);
   bossFlashContext.restore();
   context.drawImage(bossFlashCanvas, 0, 0);
+  return drawPath;
 }
 
-function drawBossArtwork(context, frameTime, hatchOpening) {
+function updateSporeChoirBlink() {
+  if (combatElapsed < sporeChoirBlink.nextStart) return;
+
+  // Sample only at blink starts, using a source separate from gameplay's Math.random().
+  const [organRoll, pauseRoll] = crypto.getRandomValues(new Uint32Array(2));
+  const organs = [0, 1, 2].filter((organ) => organ !== sporeChoirBlink.organ);
+  const organ = organs[Math.floor(organRoll / 0x100000000 * organs.length)];
+  const pause = 0.12 + pauseRoll / 0x100000000 * 0.20;
+  sporeChoirBlink = {
+    organ,
+    startedAt: combatElapsed,
+    nextStart: combatElapsed + sporeChoirBlinkDuration + pause,
+  };
+}
+
+function drawSporeChoirPulse(context, interior, x, y, radius, power) {
+  context.save();
+  context.clip(interior);
+  context.translate(x, y);
+  context.scale(1, 0.8);
+  const glow = context.createRadialGradient(0, 0, 0, 0, 0, radius);
+  glow.addColorStop(0, "rgba(240, 255, 150, 0.86)");
+  glow.addColorStop(0.56, "rgba(214, 248, 94, 0.77)");
+  glow.addColorStop(1, "rgba(193, 225, 71, 0)");
+  context.globalAlpha *= power;
+  context.fillStyle = glow;
+  context.fillRect(-radius, -radius, radius * 2, radius * 2);
+  context.restore();
+}
+
+function drawSporeChoirLayers(context, boss, left, top, exaggerate, blink = sporeChoirBlink, elapsed = combatElapsed) {
+  const { organ, startedAt } = blink;
+  const progress = Math.min((elapsed - startedAt) / sporeChoirBlinkDuration, 1);
+  const power = progress < 1 ? Math.sin(Math.PI * progress) : 0;
+  const spread = exaggerate ? 28 : 22;
+
+  context.save();
+  context.translate(left, top);
+  context.scale(boss.width / 112, boss.height / 58);
+  for (const mirrored of [false, true]) {
+    context.save();
+    if (mirrored) {
+      context.translate(112, 0);
+      context.scale(-1, 1);
+    }
+    context.drawImage(sporeChoirSac.image, 0, 0);
+    if (organ === (mirrored ? 2 : 0) && power > 0) {
+      drawSporeChoirPulse(context, sporeChoirSacInterior, 25, 26, 5 + spread * progress, power);
+      context.globalAlpha *= power;
+      context.fillStyle = "#f4ffa4";
+      context.fill(sporeChoirSideOval);
+    }
+    context.restore();
+  }
+  context.drawImage(sporeChoirMembrane.image, 0, 0);
+  context.drawImage(sporeChoirFace.image, 0, 0);
+
+  const centreActive = organ === 1 && power > 0;
+  if (centreActive) {
+    drawSporeChoirPulse(context, sporeChoirMembraneInterior, 56, 29, 5 + spread * progress, power);
+    // Pinch briefly, then open the pale oval while the rest of the face stays still.
+    const pinchEnd = 0.30;
+    const opening = progress < pinchEnd
+      ? 1 - 0.68 * Math.sin(Math.PI * progress / pinchEnd)
+      : 1 + 0.46 * Math.sin(Math.PI * (progress - pinchEnd) / (1 - pinchEnd));
+    context.translate(56, 29);
+    context.scale(1, opening);
+    context.translate(-56, -29);
+  }
+  context.fillStyle = "#f7de96";
+  context.fill(sporeChoirCentreOval);
+  if (centreActive) {
+    context.globalAlpha *= power;
+    context.fillStyle = "#f4ffa4";
+    context.fill(sporeChoirCentreOval);
+  }
+  context.restore();
+}
+
+function drawIronSepulchreLayers(context, boss, left, top, exaggerate) {
+  const elapsed = boss.attackPhaseElapsed;
+  let deployment = 0;
+  let ventPower = 0;
+  let retreat = null;
+  switch (boss.attackPhase) {
+    case "move":
+      ventPower = (1 - Math.cos(elapsed * 2 * Math.PI / getLevel2BossPatrolDuration())) / 2;
+      break;
+    case "prepare":
+      deployment = Math.min(elapsed / level2BossPrepareDuration, 1);
+      ventPower = deployment;
+      break;
+    case "charge":
+      deployment = 1;
+      ventPower = 1 - Math.min(elapsed * getEnemyMovementMultiplier() / boss.chargePath.duration, 1);
+      break;
+    case "retreat":
+      retreat = Math.min(elapsed * getLevel2BossMovementMultiplier() / level2BossRetreatDuration, 1);
+      deployment = 1 - retreat;
+      break;
+  }
+  const easedDeployment = deployment * deployment * (3 - 2 * deployment);
+  // Translate each plate in the SVG's coordinate space by up to 11 logical pixels.
+  const extension = (exaggerate ? 16 : 11) * easedDeployment * 112 / boss.width;
+  const idleGlow = exaggerate ? 0.04 : 0.17;
+  const bodyAlpha = context.globalAlpha;
+
+  context.save();
+  context.translate(left, top);
+  context.scale(boss.width / 112, boss.height / 58);
+  // Fixed rails bridge the opening behind the sliding plates and fixed centre.
+  context.fillStyle = "#4e342f";
+  context.fillRect(25, 16, 62, 27);
+  context.fillStyle = "#ad7655";
+  context.fillRect(25, 17, 62, 3);
+  context.fillRect(25, 37, 62, 3);
+
+  for (const mirrored of [false, true]) {
+    context.save();
+    context.translate(mirrored ? 112 + extension : -extension, 0);
+    if (mirrored) context.scale(-1, 1);
+    context.drawImage(ironSepulchreArmour.image, 0, 0);
+    // Each six-pixel row in the vent SVG is a separate bar.
+    for (let bar = 0; bar < 3; bar += 1) {
+      const power = retreat === null ? ventPower : Math.max(0, 1 - Math.abs(4 * retreat - (bar + 1)));
+      context.globalAlpha = bodyAlpha * (idleGlow + (1 - idleGlow) * power);
+      const row = bar * 6;
+      context.drawImage(ironSepulchreVents.image, 0, row, 16, 6, 13, 20 + row, 16, 6);
+    }
+    context.restore();
+  }
+
+  context.drawImage(ironSepulchreCenter.image, 0, 0);
+  context.restore();
+}
+
+function drawBossArtwork(context, frameTime, hatchOpening, boss) {
   if (boss.level === 4) {
     drawVarnokBoss(context, frameTime, hatchOpening);
     return;
@@ -3231,12 +4221,19 @@ function drawBossArtwork(context, frameTime, hatchOpening) {
     return;
   }
 
+  const exaggerate = DEVELOPER_MODE && developerBossTestLevel === boss.level
+    && (gameState === "playing" || gameState === "bossIntro" || gameState === "playerDeath")
+    && developerExaggerateAnimation.checked;
   if (boss.level === 2) {
+    const left = boss.x - boss.width / 2;
     const top = boss.y - boss.height / 2;
+    if (ironSepulchreArmour.ready && ironSepulchreVents.ready && ironSepulchreCenter.ready) {
+      drawIronSepulchreLayers(context, boss, left, top, exaggerate);
+      return "Animated layers";
+    }
     if (ironSepulchreImageReady) {
-      const left = boss.x - boss.width / 2;
       context.drawImage(ironSepulchreImage, left, top, boss.width, boss.height);
-      return;
+      return "Static SVG fallback";
     }
 
     context.fillStyle = "#663b91";
@@ -3251,28 +4248,34 @@ function drawBossArtwork(context, frameTime, hatchOpening) {
     context.fill();
     context.fillStyle = "#dc8cff";
     context.fillRect(boss.x - boss.width * 0.19, top + boss.height * 0.32, boss.width * 0.38, boss.height * 0.4);
-    return;
+    return "Shape fallback";
   }
 
   const left = boss.x - boss.width / 2;
   const top = boss.y - boss.height / 2;
+  if (sporeChoirSac.ready && sporeChoirMembrane.ready && sporeChoirFace.ready) {
+    drawSporeChoirLayers(context, boss, left, top, exaggerate);
+    return "Animated layers";
+  }
   if (sporeChoirImageReady) {
     context.drawImage(sporeChoirImage, left, top, boss.width, boss.height);
-  } else {
-    context.fillStyle = "#9d6be8";
-    context.beginPath();
-    context.moveTo(boss.x, top);
-    context.lineTo(left + boss.width, top + boss.height * 0.3);
-    context.lineTo(left + boss.width * 0.82, top + boss.height * 0.82);
-    context.lineTo(boss.x, top + boss.height);
-    context.lineTo(left + boss.width * 0.18, top + boss.height * 0.82);
-    context.lineTo(left, top + boss.height * 0.3);
-    context.closePath();
-    context.fill();
-
-    context.fillStyle = "#f5e6ff";
-    context.fillRect(left + boss.width * 0.27, top + boss.height * 0.38, boss.width * 0.46, 7);
+    return "Static SVG fallback";
   }
+
+  context.fillStyle = "#9d6be8";
+  context.beginPath();
+  context.moveTo(boss.x, top);
+  context.lineTo(left + boss.width, top + boss.height * 0.3);
+  context.lineTo(left + boss.width * 0.82, top + boss.height * 0.82);
+  context.lineTo(boss.x, top + boss.height);
+  context.lineTo(left + boss.width * 0.18, top + boss.height * 0.82);
+  context.lineTo(left, top + boss.height * 0.3);
+  context.closePath();
+  context.fill();
+
+  context.fillStyle = "#f5e6ff";
+  context.fillRect(left + boss.width * 0.27, top + boss.height * 0.38, boss.width * 0.46, 7);
+  return "Shape fallback";
 }
 
 function drawVarnokBoss(context, frameTime, hatchOpening) {
@@ -3391,12 +4394,19 @@ const resultDetails = document.getElementById("result-details");
 const resultBonus = document.getElementById("result-bonus");
 const resultScore = document.getElementById("result-score");
 const resultActions = document.getElementById("result-actions");
+const continueToCreditsButton = document.getElementById("continue-to-credits");
+
+continueToCreditsButton.addEventListener("click", () => {
+  if (gameState !== "endingSummary" || summaryFadeElapsed !== null) return;
+  summaryFadeElapsed = 0;
+  continueToCreditsButton.disabled = true;
+});
 
 const varnokPortrait = "finalboss-workshop/Varnok Artwork Workshop (complete ZIP)/assets/rooted-crown/body-maw.svg";
 const resultViews = {
   level1Cleared: {
     title: "Level 1 cleared",
-    details: "You defeated Xal'Gorath!\nA new enemy formation awaits in Level 2.",
+    details: `You defeated ${bossDisplayNames.xalGorath}!\nA new enemy formation awaits in Level 2.`,
     bonus: level1BossDefeatBonus,
     art: sporeChoirImage.src,
     theme: "clear",
@@ -3404,25 +4414,33 @@ const resultViews = {
   },
   level2Cleared: {
     title: "Level 2 cleared",
-    details: "You defeated Lord Kaezar Vhul!\nGet ready for the final battle!\nChoose Level 3 to continue.",
-    bonus: level2BossDefeatBonus,
+    details: `You defeated ${bossDisplayNames.kaezarVhul}!\nGet ready for the final battle!\nChoose Level 3 to continue.`,
+    get bonus() { return level2DefeatBonusTotal; },
     art: ironSepulchreImage.src,
     theme: "clear",
     nextButton: level3Button,
   },
-  victory: { title: "Victory", art: varnokPortrait, theme: "victory" },
   loss: { title: "Game over", theme: "loss" },
   win: { title: "You win", details: "Choose Restart to play again", theme: "clear" },
   level3BossDefeated: {
-    title: "Zhur-Kai defeated",
+    title: `${bossDisplayNames.zhurKai} defeated`,
     details: "Encounter complete. Choose Restart to play again.",
     art: crownMawBody.image.src,
     theme: "clear",
   },
   varnokBossDefeated: {
-    title: "Varnok defeated",
+    title: `${bossDisplayNames.varnok} defeated`,
     details: "Encounter complete. Choose Restart to play again.",
     art: varnokPortrait,
+    theme: "victory",
+  },
+  endingSummary: {
+    title: `${bossDisplayNames.zhurKai} and ${bossDisplayNames.varnok} defeated`,
+    bonusText: [
+      `${bossDisplayNames.zhurKai} defeat bonus: ${level3BossDefeatBonus} points`,
+      `${bossDisplayNames.varnok} defeat bonus: ${varnokBossDefeatBonus} points`,
+    ].join("\n"),
+    showTotals: true,
     theme: "victory",
   },
 };
@@ -3435,15 +4453,17 @@ function updateResultPanel() {
   if (restartButton.parentElement === resultActions) level2Button.before(restartButton);
   if (level2Button.parentElement === resultActions) level3Button.before(level2Button);
   if (level3Button.parentElement === resultActions) level2Button.after(level3Button);
+  resultOverlay.style.opacity = "";
   resultOverlay.hidden = view === null;
+  continueToCreditsButton.hidden = gameState !== "endingSummary";
+  continueToCreditsButton.disabled = false;
   if (view === null) return;
 
   resultPanel.dataset.theme = view.theme;
   resultTitle.textContent = view.title;
   resultDetails.textContent = view.details ?? "";
-  resultBonus.textContent = view.bonus ? `Boss defeat bonus: +${view.bonus} points` : "";
-  resultScore.textContent = view.bonus ? `Score: ${score}   •   Lives: ${lives}` : "";
-  if (gameState === "victory") resultScore.textContent = `Final score: ${score}`;
+  resultBonus.textContent = view.bonusText ?? (view.bonus ? `Boss defeat bonus: +${view.bonus} points` : "");
+  resultScore.textContent = view.bonus || view.showTotals ? `Score: ${score}   •   Lives: ${lives}` : "";
 
   const art = gameState === "loss"
     ? [clackImage, anvilImage, riftImage][currentLevel - 1].src
@@ -3458,39 +4478,296 @@ function updateResultPanel() {
   }
 }
 
-function drawRollingCredits() {
-  const centerX = canvas.width / 2;
+// Editable credits draft. Portraits point to the same assets used in play.
+const creditsOpening = [
+  "Congratulations on winning the game! You are a true warrior!",
+  "Roll credits!",
+];
+const creditsCast = [
+  { section: "Heroes", name: "Kestrel", image: shipArtwork.kestrel.image,
+    bio: "Calls every near miss a shortcut. Keeps a little tally of the good ones." },
+  { section: "Heroes", name: "Vesper", image: shipArtwork.vesper.image,
+    bio: "Practises dramatic entrances in empty hangars. The echo always applauds." },
+  { section: "Heroes", name: "Bastion", image: shipArtwork.bastion.image,
+    bio: "Looks gruff, makes excellent tea, and always carries enough for everyone." },
+  { section: "Support fleet", name: "Kestrel", subtitle: "Supply configuration", image: supplyShipArtwork.kestrel.image,
+    bio: "The same Kestrel, now making deliveries. Every crate is marked ‘Handle with enthusiasm.’" },
+  { section: "Support fleet", name: "Vesper", subtitle: "Supply configuration", image: supplyShipArtwork.vesper.image,
+    bio: "The same Vesper, bringing spare supplies. Still insists on a dramatic entrance." },
+  { heading: "Villains", section: "Invaders · Level 1", name: "Gary", subtitle: "Clack alien", image: clackImage, pose: regularAlienPose2[0],
+    bio: "Keeps a houseplant on the bridge. Waters it before every invasion." },
+  { section: "Invaders · Level 1", name: bossDisplayNames.xalGorath, bossLevel: 1,
+    bio: "Brings enough snacks for the whole invasion, then quietly eats them all." },
+  { section: "Invaders · Level 2", name: "Mabel", subtitle: "Anvil alien", image: anvilImage, pose: regularAlienPose2[1],
+    bio: "Runs the book club. Has been waiting three invasions for Gary to return her novel." },
+  { section: "Invaders · Level 2", name: bossDisplayNames.kaezarVhul, bossLevel: 2,
+    bio: "Polishes his armour before every meeting. Calls it a quick once-over and takes an hour." },
+  { section: "Invaders · Level 3", name: "Finn", subtitle: "Rift alien", image: riftImage, pose: regularAlienPose2[2],
+    bio: "Collects postcards from planets he was supposed to invade." },
+  { section: "Invaders · Level 3", name: bossDisplayNames.zhurKai, bossLevel: 3,
+    bio: "Knows every hatchling by name and exactly who left crumbs on the command deck." },
+  { section: "Invaders · Varnok’s hatchlings", name: "Bob", subtitle: "Bud hatchling",
+    image: hatchlingArtwork[0].image, pose: hatchlingArtwork[0].pose2,
+    bio: "Enjoys long flights through the void and disappointing his father, Varnok." },
+  { section: "Invaders · Varnok’s hatchlings", name: "Jenny", subtitle: "Hook hatchling",
+    image: hatchlingArtwork[1].image, pose: hatchlingArtwork[1].pose2,
+    bio: "Insists that every dive is carefully planned. The evidence suggests otherwise." },
+  { section: "Invaders · Varnok’s hatchlings", name: "Lou", subtitle: "Crown hatchling",
+    image: hatchlingArtwork[2].image, pose: hatchlingArtwork[2].pose2,
+    bio: "Wears the crown to breakfast. Claims it keeps the cereal humble." },
+  { section: "Invaders · Level 3", name: bossDisplayNames.varnok, bossLevel: 4,
+    bio: "Destroys worlds for a living. Spends his evenings looking for Bob’s other sock." },
+];
+
+const creditsDevelopment = [
+  "Perplexity Pro (best model) - Game design, sparring and Codex sanity check",
+  "Perplexity Computer - Concept workshops, game graphics, background graphics, artwork, alien and boss designs",
+  "VS Code + Codex (ChatGPT Plus, Luna 6 medium and GPT-6.2 Sol medium) - Game design, sound effects, writing code and Perplexity sanity check",
+  "ElevenLabs - Voice acting",
+  // Provisional draft credit. The planned final local-model reviews have not run.
+  "Local models Gemma-4-e4b and Qwen3.5-9b - reviewing code",
+];
+const creditsMusic = ["Suno - @backstageriot"];
+const creditsClosing = ["Last but not least, my family for putting up with my endless tinkering!"];
+const creditsVarnokImage = new Image();
+creditsVarnokImage.src = varnokPortrait;
+
+function wrapCreditsText(text, font, maxWidth) {
+  context.font = font;
+  const lines = [];
+  let line = "";
+  for (const word of text.split(" ")) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (line && context.measureText(candidate).width > maxWidth) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  lines.push(line);
+  return lines;
+}
+
+function createCreditsLayout() {
+  const blocks = [];
+  let top = 0;
+  function addText(heading, paragraphs) {
+    const lines = paragraphs.map((text) => wrapCreditsText(text, creditsBodyFont, 610));
+    const height = 64 + (heading ? 46 : 0)
+      + lines.reduce((total, paragraph) => total + paragraph.length * 28 + 14, 0);
+    blocks.push({ top, height, heading, paragraphs: lines });
+    top += height + 94;
+  }
+
   context.save();
+  addText("", creditsOpening);
+  for (const member of creditsCast) {
+    // Place the section heading in the existing gap so the portraits keep their timing.
+    if (member.heading) blocks.push({ top: top - 32, height: 24, sectionHeading: member.heading });
+    blocks.push({
+      top,
+      height: creditsEntryHeight,
+      member,
+      nameLines: wrapCreditsText(member.name, creditsNameFont, 390),
+      bioLines: wrapCreditsText(member.bio, creditsBodyFont, 390),
+    });
+    top += creditsEntryPitch;
+  }
+  addText("Design & Development", creditsDevelopment);
+  addText("Music", creditsMusic);
+  addText("", creditsClosing);
+  context.restore();
+  const [previous, closing] = blocks.slice(-2);
+  const closingTop = (canvas.height - closing.height) / 2;
+  // The music credit leaves the screen before the family thank-you stops at centre.
+  closing.top = Math.max(closing.top, previous.top + previous.height + closingTop);
+  const distance = canvas.height + closing.top - closingTop;
+  const emptyStart = creditsTrackDuration - creditsBackgroundTail;
+  const fadeStart = emptyStart - creditsClosingFade;
+  const scrollDuration = fadeStart - creditsClosingHold;
+  return { blocks, duration: creditsTrackDuration, scrollDuration, fadeStart, emptyStart, speed: distance / scrollDuration };
+}
+
+function drawCreditsImage(image, centerX, centerY, maxWidth, maxHeight) {
+  if (!image?.complete || !image.naturalWidth || !image.naturalHeight) return;
+  const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
+  const width = image.naturalWidth * scale;
+  const height = image.naturalHeight * scale;
+  context.drawImage(image, centerX - width / 2, centerY - height / 2, width, height);
+}
+
+function drawCreditsPortrait(member, centerX, centerY, elapsed) {
+  const { bossLevel, image, pose } = member;
+  if (!bossLevel) {
+    const alternate = pose?.ready && Math.floor(elapsed * 1000 / formationBeatIntervalMs) % 2 === 1;
+    drawCreditsImage(alternate ? pose.image : image, centerX, centerY, 150, 132);
+    return;
+  }
+  const opening = (1 - Math.cos(elapsed * 2)) / 2;
+  const width = bossLevel === 1 ? 112 : bossLevel === 4 ? varnokBossWidth : 132;
+  const height = bossLevel === 1 ? 58 : bossLevel === 4 ? varnokBossHeight : 68;
+  const preview = {
+    level: bossLevel, x: 0, y: 0, width, height,
+    openingAmount: opening, eyeOpeningAmount: 1,
+    attackPhase: "move", attackPhaseElapsed: elapsed,
+  };
+
+  context.save();
+  context.translate(centerX, centerY);
+  const scale = bossLevel === 4 ? 0.56 : 1.35;
+  context.scale(scale, scale);
+  if (bossLevel === 4) {
+    if (!drawRootedCrownArtwork(context, getCenteredBounds(preview), getVarnokEyeGeometry(preview), 1, elapsed * 1000)) {
+      drawCreditsImage(creditsVarnokImage, 0, 0, width, height);
+    }
+  } else if (bossLevel === 1 && sporeChoirSac.ready && sporeChoirMembrane.ready && sporeChoirFace.ready) {
+    const pulseIndex = Math.floor(elapsed / 0.85);
+    drawSporeChoirLayers(context, preview, -width / 2, -height / 2, false,
+      { organ: pulseIndex % 3, startedAt: pulseIndex * 0.85 }, elapsed);
+  } else {
+    drawBossArtwork(context, elapsed * 1000, 0, preview);
+  }
+  context.restore();
+}
+
+function drawCreditsEntry(block, top, elapsed) {
+  const { member } = block;
+  if (member) drawCreditsPortrait(member, 174, top + block.height / 2, elapsed);
+  context.shadowColor = "rgba(3, 8, 20, 0.95)";
+  context.shadowBlur = 5;
+  context.shadowOffsetY = 2;
+  context.fillStyle = "#b1d6e7";
+
+  if (block.sectionHeading) {
+    context.textAlign = "left";
+    context.font = "bold 15px Arial, sans-serif";
+    context.fillText(block.sectionHeading, 304, top);
+    return;
+  }
+
+  if (member) {
+    const textHeight = 24 + block.nameLines.length * 36 + (member.subtitle ? 23 : 0)
+      + 10 + block.bioLines.length * 28;
+    let y = top + (block.height - textHeight) / 2;
+    const textX = 304;
+    context.textAlign = "left";
+    context.font = "bold 15px Arial, sans-serif";
+    context.fillText(member.section, textX, y);
+    y += 24;
+    context.fillStyle = "#f1f7ff";
+    context.font = creditsNameFont;
+    for (const line of block.nameLines) {
+      context.fillText(line, textX, y);
+      y += 36;
+    }
+    context.fillStyle = "#b8d3e4";
+    if (member.subtitle) {
+      context.font = "16px Arial, sans-serif";
+      context.fillText(member.subtitle, textX, y);
+      y += 23;
+    }
+    y += 10;
+    context.font = creditsBodyFont;
+    context.fillStyle = "#edf4fb";
+    for (const line of block.bioLines) {
+      context.fillText(line, textX, y);
+      y += 28;
+    }
+    return;
+  }
+
   context.textAlign = "center";
+  let y = top + 32;
+  if (block.heading) {
+    context.font = creditsNameFont;
+    context.fillText(block.heading, canvas.width / 2, y);
+    y += 46;
+  }
+  context.font = creditsBodyFont;
+  context.fillStyle = "#f1f7ff";
+  for (const paragraph of block.paragraphs) {
+    for (const line of paragraph) {
+      context.fillText(line, canvas.width / 2, y);
+      y += 28;
+    }
+    y += 14;
+  }
+}
+
+function drawRollingCredits() {
+  const { layout, elapsed } = creditsRun;
+  if (elapsed >= layout.emptyStart) return;
+  const closing = layout.blocks.at(-1);
+  const closingProgress = Math.max(0, (elapsed - layout.fadeStart) / creditsClosingFade);
+  const closingTravel = (canvas.height + closing.height) / 2;
+  const origin = canvas.height - Math.min(elapsed, layout.scrollDuration) * layout.speed
+    - closingTravel * closingProgress ** 2;
+
+  context.save();
   context.textBaseline = "top";
-  context.fillStyle = "#ffffff";
-  context.font = "bold 40px Arial, sans-serif";
-  context.fillText("Victory", centerX, creditsY);
-  context.fillStyle = "#bfd0e3";
-  context.font = "20px Arial, sans-serif";
-  creditsLines.forEach((line, index) => {
-    context.fillText(line, centerX, creditsY + (index + 2) * creditsLineSpacing);
-  });
+  for (const block of layout.blocks) {
+    const top = origin + block.top;
+    if (top >= canvas.height) break;
+    if (top + block.height <= 0) continue;
+    context.save();
+    if (block === closing) context.globalAlpha *= 1 - closingProgress;
+    drawCreditsEntry(block, top, elapsed);
+    context.restore();
+  }
+  context.restore();
+}
+
+function drawSceneFade(opacity) {
+  context.save();
+  context.fillStyle = "#000";
+  context.globalAlpha = opacity;
+  context.fillRect(0, 0, canvas.width, canvas.height);
   context.restore();
 }
 
 function drawFrame(frameTime) {
-  if (gameState !== "playing") playerBank = 0;
-  const showShotReadout = DEVELOPER_MODE && tracedBoss !== null;
-  if (bossShotReadout.hidden === showShotReadout) bossShotReadout.hidden = !showShotReadout;
+  const playerDying = gameState === "playerDeath";
+  const sceneFrameTime = playerDying ? playerDeathStartedAt : frameTime;
+  if (gameState !== "playing" && !playerDying) playerBank = 0;
   updateResultPanel();
+  const showBossAnimationDiagnostics = DEVELOPER_MODE
+    && (gameState === "playing" || gameState === "bossIntro" || playerDying)
+    && (developerBossTestLevel === 1 ? boss?.level === 1
+      : developerBossTestLevel === 2 && level2Bosses.length > 0);
+  if (developerBossAnimationPanel.hidden === showBossAnimationDiagnostics) {
+    developerBossAnimationPanel.hidden = !showBossAnimationDiagnostics;
+  }
   context.clearRect(0, 0, canvas.width, canvas.height);
-  drawStarfield();
-  if (gameState === "menu" || gameState === "victory") return;
+  drawBackground();
+  if (gameState === "menu") return;
+  if (gameState === "endingSummary") {
+    if (summaryFadeElapsed !== null) {
+      const progress = summaryFadeElapsed / endingFadeDuration;
+      resultOverlay.style.opacity = 1 - progress;
+      drawSceneFade(progress);
+    }
+    return;
+  }
   if (gameState === "credits") {
     drawRollingCredits();
+    const fadeProgress = creditsRun.elapsed / endingFadeDuration;
+    if (creditsRun.fadeIn && fadeProgress < 1) drawSceneFade(1 - fadeProgress);
     return;
   }
   const varnokOnScreen = boss?.level === 4;
   const hatchOpening = varnokHatchProgress * varnokHatchProgress * (3 - 2 * varnokHatchProgress);
   const emerging = [];
-  drawLevel2BossChargeLane();
+  if (selectedDifficulty !== "ridiculous") {
+    for (const targetBoss of level2Bosses) drawLevel2BossChargeLane(targetBoss);
+  }
+  if (playerDying) drawDestructionFragments(frameTime / 1000);
+  else if (gameState === "playing" && waveEntrance === null) drawDestructionFragments();
   enemies.forEach((enemy, index) => {
+    if (varnokOnScreen && varnokAlienFormation !== null && enemy.varnokState === "returning") {
+      drawReturningVarnokHatchling(enemy, index, varnokAlienFormation);
+      return;
+    }
     if (varnokOnScreen && varnokAlienFormation !== null && enemy.varnokState === "launching") {
       const age = varnokAlienFormation.elapsed - hatchlingLaunchVisualTimes.get(enemy);
       if (age < varnokHatchEmergenceDuration) {
@@ -3507,7 +4784,15 @@ function drawFrame(frameTime) {
       if (varnokMinionShots.has(shot)) drawEnemyShot(shot);
     }
   }
-  drawBoss(frameTime, hatchOpening);
+  const boss1DrawPath = drawBoss(boss, sceneFrameTime, hatchOpening);
+  const boss2DrawPaths = showBossAnimationDiagnostics ? [] : null;
+  for (const targetBoss of level2Bosses) {
+    const drawPath = drawBoss(targetBoss, sceneFrameTime);
+    boss2DrawPaths?.push(drawPath);
+  }
+  if (showBossAnimationDiagnostics) {
+    updateDeveloperBossAnimationReadout(boss1DrawPath, boss2DrawPaths);
+  }
   if (emerging.length > 0) drawVarnokHatchlings(emerging, hatchOpening);
   drawBarriers();
   for (const shot of shots) {
@@ -3522,7 +4807,7 @@ function drawFrame(frameTime) {
   for (const shot of enemyShots) {
     if (!varnokOnScreen || !varnokMinionShots.has(shot)) drawEnemyShot(shot);
   }
-  drawPlayer(frameTime);
+  if (lives > 0) drawPlayer(frameTime);
   drawLevel2PickupMessage();
 }
 
@@ -3532,23 +4817,40 @@ function gameLoop(frameTime) {
     : Math.min((frameTime - previousFrameTime) / 1000, 0.05);
   previousFrameTime = frameTime;
 
-  if (gameState === "credits") {
+  if (gameState === "playerDeath") {
+    if (frameTime - playerDeathStartedAt >= playerDeathDurationMs) finishGame("loss");
+    else updateDestructionFragments(frameTime / 1000);
+  } else if (gameState === "endingSummary" && summaryFadeElapsed !== null) {
+    summaryFadeElapsed += deltaSeconds;
+    if (summaryFadeElapsed >= endingFadeDuration) startCredits(true);
+  } else if (gameState === "credits") {
     updateCredits(deltaSeconds);
   } else if (gameState === "bossIntro") {
     updateBossIntro(deltaSeconds);
+    updateSuppliesDuringEntrance(deltaSeconds);
   } else if (gameState === "playing") {
     updatePlayer(deltaSeconds);
     updateLevel2PickupTimers(deltaSeconds);
-    if (waveEntranceElapsed !== null) {
+    if (waveEntrance !== null) {
       updateWaveEntrance(deltaSeconds, frameTime);
-      if (level2BonusShip !== null) {
-        updateLevel2BonusShip(deltaSeconds);
-      }
+      updateSuppliesDuringEntrance(deltaSeconds);
     } else {
+      combatElapsed += deltaSeconds;
+      updateDestructionFragments();
       updateShots(deltaSeconds, frameTime);
-      if (boss === null) {
+      if (level2Bosses.length > 0) {
+        updateLevel2BossEncounter(deltaSeconds, frameTime);
+        if (gameState !== "playing") {
+          drawFrame(frameTime);
+          requestAnimationFrame(gameLoop);
+          return;
+        }
+      } else if (boss === null) {
         const formationBreached = updateEnemies(deltaSeconds, frameTime);
-        if (formationBreached || waveEntranceElapsed !== null) {
+        if (gameState === "bossIntro" || (gameState === "playing" && waveEntrance !== null)) {
+          updateSuppliesDuringEntrance(deltaSeconds);
+        }
+        if (formationBreached || waveEntrance !== null) {
           drawFrame(frameTime);
           requestAnimationFrame(gameLoop);
           return;
@@ -3560,12 +4862,14 @@ function gameLoop(frameTime) {
         updateLevel2BonusShip(deltaSeconds);
         updateLevel2Pickups(deltaSeconds);
       }
-      handleShotCollisions(deltaSeconds, frameTime);
-      if (gameState === "playing" && waveEntranceElapsed === null) {
+      if (gameState === "playing") handleShotCollisions(deltaSeconds, frameTime);
+      if (gameState === "playing" && waveEntrance === null) {
         updateEnemyShots(deltaSeconds, frameTime);
       }
+      updateFormationBeat(deltaSeconds);
     }
   }
+  if (boss?.level === 1 && gameState === "playing") updateSporeChoirBlink();
   drawFrame(frameTime);
   requestAnimationFrame(gameLoop);
 }

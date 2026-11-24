@@ -39,17 +39,18 @@ This section records the current multi-level implementation and the remaining fi
 
 - **Formation speed-up — implemented:** The formation speeds up gently as enemies are cleared. Patrik reported that it moved a little faster as enemy numbers fell and felt appropriate for a practice level. He also reported completing the follow-up browser check for edge reversal, victory and restart. These are user-reported manual checks, not automated or Codex-run tests.
 - **Stationary barriers — implemented in the current build:** Three destructible barriers are present and Patrik manually tried them. In the final game, they are planned for Level 1 only.
-- **Level 1 — accepted as-is for now (user-reported playtest):** After Wave 2, Xal’Gorath the Devourer slides into position and speaks in a bubble before combat. Boss hits award 10 points each; defeating him gives a separate 100-point bonus once. The paused clear screen shows “But reinforcements are closing in.” and the Level 2 button carries the total score and remaining lives forward. Patrik reported that the Level 1 clear screen and transition to Level 2 passed manual playtesting.
-- **Level 2 — implemented through the Level 3 transition:** It has two regular waves of 18 aliens each (3 × 6), one diver at a time, a supply ship that drops a shield or rapid-fire pickup, and Lord Kaezar Vhul. Kaezar has 20 HP; shots award 10 points and defeat awards a separate 200-point bonus. His accepted warning-lane, locked-path ram retreats smoothly; its forward speed is 616 px/s. Defeat pauses at the Level 2 clear screen and offers Level 3. See `DEVELOPMENT_LOG.md` for user reports and evidence limits.
-- **Level 3 — implemented through Zhur-Kai's temporary checkpoint:** Two 24-alien waves (4 × 6), Wave 2's 1.15 horizontal formation multiplier, destruction-based acceleration, smooth 55-pixel descent on each distinct right-edge contact, single diver/return behavior, and the actual-contact formation loss rule are implemented. The existing supply ship and pickups are active. Wave 2 starts Zhur-Kai; defeat pauses at the current temporary checkpoint. See `DEVELOPMENT_LOG.md` for user reports and evidence limits.
-- **Zhur-Kai — implemented and accepted for now:** The encounter has randomized X/Y movement, smooth armour animation, animated physical shot passages, a shared core hitbox, twin streams and an aimed burst. Her current low-health movement boost is 15% at or below 25% HP. Later balance may change. The former full-body projectile obstruction was fixed; its temporary diagnostic text/counter were removed while developer collision outlines remain.
-- **Varnok — test encounter implemented, normal progression connection planned:** Developer-only **Test Boss 4** starts the 200 × 110 px placeholder with smooth X/Y movement, two 30 × 26 px eyes sharing 30 HP, 45 px passages and the 2s closed / 0.5s opening / 3s open / 0.5s closing eye cycle. Hits award 10 points each and defeat gives a separate 300-point bonus. One four-alien batch launches after 2 seconds, 0.3 seconds apart; aliens launch and return at 180 px/s, wait 0.5 seconds after fully leaving the screen, and become targetable after settling. The user accepted eye targeting, wider passages and reduced HP for now; later balancing remains possible. The user observed four aliens settled in the upper-left and independent of Varnok. Do not claim every timing, scoring, cleanup or defeat case was manually checked. Varnok is not yet connected to normal progression. Settled formation movement/descent, alien shooting and diving, repeated batches, Varnok's planned dive/bomb barrage and final victory remain future work; no unapproved values are set.
+- **Level 1.** Two waves lead to Xal’Gorath, the Devourer. His reveal slides into combat. Boss hits award 10 points and defeat awards 100 once. The clear panel offers Level 2 and carries score and lives forward.
+- **Level 2.** Two regular waves of 18 aliens each lead to Lord Kaezar Vhul. One diver can be active at a time. Supply ships drop Shield, Machinegun, Double shot, or Spread shot. Easy and Hard have one 20-HP boss and an on-screen warning lane. Ridiculous has two 20-HP bosses with split patrol lanes and alternating attacks. The 800 ms warning stays active while the lanes are hidden on Ridiculous. Each damaging hit awards 10 points, and each boss awards 200 on defeat. The clear panel offers Level 3 only after all bosses fall.
+- **Level 3.** Two waves of 24 aliens lead to Zhur-Kai, Matriarch of the Swarm. Her moving core and armor cycle govern damage, and her firing patterns are twin streams and an aimed burst. Normal defeat reveals Varnok, Destroyer of Worlds, whose dialogue waits for Fight. Varnok's two eyes share 19 HP and his hatchlings spawn in recurring batches. Varnok's defeat shows both 300-point bonuses, score, and lives before Continue fades into credits. Standalone boss results remain separate.
+- **Credits and difficulty.** The user accepted the flat, full-height cast credits, the Villains heading and the five-second Afterlight hold after the song and roll finish. The game then returns to the idle menu. The HUD shows Easy, Hard, or Ridiculous, chosen in ship selection. Alien and boss movement is 1.00×, 1.15×, or 1.20× Easy. Ridiculous repeats eligible alien and boss shots with the approved 150 ms gap. Check the handover and development log for the full behavior and evidence limits.
 
 ### Teacher feedback
 
 - The stationary barriers address the teacher's shield feedback. In the final game, barriers are planned for Level 1 only; Levels 2 and 3 will have no stationary barriers.
 
-### Patrik's gameplay additions
+### Earlier gameplay design notes
+
+These notes retain earlier design ideas. The current-build section records the decisions in use.
 
 #### Shared rules
 
@@ -82,17 +83,13 @@ This section records the current multi-level implementation and the remaining fi
 
 ### Balance and delivery
 
-- Balance and test the game, verify progression, final victory and restart, then prepare the final demo and post-mortem.
-- Upgrade choices and difficulty settings from the earlier plan will be reconsidered after the teacher's target features have been implemented.
+- Balance and test the game, verify progression, the ending, and restart, then prepare the final demo and post-mortem.
+- Supply pickups are the current upgrade system. Difficulty settings are implemented. The earlier between-level upgrade choice remains deferred.
 - Prioritize gameplay, progression, scoring and win/loss behavior. Use placeholder visuals where needed; defer graphics and cosmetic polish unless a visual issue makes the game hard to read or test.
 
-### Next development priorities
+### Next development priority
 
-1. Add independent sideways formation movement and downward stepping for Varnok's settled aliens. Reuse earlier-level behavior without triggering regular wave progression.
-2. Add Varnok alien shooting and diving as separate, testable steps.
-3. Later, decide repeated-spawn balance, implement the planned Varnok dive/bomb barrage, and connect Varnok after Zhur-Kai. Do not invent values for unapproved behavior; the current Zhur-Kai and Varnok checkpoints are temporary, not final victory.
-
-These design notes include both implemented and planned Level 3 ideas; use the current-build status above to distinguish them. More challenging dive paths, possible loops and occasional paired dives are not implemented or newly approved details. Finish the base game before menu screens, dialogue, colours or graphics improvements; use placeholder visuals as needed and defer cosmetics.
+The user considers the game done. Next, run independent local Qwen and Gemma reviews of the current code as described in [NEXT_SESSION.md](NEXT_SESSION.md). The earlier design ideas above remain historical context.
 
 ### Late polish
 

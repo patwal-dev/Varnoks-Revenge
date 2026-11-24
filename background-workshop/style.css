@@ -1,0 +1,103 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, sans-serif;
+  color: #eff6fc;
+  background: #0a1421;
+  --muted: #a8bcd2;
+  --line: #2e435b;
+  --accent: #8ce6e5;
+}
+
+body { margin: 0; }
+main { max-width: 960px; margin: 0 auto; padding: 30px clamp(14px, 4vw, 48px); }
+h1, h2, p, figure { margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 3.3rem); letter-spacing: -.045em; }
+h2 { font-size: 1.14rem; letter-spacing: -.015em; }
+p { color: var(--muted); line-height: 1.45; }
+header p { margin-top: 4px; }
+
+nav, .controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+nav { margin: 22px 0 15px; }
+button, label {
+  border: 1px solid #465f79;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: inherit;
+  background: #152338;
+  font: inherit;
+  font-size: .875rem;
+  cursor: pointer;
+}
+
+button:hover, label:hover { background: #203650; }
+
+button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: #153238;
+}
+
+button:focus-visible, label:focus-within, .viewport:focus-visible, a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+figcaption {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px 8px 0 0;
+  background: #111e2e;
+}
+
+figcaption p { margin-top: 4px; font-size: .85rem; }
+
+.controls label { display: inline-flex; align-items: center; gap: 7px; }
+.controls input { accent-color: var(--accent); margin: 0; }
+
+.viewport {
+  padding: 12px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  background: #08101b;
+}
+
+.stage { width: max-content; margin: 0 auto; }
+
+canvas {
+  display: block;
+  border-radius: 5px;
+  outline: 1px solid var(--line);
+  background: #07111f;
+}
+
+.hud {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  border: 1px solid #263a54;
+  border-radius: 8px;
+  background: #0c1726;
+  color: #c8d8ea;
+  font-size: .9rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.hud[hidden] { display: none; }
+.hud strong { margin-left: 5px; font-size: 1.1rem; color: #83e4f6; }
+footer { margin-top: 13px; font-size: .85rem; }
+a { color: var(--accent); }

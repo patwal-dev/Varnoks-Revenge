@@ -152,6 +152,60 @@ canvas {
   color: #d9e4fa;
 }
 
+.ship-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: min(100%, 420px);
+  margin-inline: auto;
+}
+
+.difficulty-options {
+  min-width: 0;
+  margin-top: 12px;
+  padding: 0;
+  border: 0;
+}
+
+.difficulty-options legend {
+  margin-bottom: 6px;
+  color: #d9f6ff;
+  font-weight: bold;
+}
+
+.ship-option {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 8px 4px;
+  border: 1px solid #52677e;
+  border-radius: 9px;
+  background: #0a1529;
+  color: #eff9ff;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.ship-option input {
+  margin: 0;
+  accent-color: var(--edge);
+}
+
+.ship-option img {
+  width: min(100%, 72px);
+  height: clamp(38px, 10vw, 72px);
+  object-fit: contain;
+}
+
+.ship-option:hover,
+.ship-option:has(:checked) {
+  border-color: var(--edge);
+}
+
+.ship-option:has(:checked) {
+  box-shadow: inset 0 0 12px #21edff55;
+}
+
 .menu-aliens {
   pointer-events: none;
 }
@@ -199,6 +253,19 @@ canvas {
 
 #result-overlay {
   background: #030610bd;
+}
+
+.varnok-dialogue-panel {
+  width: min(100%, 460px);
+  padding: 16px 20px;
+  border-radius: 6px;
+}
+
+.varnok-dialogue-panel p {
+  margin: 0;
+  color: #f1f7ff;
+  font-size: 1.05rem;
+  line-height: 1.4;
 }
 
 .result-panel {
@@ -275,6 +342,7 @@ canvas {
 
 .result-copy h2 {
   color: var(--accent);
+  text-wrap: balance;
 }
 
 .result-copy p {
@@ -357,6 +425,14 @@ canvas {
   font-size: 0.85rem;
 }
 
+.developer-wave-entrance:not([hidden]) {
+  display: block;
+  margin: 8px 0;
+  color: #d9f6ff;
+  font-size: 0.8rem;
+  white-space: pre-line;
+}
+
 .developer-boss-buttons {
   display: grid;
   gap: 8px;
@@ -374,6 +450,21 @@ canvas {
   color: #ffe08a;
 }
 
+.developer-boss-animation {
+  margin: 12px 0;
+  padding: 8px;
+  border: 1px solid #46829a;
+  border-radius: 6px;
+  background: #07111f;
+}
+
+#developer-boss-animation-readout {
+  color: #d9f6ff;
+  font: 0.8rem/1.4 monospace;
+  font-variant-numeric: tabular-nums;
+  white-space: pre-line;
+}
+
 .developer-canvas-measurement {
   margin-top: 12px;
 }
@@ -387,19 +478,6 @@ canvas {
 
 .developer-canvas-measurement output:empty {
   display: none;
-}
-
-.boss-shot-readout {
-  position: absolute;
-  top: 12%;
-  right: 8px;
-  margin: 0;
-  padding: 5px 7px;
-  border-radius: 4px;
-  background: #07111fe6;
-  color: #d9f6ff;
-  font: 11px/1.3 monospace;
-  pointer-events: none;
 }
 
 button {
@@ -428,7 +506,7 @@ button[hidden] {
   display: none;
 }
 
-button:where(.game-header *, .menu-panel *, #restart, #level-2, #level-3) {
+button:where(.game-header *, .menu-panel *, #varnok-fight, #restart, #level-2, #level-3, #continue-to-credits) {
   --button-accent: var(--edge, #63eaff);
   --button-glow: 0 0 0 transparent;
   min-height: 44px;
@@ -441,7 +519,7 @@ button:where(.game-header *, .menu-panel *, #restart, #level-2, #level-3) {
   transition: transform 130ms ease, filter 130ms ease, box-shadow 130ms ease;
 }
 
-:is(#start-game, #restart, #level-2, #level-3) {
+:is(#start-game, #start-selected-ship, #varnok-fight, #restart, #level-2, #level-3, #continue-to-credits) {
   --button-accent: #ffd354;
   --button-glow: 0 0 18px var(--button-accent);
   min-height: 52px;
@@ -452,7 +530,8 @@ button:where(.game-header *, .menu-panel *, #restart, #level-2, #level-3) {
   text-transform: uppercase;
 }
 
-#start-game {
+#start-game,
+#start-selected-ship {
   --button-accent: #21edff;
   --button-start: #42faff;
   --button-end: #ff64d9;
@@ -464,32 +543,73 @@ button:where(.game-header *, .menu-panel *, #restart, #level-2, #level-3) {
   --button-end: #ff9bc2;
 }
 
-button[data-music-toggle][aria-pressed="false"] {
+button:is([data-music-toggle], [data-sound-effects-toggle])[aria-pressed="false"] {
   border-color: #52677e;
   color: #a9bed2;
 }
 
-button[data-music-toggle][aria-pressed="true"] {
+button:is([data-music-toggle], [data-sound-effects-toggle])[aria-pressed="true"] {
   --button-accent: #63ffcb;
   --button-glow: 0 0 14px #63ffcb80;
   background: #083633;
   color: #cbffed;
 }
 
-button:where(.game-header *, .menu-panel *, #restart, #level-2, #level-3):enabled:hover {
+button:where(.game-header *, .menu-panel *, #varnok-fight, #restart, #level-2, #level-3, #continue-to-credits):enabled:hover {
   filter: brightness(1.16);
   transform: translateY(-2px);
   box-shadow: var(--button-glow), 0 0 12px var(--button-accent);
 }
 
-button:where(.game-header *, .menu-panel *, #restart, #level-2, #level-3):enabled:active {
+button:where(.game-header *, .menu-panel *, #varnok-fight, #restart, #level-2, #level-3, #continue-to-credits):enabled:active {
   filter: brightness(0.96);
   transform: translateY(1px);
 }
 
-button:where(.game-header *, .menu-panel *, #restart, #level-2, #level-3):focus-visible {
+button:where(.game-header *, .menu-panel *, #varnok-fight, #restart, #level-2, #level-3, #continue-to-credits):focus-visible {
   outline: 2px solid var(--button-accent);
   box-shadow: var(--button-glow), 0 0 18px var(--button-accent);
+}
+
+.menu-audio-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.menu-audio-controls button[aria-pressed] {
+  --menu-audio-border: #5b738c;
+  --menu-audio-text: #a9bed2;
+  min-height: 42px;
+  margin: 0;
+  padding: 7px 4px;
+  border: 1px solid var(--menu-audio-border);
+  border-radius: 7px;
+  background: #0d192d;
+  color: var(--menu-audio-text);
+  font-size: clamp(0.7rem, 3.5vw, 0.875rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+  transition: background-color 130ms ease;
+}
+
+.menu-audio-controls button[aria-pressed="true"] {
+  --menu-audio-border: #63bbcf;
+  --menu-audio-text: #8beaff;
+}
+
+.menu-audio-controls button[aria-pressed]:hover {
+  background: #14243c;
+}
+
+.menu-audio-controls button[aria-pressed]:focus-visible {
+  outline: 2px solid #def7ff;
+  outline-offset: 3px;
 }
 
 @media (max-width: 900px) {
@@ -515,6 +635,10 @@ button:where(.game-header *, .menu-panel *, #restart, #level-2, #level-3):focus-
   .menu-controls button {
     margin-top: 4px;
     padding: 8px 12px;
+  }
+
+  .menu-audio-controls {
+    margin-top: 4px;
   }
 
   #start-game {

@@ -1,0 +1,8 @@
+* { box-sizing: border-box; }
+body, h1, h2, p, figure { margin: 0; }
+button, select, input { font: inherit; }
+img, canvas { display: block; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.skip { position: absolute; z-index: 2; top: var(--s2); left: var(--s4); padding: var(--s2) var(--s4); transform: translateY(-200%); background: var(--paper); color: var(--bg); }
+.skip:focus { transform: none; }
