@@ -4,6 +4,8 @@
 
 The user considers the game done. The next session starts with independent local Qwen and Gemma reviews of the current code. The remaining browser coverage notes document verification limits and do not reopen implementation.
 
+**Pending release cleanup.** After the reviews, remove the developer menu and release-facing test controls under Task 20, update the current game title and references to **Varnok's Revenge**, and remove the surplus Music control above the developer menu. Preserve the main-menu Music control, saved preference and audio behaviour. The scope is recorded in [TODO.md](TODO.md). These items are pending before final release.
+
 **Task 12 complete.** The user confirmed background appearance and readability on the remaining routes in focused browser checks.
 
 **Task 13 complete.** The user visually accepted both boss animations.

@@ -89,8 +89,12 @@ The user considers the game done at the 24 November 2026 checkpoint. This checkl
   - Let players view high scores from the main menu.
   - Store high scores locally in the browser for this version.
   - Exclude developer and test encounters from high-score records.
-- [ ] 20. Remove all developer buttons.
-  - Remove the remaining developer controls, including level and boss tests, Test Credits, forced supply rewards, Bank effect, and Measure Canvas and its readout.
+- [ ] 20. Remove the developer menu and release-facing developer and test controls before release.
+  - Remove Developer Mode access and the developer panel, including level and boss tests, Test Credits, forced supply rewards, Bank effect, Measure Canvas and its readout, and diagnostic controls and readouts.
   - The boss shooting-statistics readout and its exclusive logging code are already removed. Browser verification in both encounter routes remains pending.
+- [ ] Rename the game to **Varnok's Revenge** before release.
+  - Update the visible title, browser-tab title, relevant metadata, player instructions and current project documentation. Preserve historical logs and third-party names. Change file or path names only where a rename is needed.
+- [ ] Remove the surplus Music On/Off control above the developer menu before release.
+  - Keep the main-menu Music control, its saved preference and existing audio behaviour.
 - [ ] 21. Final testing, then the post mortem and the YouTube video.
   - Next session, give the same current project code to the locally installed Qwen and Gemma in independent reviews. Each should report up to 10 substantiated security flaws and up to 10 substantiated bugs, with code locations, impact, reasoning and verification steps. Report fewer if warranted. Compare only after both reviews finish, then deduplicate, verify and prioritize the findings. See `NEXT_SESSION.md` for the record-keeping plan.
