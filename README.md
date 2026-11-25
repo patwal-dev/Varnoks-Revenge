@@ -1,8 +1,12 @@
-# HAMK AI Project – Space Shooter
+# HAMK AI Project – Varnok's Revenge
 
 ## About
 
 An individual HAMK AI course project to build a small, single-player browser game while learning and documenting AI-assisted software development. It is intended for people who want a short, keyboard-controlled game in a desktop browser.
+
+## How to play
+
+Open `index.html` in a desktop browser. No installation is required. Use **WASD** or the **arrow keys** to move and hold **Space** to fire. Vertical movement is limited to the bottom of the play area. The main menu's **How to Play** screen also lists these controls.
 
 ## Technology
 
@@ -18,21 +22,27 @@ The game uses HTML, CSS, vanilla JavaScript and HTML Canvas. It has no game engi
 
 ## Current final-game build
 
-The local build has a menu, ship and difficulty selection, three playable levels, four boss encounters, and a full-height cast credits roll that returns to the menu. The layout and behavior have focused browser checks. Full regression and final submission checks are pending.
+The final build has a menu, ship and difficulty selection, three playable levels, four boss encounters, and a full-height cast credits roll that returns to the menu. Implementation closed on 25 November 2026. The layout and behavior have focused browser checks, and the proposed final playthrough has no reported result.
 
-The user considers the game done and accepted the final credits. The independent local Qwen and Gemma reviews are next. [TODO.md](TODO.md) and [NEXT_SESSION.md](NEXT_SESSION.md) distinguish reported browser acceptance, automated checks and remaining verification coverage.
+The user accepted the final credits. The handover distinguishes reported browser acceptance, automated checks and verification limits. [Checklist](TODO.md) · [Handover](NEXT_SESSION.md)
 
-## AI-assisted development
+## Tools and assets
 
-- **OpenAI Codex in VS Code:** implementation assistance, explanations, debugging and self-review. The model was displayed as “6 Luna”; Codex reported session identifier `gpt-6-luna` from this conversation's session log. Medium reasoning effort was used during initial prototype implementation.
-- **Perplexity:** planning, explanations, development guidance and review of project documents. The exact underlying model is not verified.
-- **LM Studio:** local Gemma 4 E4B was used for a focused review of restart-related code; it was not used to implement the prototype.
+- **OpenAI Codex in VS Code** supported design, implementation, debugging and verification. The project records Luna 6 and GPT-6.2 Sol. [Development log](DEVELOPMENT_LOG.md)
+- **Perplexity** supported planning, development guidance, document review and a source review of the prototype. The underlying model is unverified.
+- **LM Studio** ran independent focused reviews of the audio controls using `qwen/qwen3.5-9b` and `google/gemma-4-e4b`. Those reviews covered audio controls only. Validation checked 12 deduplicated claims and confirmed no defects within that scope. The development log also records an earlier focused Gemma review of restart code. [Audio-controls validation](review-materials/01-audio-controls-validation.md) · [Development log](DEVELOPMENT_LOG.md)
+- **Perplexity Computer** generated workshop artwork for ships, aliens and bosses, and used Perplexity's image generator for the background plates. The provenance records also identify later Codex adaptations. [Workshop provenance](NEXT_SESSION.md#workshop-provenance)
+- **Suno** was used by **@backstageriot** to create the music for the menu, levels and credits. [Backstage Riot on Suno](https://suno.com/@backstageriot)
+- **ElevenLabs** supplied the spoken announcements for Shield, Machinegun, Double shot and Spread shot. [Voice provenance](DEVELOPMENT_LOG.md#task-11--prerecorded-pickup-announcements--24-november-2026)
+- **Firjar Bold** styles the page heading and main-menu title. It is licensed under SIL OFL 1.1. The font and copyright notice are included locally. [Font license](Fonts/Firjar/OFL.txt)
+
+Redistribution terms for the Suno music and ElevenLabs pickup voices were not independently reproduced in the repository. This project is a school submission.
 
 **Demonstration production:** ElevenLabs generated the narration, and iMovie was used to combine it with actual gameplay footage. These are video-production tools, separate from game technologies and AI development/review tools.
 
 I approve requirements and changes, manually playtest the game, and decide which suggestions to accept.
 
-**Perplexity source review:** Perplexity reviewed `game.js` and `index.html` from GitHub without running the game or automated tests. It found no blocking gameplay issue and noted the existing rectangular player hitbox, that winning takes priority over enemy-shot damage in the frame the last enemy is destroyed, and that the Space shooting instruction was missing. The instruction is now present above the game. This review is not a runtime test or a claim that the game is bug-free.
+**Perplexity prototype source review.** Perplexity reviewed `game.js` and `index.html` from GitHub without running the game or automated tests. It found no blocking gameplay issue and noted the existing rectangular player hitbox, the priority of victory over enemy-shot damage in the frame the last enemy is destroyed, and the missing Space instruction. The final game lists the shooting instruction under **How to Play**.
 
 ## Prototype submission status
 
@@ -45,5 +55,3 @@ The user reported that the shortened 248-word prototype forum post is live in Mo
 ## Known prototype limitation
 
 The player is drawn as a triangle but uses a rectangular hitbox. Shots in the rectangle's corners may count as hits even when they miss the visible ship; this gameplay impact has not been specifically tested.
-
-To open the game, open `index.html` in a desktop browser. No installation is required.

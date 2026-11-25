@@ -1,6 +1,6 @@
-# TODO – Space Shooter final game
-Updated: 24 November 2026. Source: Patrik's list, reordered into build order.
-The user considers the game done at the 24 November 2026 checkpoint. This checklist separates implementation, automated checks and focused user browser checks. The independent local-model reviews are next. Residual checks and unchecked optional or delivery items are recorded for reference.
+# TODO – Varnok's Revenge
+Updated 25 November 2026. Based on Patrik's list, reordered into build order.
+The user closed implementation on 25 November 2026. This checklist separates implementation, automated checks and focused user browser checks. The completed Qwen and Gemma reviews covered audio controls only. The user's closeout superseded the plan for further local-model reviews, including a whole-game review. Residual checks and optional items are retained for reference. [Closeout](NEXT_SESSION.md#local-model-review-scope-decision)
 
 ## Phase 1: Quick fixes
 - [x] 1. Keep an already-flying supply ship moving during wave entrances without advancing the countdown for a new ship. (applied, explicit browser verification pending)
@@ -43,7 +43,7 @@ The user considers the game done at the 24 November 2026 checkpoint. This checkl
   - Keep playback continuous between encounters that share a track, including Zhur-Kai and Varnok.
   - After user-activated playback begins, Music Off mutes all tracks while playback and fades continue. Music On restores sound at the current position. This supersedes stopping tracks or canceling fades on Music Off.
   - Keep the controls synchronized and save the preference. Default to Off. With Music saved as On, the first menu or developer control click after refresh starts the appropriate track. Muting and unmuting must leave a finished credits track ended.
-  - Normal volume is 18%. Voyage to Aether Nova.mp3 remains on disk and is unassigned. Weightless (Ambient Mix).mp3 and We Fight for Our Right to Party!.mp3 were removed.
+  - Normal volume is 18%. Only the four assigned tracks listed above are in `backstageriot/`.
   - User-reported browser checks. Start Game starts music after a Chrome refresh with On saved. Menu to Level 1 plays continuously. The Level 1 to Level 2 and Level 2 to Level 3 crossfades work, and Level 2 music continues on its clear summary. Unmuting after a muted transition into Level 2 reveals the track already in progress.
 - [x] 9. Add a Sound effects On/Off button in the menu (implemented, user confirmed the control works in the browser). It defaults to Off and saves its own preference.
 - [x] 10. Create the sound effects (standalone set approved, integrated, and confirmed working in-game by the user). Individual cues, encounter coverage, and all mute and persistence paths remain outside the reported check.
@@ -75,7 +75,7 @@ The user considers the game done at the 24 November 2026 checkpoint. This checkl
   - Detailed combined-panel scoring, lives carryover, muting and fallback browser coverage remain residual verification notes.
 - [x] Apply the canonical full boss names to existing named references. The expanded credits reuse these names. Full-name layout still needs a browser check.
 - [x] 18. Credits page presents all aliens, bosses, the supply ships and the playable ships, each with a short bio.
-  - The user accepted the full-height cast roll, content, box-free styling, **Villains** heading and five-second post-song Afterlight hold. The editable Gemma/Qwen credit remains provisional until the final reviews run.
+  - The user accepted the full-height cast roll, content, box-free styling, **Villains** heading and five-second post-song Afterlight hold. The Gemma and Qwen credit describes the completed audio-controls code reviews.
 
 ## Phase 7: Finish
 - [x] 19. Implement Easy, Hard, and Ridiculous (focused browser checks only).
@@ -89,12 +89,10 @@ The user considers the game done at the 24 November 2026 checkpoint. This checkl
   - Let players view high scores from the main menu.
   - Store high scores locally in the browser for this version.
   - Exclude developer and test encounters from high-score records.
-- [ ] 20. Remove the developer menu and release-facing developer and test controls before release.
-  - Remove Developer Mode access and the developer panel, including level and boss tests, Test Credits, forced supply rewards, Bank effect, Measure Canvas and its readout, and diagnostic controls and readouts.
-  - The boss shooting-statistics readout and its exclusive logging code are already removed. Browser verification in both encounter routes remains pending.
-- [ ] Rename the game to **Varnok's Revenge** before release.
-  - Update the visible title, browser-tab title, relevant metadata, player instructions and current project documentation. Preserve historical logs and third-party names. Change file or path names only where a rename is needed.
-- [ ] Remove the surplus Music On/Off control above the developer menu before release.
-  - Keep the main-menu Music control, its saved preference and existing audio behaviour.
-- [ ] 21. Final testing, then the post mortem and the YouTube video.
-  - Next session, give the same current project code to the locally installed Qwen and Gemma in independent reviews. Each should report up to 10 substantiated security flaws and up to 10 substantiated bugs, with code locations, impact, reasoning and verification steps. Report fewer if warranted. Compare only after both reviews finish, then deduplicate, verify and prioritize the findings. See `NEXT_SESSION.md` for the record-keeping plan.
+- [x] 20. Remove the developer menu and release-facing developer and test controls before release.
+  - Removed level and boss tests, Test Credits, forced supply rewards, Measure Canvas, other diagnostics and the developer keyboard shortcut. Normal ship banking still uses its accepted effect. Browser verification of the release build remains pending.
+- [x] Rename the game to **Varnok's Revenge** before release.
+- [x] Repurpose the surplus Music On/Off control as part of the accepted header audio pair.
+  - Header and main-menu audio controls still share their existing preferences.
+- [ ] 21. Prepare the final submission.
+  - Write the post-mortem, record actual hours worked, and prepare the demonstration video. [Submission handover](NEXT_SESSION.md#next-session--submission-preparation)

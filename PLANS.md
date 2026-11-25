@@ -87,9 +87,9 @@ These notes retain earlier design ideas. The current-build section records the d
 - Supply pickups are the current upgrade system. Difficulty settings are implemented. The earlier between-level upgrade choice remains deferred.
 - Prioritize gameplay, progression, scoring and win/loss behavior. Use placeholder visuals where needed; defer graphics and cosmetic polish unless a visual issue makes the game hard to read or test.
 
-### Next development priority
+### Implementation closeout and submission
 
-The user considers the game done. Next, run independent local Qwen and Gemma reviews of the current code as described in [NEXT_SESSION.md](NEXT_SESSION.md). The earlier design ideas above remain historical context.
+The user closed implementation on 25 November 2026. The independent local Qwen and Gemma reviews covered audio controls only. The user considered that evaluation sufficient and superseded the earlier plan for additional or whole-game local-model reviews. The post-mortem, actual hours worked and demonstration video remain pending. The earlier design ideas above remain historical context. [Closeout and submission handover](NEXT_SESSION.md)
 
 ### Late polish
 
