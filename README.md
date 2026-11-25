@@ -50,7 +50,7 @@ The one-level prototype and its five gameplay milestones are implemented. User-r
 
 The visual polish pass is implemented. The user reported that visual and gameplay regression checks passed; these were user-reported manual checks, not agent-run tests.
 
-The user reported that the shortened 248-word prototype forum post is live in Moodle as of 15 November 2026. This is not agent verification. The post links to the [1 minute 14 second YouTube demonstration](https://youtu.be/-NcNaK1Du_Q) and [GitHub repository](https://github.com/patwal-dev/hamk-ai-space-shooter). The user also reported successfully pushing commit `e16891c80e38957b7288df9cdf33404712eea258` to `origin/main`.
+The user reported that the shortened 248-word prototype forum post is live in Moodle as of 15 November 2026. This is not agent verification. The post links to the [1 minute 14 second YouTube demonstration](https://youtu.be/-NcNaK1Du_Q) and the GitHub repository, now named [Varnoks-Revenge](https://github.com/patwal-dev/Varnoks-Revenge). The user also reported successfully pushing commit `e16891c80e38957b7288df9cdf33404712eea258` to `origin/main`.
 
 ## Known prototype limitation
 

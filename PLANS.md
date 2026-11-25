@@ -4,7 +4,7 @@ Implementation status reflects code changes. Manual checks are recorded from my 
 
 ## Prototype submission status — complete (user report, 15 November 2026)
 
-The user reports that the shortened 248-word prototype forum post is live in Moodle and that commit `e16891c80e38957b7288df9cdf33404712eea258` was pushed to `origin/main`. Moodle status and the push are user-reported, not independently verified here. The submitted post links to the [YouTube demonstration](https://youtu.be/-NcNaK1Du_Q) (1 minute 14 seconds) and the [GitHub repository](https://github.com/patwal-dev/hamk-ai-space-shooter). The exact submitted text is in `PROTOTYPE_SUBMISSION.md`.
+The user reports that the shortened 248-word prototype forum post is live in Moodle and that commit `e16891c80e38957b7288df9cdf33404712eea258` was pushed to `origin/main`. Moodle status and the push are user-reported, not independently verified here. The submitted post links to the [YouTube demonstration](https://youtu.be/-NcNaK1Du_Q) (1 minute 14 seconds) and the GitHub repository, now named [Varnoks-Revenge](https://github.com/patwal-dev/Varnoks-Revenge). The submitted text is in `PROTOTYPE_SUBMISSION.md`, with the GitHub link updated after the rename.
 
 ## One-level prototype
 

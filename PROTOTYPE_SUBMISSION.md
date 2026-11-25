@@ -4,7 +4,7 @@
 
 The user reported that this shortened version was posted and is live in Moodle on 15 November 2026. Moodle's editor displayed 248 words. This is user-reported confirmation, not agent verification of Moodle. The user reports that it was shortened from the earlier repository draft to meet the 300-word maximum.
 
-The submitted text below is preserved as posted, including its TODO and schedule language. The first TODO item concerning prototype documentation and Moodle submission is now reported complete.
+The text below includes the original TODO and schedule language. The GitHub link was updated after the repository was renamed. The first TODO item concerning prototype documentation and Moodle submission is now reported complete.
 
 ## Submitted forum text
 
@@ -30,7 +30,7 @@ Planned work, not completed work or recorded hours:
 • 30 November–6 December: Refine bosses and balance; add sound, particles and transitions.
 • 7–13 December: Test, fix issues, and prepare final documentation, demonstration and submission.
 GitHub repository
-[https://github.com/patwal-dev/hamk-ai-space-shooter](https://github.com/patwal-dev/hamk-ai-space-shooter)
+[https://github.com/patwal-dev/Varnoks-Revenge](https://github.com/patwal-dev/Varnoks-Revenge)
 Prototype demonstration
 YouTube video, 1 minute 14 seconds:
 [https://youtu.be/-NcNaK1Du_Q](https://youtu.be/-NcNaK1Du_Q)

@@ -52,7 +52,7 @@ The user confirmed playback with narration in a private window. This is a user-p
 
 This later same-day report supersedes the preceding status note: the user confirmed that the prototype forum post was live in Moodle. Moodle's editor displayed 248 words. The submitted version was shortened from the earlier repository draft to meet the 300-word maximum; the exact submitted text is preserved in `PROTOTYPE_SUBMISSION.md`. This confirmation is user-reported and is not agent verification of Moodle.
 
-The submitted post linked to the YouTube demonstration at https://youtu.be/-NcNaK1Du_Q, which the user reported is 1 minute 14 seconds long, and to the repository at https://github.com/patwal-dev/hamk-ai-space-shooter. The user reported successfully pushing commit `e16891c80e38957b7288df9cdf33404712eea258` to `origin/main` from the VS Code terminal. The push is recorded as user-reported, not independently verified here.
+The submitted post linked to the YouTube demonstration at https://youtu.be/-NcNaK1Du_Q, which the user reported is 1 minute 14 seconds long, and to the repository, now at https://github.com/patwal-dev/Varnoks-Revenge. The user reported successfully pushing commit `e16891c80e38957b7288df9cdf33404712eea258` to `origin/main` from the VS Code terminal. The push is recorded as user-reported, not independently verified here.
 
 ## Local-model code review — 15 November 2026
 
