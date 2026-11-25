@@ -25,8 +25,8 @@ const shipSelectionBackButton = document.getElementById("ship-selection-back");
 const howToPlay = document.getElementById("how-to-play");
 const howToPlayButton = document.getElementById("show-how-to-play");
 const menuBackButton = document.getElementById("menu-back");
-const musicToggle = document.getElementById("music-toggle");
-const soundEffectsToggle = document.querySelector("[data-sound-effects-toggle]");
+const headerAudioButtons = document.querySelectorAll(".header-audio-controls button");
+const soundEffectsToggles = document.querySelectorAll("[data-sound-effects-toggle]");
 const soundEffectsStorageKey = "hamk-space-shooter-sound-effects";
 let soundEffectsEnabled = false;
 const restartButton = document.getElementById("restart");
@@ -34,22 +34,6 @@ const level2Button = document.getElementById("level-2");
 const level3Button = document.getElementById("level-3");
 const varnokDialogue = document.getElementById("varnok-dialogue");
 const varnokFightButton = document.getElementById("varnok-fight");
-const developerTestingPanel = document.getElementById("developer-testing");
-const developerBankEffect = document.getElementById("developer-bank-effect");
-const developerBossAnimationPanel = document.getElementById("developer-boss-animation");
-const developerExaggerateAnimation = document.getElementById("developer-exaggerate-animation");
-const developerBossAnimationReadout = document.getElementById("developer-boss-animation-readout");
-const developerMeasureCanvasButton = document.getElementById("developer-measure-canvas");
-const developerCanvasReadout = document.getElementById("developer-canvas-readout");
-const developerWaveEntranceReadout = document.getElementById("developer-wave-entrance");
-const developerLevelButtons = document.querySelectorAll("[data-developer-level]");
-const developerBossButtons = document.querySelectorAll("[data-developer-boss]");
-const developerCreditsButton = document.getElementById("developer-test-credits");
-const developerRewardButtons = document.querySelectorAll("[data-developer-reward]");
-const gameMain = document.querySelector("main");
-const DEVELOPER_MODE = true;
-let developerBossTestLevel = null;
-let developerForcedSupplyReward = null;
 
 const playerSpawnY = canvas.height - 52;
 const playerMinY = playerSpawnY - 60;
@@ -513,7 +497,6 @@ const waveEntranceDuration = 1.5;
 const wave2ColumnEntryOrder = [0, 2, 4, 1, 3, 5];
 const level1Wave2Entrances = [
   {
-    name: "Split entry",
     duration: 1.62,
     getPath(enemy, index) {
       const column = index % formationColumns;
@@ -523,7 +506,6 @@ const level1Wave2Entrances = [
     },
   },
   {
-    name: "Sweeping curve",
     duration: 1.45,
     getPath(enemy, index) {
       const column = index % formationColumns;
@@ -537,7 +519,6 @@ const level1Wave2Entrances = [
     },
   },
   {
-    name: "Alternating columns",
     duration: 1.45,
     getPath(_enemy, index) {
       const column = index % formationColumns;
@@ -665,7 +646,6 @@ function createEnemies() {
     right: Math.max(...slots.map((slot) => slot.x)) + enemySize / 2,
     bottom: Math.max(...slots.map((slot) => slot.y)) + enemySize / 2,
   } : null;
-  updateWaveReadout();
   startingEnemyCount = enemies.length;
 }
 
@@ -700,19 +680,9 @@ function updateFormationBeat(deltaSeconds) {
   playSoundEffect(formationAlternatePose ? "formationTick" : "formationTock");
 }
 
-function updateWaveReadout(pattern = null) {
-  if (!DEVELOPER_MODE) return;
-  const lines = [];
-  if (pattern) lines.push(`Wave 2 entrance: ${pattern.name}`);
-  if (regularFormation) lines.push(`Formation: ${regularFormation.shape}`);
-  developerWaveEntranceReadout.textContent = lines.join("\n");
-  developerWaveEntranceReadout.hidden = lines.length === 0;
-}
-
 function clearWaveEntrance() {
   waveEntrance = null;
   regularFormation = null;
-  updateWaveReadout();
 }
 
 function startWaveEntrance() {
@@ -722,7 +692,6 @@ function startWaveEntrance() {
     const roll = crypto.getRandomValues(new Uint32Array(1))[0] / 0x100000000;
     pattern = level1Wave2Entrances[Math.floor(roll * level1Wave2Entrances.length)];
   }
-  updateWaveReadout(pattern);
 
   const lowestEdge = Math.max(...enemies.map((enemy) => enemy.y + enemy.height / 2));
   const entranceOffset = -lowestEdge - 1;
@@ -905,7 +874,7 @@ function startLevel3BossFight() {
   previousFrameTime = 0;
 }
 
-function startVarnokBossFight(showIntro = false) {
+function startVarnokBossFight() {
   if (currentLevel !== 3 || lives <= 0 || boss !== null || gameState !== "playing") return;
 
   destructionFragments.length = 0;
@@ -932,9 +901,6 @@ function startVarnokBossFight(showIntro = false) {
   clearWaveEntrance();
   bossChargeElapsed = null;
   nextBossAttackTime = null;
-  bossIntroElapsed = null;
-  bossIntroStartY = null;
-  bossIntroTargetY = null;
   boss = {
     type: "varnok",
     level: 4,
@@ -965,16 +931,14 @@ function startVarnokBossFight(showIntro = false) {
   formationAlternatePose = false;
   level2BomberTimer = level2BomberDelay;
   chooseNextRandomizedBossDestination(boss);
-  if (showIntro) {
-    bossIntroElapsed = 0;
-    bossIntroStartY = -boss.height;
-    bossIntroTargetY = boss.y;
-    boss.y = bossIntroStartY;
-  }
+  bossIntroElapsed = 0;
+  bossIntroStartY = -boss.height;
+  bossIntroTargetY = boss.y;
+  boss.y = bossIntroStartY;
   nextShotTime = 0;
   currentWave = level3WaveCount;
   keysDown.clear();
-  gameState = showIntro ? "bossIntro" : "playing";
+  gameState = "bossIntro";
   restartButton.hidden = true;
   level2Button.hidden = true;
   level3Button.hidden = true;
@@ -1037,9 +1001,7 @@ function updateBossIntro(deltaSeconds) {
 function startLevel2() {
   clearLevel2BossEncounter();
   pendingEnemyRepeats.length = 0;
-  if (developerForcedSupplyReward !== null) setDeveloperSupplyReward(null);
   playerBank = 0;
-  developerBossTestLevel = null;
   currentLevel = 2;
   currentWave = 1;
   barriers = [];
@@ -1077,9 +1039,7 @@ function startLevel2() {
 function startLevel3() {
   clearLevel2BossEncounter();
   pendingEnemyRepeats.length = 0;
-  if (developerForcedSupplyReward !== null) setDeveloperSupplyReward(null);
   playerBank = 0;
-  developerBossTestLevel = null;
   currentLevel = 3;
   currentWave = 1;
   resetLevel3Descent();
@@ -1151,26 +1111,6 @@ function showLevel2ClearedScreen() {
   level3Button.hidden = false;
 }
 
-function showLevel3BossDefeatedScreen() {
-  pendingEnemyRepeats.length = 0;
-  gameState = "level3BossDefeated";
-  boss = null;
-  clearDiveBomberState();
-  level2BonusShip = null;
-  level2BonusShipTimer = 0;
-  level2Pickups.length = 0;
-  clearLevel2Shield();
-  playerShieldProtectedUntil = 0;
-  level2ActiveWeapon = null;
-  level2PickupMessageTimeRemaining = 0;
-  keysDown.clear();
-  shots.length = 0;
-  enemyShots.length = 0;
-  restartButton.hidden = false;
-  level2Button.hidden = true;
-  level3Button.hidden = true;
-}
-
 function clearCombatForEnding() {
   destructionFragments.length = 0;
   playerDeathStartedAt = null;
@@ -1198,19 +1138,17 @@ function clearCombatForEnding() {
 }
 
 function finishVarnokEncounter() {
-  const isBossTest = developerBossTestLevel === 4;
-  gameState = isBossTest ? "varnokBossDefeated" : "endingSummary";
+  gameState = "endingSummary";
   clearCombatForEnding();
-  restartButton.hidden = !isBossTest;
+  restartButton.hidden = true;
   level2Button.hidden = true;
   level3Button.hidden = true;
 }
 
-function startCredits(fadeIn = false) {
+function startCredits() {
   gameState = "credits";
   summaryFadeElapsed = null;
   clearCombatForEnding();
-  developerBossTestLevel = null;
   clearWaveEntrance();
   resetLevel3Descent();
   bossIntroElapsed = null;
@@ -1225,7 +1163,7 @@ function startCredits(fadeIn = false) {
   const layout = createCreditsLayout();
   const run = {
     elapsed: 0, layout, audioPosition: 0, readPlayback: null, audioFinished: false,
-    postSongElapsed: 0, fadeIn,
+    postSongElapsed: 0,
   };
   creditsRun = run;
   previousFrameTime = 0;
@@ -2460,9 +2398,7 @@ function restartGame() {
   pendingEnemyRepeats.length = 0;
   combatElapsed = 0;
   playerDeathStartedAt = null;
-  if (developerForcedSupplyReward !== null) setDeveloperSupplyReward(null);
   playerBank = 0;
-  developerBossTestLevel = null;
   summaryFadeElapsed = null;
   creditsRun = null;
   score = 0;
@@ -2522,136 +2458,6 @@ function notifyMusicTrack(track, crossfade = false, creditsTimeline) {
   }));
 }
 
-function setDeveloperSupplyReward(reward) {
-  developerForcedSupplyReward = reward;
-  for (const button of developerRewardButtons) {
-    button.setAttribute("aria-pressed", String(button.dataset.developerReward === reward));
-  }
-}
-
-function measureDeveloperCanvas() {
-  if (developerMeasureCanvasButton.disabled) return;
-  const rect = canvas.getBoundingClientRect();
-  const style = window.getComputedStyle(canvas);
-  const pixels = (property) => Number.parseFloat(style[property]) || 0;
-  const width = rect.width - pixels("borderLeftWidth") - pixels("borderRightWidth")
-    - pixels("paddingLeft") - pixels("paddingRight");
-  const height = rect.height - pixels("borderTopWidth") - pixels("borderBottomWidth")
-    - pixels("paddingTop") - pixels("paddingBottom");
-  const ratio = (bitmap, display) => display > 0 ? (bitmap / display).toFixed(3) : "—";
-  const sampleDuration = 3000;
-  const summary = [
-    `Bitmap ${canvas.width} × ${canvas.height} px`,
-    `Display content ${width.toFixed(2)} × ${height.toFixed(2)} CSS px`,
-    `Device pixel ratio ${window.devicePixelRatio}`,
-    `Bitmap px per CSS px  X ${ratio(canvas.width, width)}  Y ${ratio(canvas.height, height)}`,
-    "",
-    "Browser animation-frame intervals",
-  ].join("\n");
-
-  developerMeasureCanvasButton.disabled = true;
-  developerCanvasReadout.textContent = `${summary}\nMeasuring for 3 s…`;
-  const intervals = [];
-  let startTime;
-  let previousTime;
-  function sample(frameTime) {
-    if (startTime === undefined) startTime = frameTime;
-    if (previousTime !== undefined) intervals.push(frameTime - previousTime);
-    previousTime = frameTime;
-    if (frameTime - startTime < sampleDuration) {
-      requestAnimationFrame(sample);
-      return;
-    }
-
-    intervals.sort((a, b) => a - b);
-    const middle = Math.floor(intervals.length / 2);
-    const median = intervals.length % 2 === 0
-      ? (intervals[middle - 1] + intervals[middle]) / 2
-      : intervals[middle];
-    developerCanvasReadout.textContent = `${summary}\nMedian ${median.toFixed(2)} ms\nLongest ${intervals.at(-1).toFixed(2)} ms`;
-    developerMeasureCanvasButton.disabled = false;
-  }
-  requestAnimationFrame(sample);
-}
-
-function updateDeveloperBossAnimationReadout(boss1DrawPath, boss2DrawPaths) {
-  const layerStatus = (artwork) => artwork.ready ? "Loaded" : artwork.failed ? "Failed" : "Loading";
-  const lines = developerBossTestLevel === 1 ? [
-    `Sacs: ${layerStatus(sporeChoirSac)}`,
-    `Membrane: ${layerStatus(sporeChoirMembrane)}`,
-    `Face: ${layerStatus(sporeChoirFace)}`,
-    "",
-    "Renderer",
-    boss1DrawPath,
-    `Clock: ${combatElapsed.toFixed(1)} s`,
-  ] : [
-    `Armour: ${layerStatus(ironSepulchreArmour)}`,
-    `Vents: ${layerStatus(ironSepulchreVents)}`,
-    `Center: ${layerStatus(ironSepulchreCenter)}`,
-  ];
-  level2Bosses.forEach((targetBoss, index) => {
-    let label = "Renderer";
-    if (targetBoss.patrolBounds !== null) {
-      label = targetBoss.patrolBounds.maxX < canvas.width / 2 ? "Left renderer" : "Right renderer";
-    }
-    lines.push("", label, boss2DrawPaths[index],
-      `Phase: ${targetBoss.attackPhase}`,
-      `Elapsed: ${targetBoss.attackPhaseElapsed.toFixed(1)} s`);
-  });
-  const readout = lines.join("\n");
-  if (developerBossAnimationReadout.textContent !== readout) {
-    developerBossAnimationReadout.textContent = readout;
-  }
-}
-
-function startDeveloperTestLevel(level) {
-  if (!DEVELOPER_MODE) return;
-  selectedShipId = defaultShipId;
-  restartGame();
-  if (level === 2) startLevel2();
-  else if (level === 3) startLevel3();
-  notifyMusicTrack(currentLevel);
-}
-
-function startDeveloperTestBoss(level) {
-  if (!DEVELOPER_MODE || level < 1 || level > 4) return;
-
-  selectedShipId = defaultShipId;
-  restartGame();
-  if (level === 2) startLevel2();
-  else if (level === 3 || level === 4) startLevel3();
-
-  enemies.length = 0;
-  clearDiveBomberState();
-  shots.length = 0;
-  enemyShots.length = 0;
-  level2BonusShip = null;
-  level2Pickups.length = 0;
-  clearLevel2Shield();
-  playerShieldProtectedUntil = 0;
-  level2ActiveWeapon = null;
-  level2PickupMessageTimeRemaining = 0;
-  nextEnemyShotTime = null;
-  clearWaveEntrance();
-  currentWave = level === 1 ? level1WaveCount
-    : level === 2 ? level2WaveCount : level3WaveCount;
-
-  if (level === 1) {
-    startBossFight();
-    gameState = "playing";
-  } else if (level === 2) {
-    startLevel2BossFight();
-  } else if (level === 3) {
-    startLevel3BossFight();
-  } else {
-    startVarnokBossFight();
-  }
-  developerBossTestLevel = level;
-  if (level === 1 || level === 2) developerExaggerateAnimation.checked = false;
-  previousFrameTime = 0;
-  notifyMusicTrack(currentLevel);
-}
-
 function resetStartSelection() {
   shipSelection.reset();
   selectedDifficulty = defaultDifficulty;
@@ -2691,13 +2497,18 @@ menuBackButton.addEventListener("click", () => {
   menuOptions.hidden = false;
   howToPlayButton.focus();
 });
-musicToggle.addEventListener("click", (event) => {
-  if (gameState === "playing" && event.detail > 0) canvas.focus({ preventScroll: true });
-});
+for (const button of headerAudioButtons) {
+  button.addEventListener("click", () => {
+    if (gameState === "playing" || gameState === "bossIntro") canvas.focus({ preventScroll: true });
+  });
+}
 
-function updateSoundEffectsToggle() {
-  soundEffectsToggle.textContent = soundEffectsEnabled ? "Sound effects: On" : "Sound effects: Off";
-  soundEffectsToggle.setAttribute("aria-pressed", String(soundEffectsEnabled));
+function updateSoundEffectsToggles() {
+  for (const button of soundEffectsToggles) {
+    const label = button.dataset.soundEffectsToggle || "Sound effects";
+    button.textContent = `${label}: ${soundEffectsEnabled ? "On" : "Off"}`;
+    button.setAttribute("aria-pressed", String(soundEffectsEnabled));
+  }
 }
 
 function playSoundEffect(name) {
@@ -2713,12 +2524,12 @@ try {
 } catch {
   // Keep the default when storage is unavailable.
 }
-updateSoundEffectsToggle();
+updateSoundEffectsToggles();
 document.addEventListener("click", unlockSoundEffects, true);
 document.addEventListener("keydown", unlockSoundEffects, true);
-soundEffectsToggle.addEventListener("click", (event) => {
+function toggleSoundEffects(event) {
   soundEffectsEnabled = !soundEffectsEnabled;
-  updateSoundEffectsToggle();
+  updateSoundEffectsToggles();
   if (soundEffectsEnabled) unlockSoundEffects(event);
   else gameSoundEffects.silence();
   try {
@@ -2726,39 +2537,15 @@ soundEffectsToggle.addEventListener("click", (event) => {
   } catch {
     // Keep the new value for the current page.
   }
-});
+}
+for (const button of soundEffectsToggles) {
+  button.addEventListener("click", toggleSoundEffects);
+}
 
 restartButton.addEventListener("click", () => {
   restartGame();
   notifyMusicTrack(currentLevel);
 });
-if (DEVELOPER_MODE) {
-  gameMain.classList.add("developer-mode");
-  developerTestingPanel.hidden = false;
-  developerMeasureCanvasButton.addEventListener("click", measureDeveloperCanvas);
-  developerBankEffect.addEventListener("click", (event) => {
-    if (gameState === "playing" && event.detail > 0) canvas.focus({ preventScroll: true });
-  });
-  developerExaggerateAnimation.addEventListener("click", (event) => {
-    if (gameState === "playing" && event.detail > 0) canvas.focus({ preventScroll: true });
-  });
-  developerLevelButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      startDeveloperTestLevel(Number(button.dataset.developerLevel));
-    });
-  });
-  developerBossButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      startDeveloperTestBoss(Number(button.dataset.developerBoss));
-    });
-  });
-  developerCreditsButton.addEventListener("click", () => startCredits());
-  developerRewardButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      setDeveloperSupplyReward(button.dataset.developerReward);
-    });
-  });
-}
 level2Button.addEventListener("click", () => {
   if (gameState !== "level1Cleared") return;
   startLevel2();
@@ -2788,17 +2575,11 @@ window.addEventListener("keydown", (event) => {
     return;
   }
   // A key held through the reveal needs a fresh press to control the player.
-  const ignoreHeldInput = boss?.level === 4 && developerBossTestLevel !== 4 && event.repeat;
+  const ignoreHeldInput = boss?.level === 4 && event.repeat;
   const key = event.key.toLowerCase();
-  if (key === "k" && !event.repeat && DEVELOPER_MODE
-    && developerBossTestLevel === 4 && gameState === "playing" && boss?.level === 4) {
-    event.preventDefault();
-    applyBossDamage(boss.health);
-  } else if (event.code === "Space") {
-    if (event.target === developerBankEffect || event.target === developerExaggerateAnimation
-      || event.target === developerCreditsButton
-      || event.target === continueToCreditsButton) return;
-    if (event.target === musicToggle || event.target === soundEffectsToggle
+  if (event.code === "Space") {
+    if (event.target === continueToCreditsButton
+      || event.target.matches?.("[data-music-toggle], [data-sound-effects-toggle]")
       || (gameState === "loss" && event.target === restartButton)) return;
     event.preventDefault();
     if (gameState !== "credits" && !ignoreHeldInput) keysDown.add("space");
@@ -3407,9 +3188,7 @@ function handleShotCollisions(deltaSeconds, frameTime) {
       level2BonusShip = null;
       playSoundEffect("enemyDestroyed");
       level2BonusShipTimer = randomLevel2BonusShipDelay();
-      const reward = developerForcedSupplyReward
-        ?? supplyRewards[Math.floor(Math.random() * supplyRewards.length)];
-      if (developerForcedSupplyReward !== null) setDeveloperSupplyReward(null);
+      const reward = supplyRewards[Math.floor(Math.random() * supplyRewards.length)];
       level2Pickups.push({
         x: pickupX,
         y: pickupY,
@@ -3524,13 +3303,9 @@ function applyBossDamage(damage, frameTime = performance.now(), targetBoss = bos
   } else if (targetBoss.level === 3) {
     score += level3BossDefeatBonus;
     scoreDisplay.textContent = score;
-    if (developerBossTestLevel === 3) {
-      showLevel3BossDefeatedScreen();
-    } else {
-      clearLevel3BossEncounterState();
-      boss = null;
-      startVarnokBossFight(true);
-    }
+    clearLevel3BossEncounterState();
+    boss = null;
+    startVarnokBossFight();
   } else if (targetBoss.level === 4) {
     score += varnokBossDefeatBonus;
     scoreDisplay.textContent = score;
@@ -3664,27 +3439,22 @@ function drawPlayer(frameTime) {
   }
   const isFlashing = frameTime < playerInvulnerableUntil
     && Math.floor(frameTime / 75) % 2 === 0;
-  const bankEffect = !DEVELOPER_MODE || developerBankEffect.checked;
   const bankAmount = Math.abs(playerBank);
+  const widthScale = 1 - (1 - playerFullBankWidthScale) * bankAmount;
   context.save();
-  if (bankEffect) {
-    const widthScale = 1 - (1 - playerFullBankWidthScale) * bankAmount;
-    context.translate(player.x, player.y);
-    context.rotate(playerBank * playerMaxBankRotation);
-    context.transform(widthScale, playerBank * playerMaxBankSkew, 0, 1, 0, 0);
-  }
+  context.translate(player.x, player.y);
+  context.rotate(playerBank * playerMaxBankRotation);
+  context.transform(widthScale, playerBank * playerMaxBankSkew, 0, 1, 0, 0);
   const artwork = shipArtwork[selectedShipId];
   if (artwork.flashImage !== null) {
     const height = Math.min(player.height, player.width * artwork.height / artwork.width);
     const width = height * artwork.width / artwork.height;
-    const centerX = bankEffect ? 0 : player.x;
-    const centerY = bankEffect ? 0 : player.y;
     // Align each nose with the existing firing point, even when the sprite is shorter.
-    const top = centerY - player.height / 2;
+    const top = -player.height / 2;
     context.drawImage(isFlashing ? artwork.flashImage : artwork.image,
-      centerX - width / 2, top, width, height);
+      -width / 2, top, width, height);
     const farWingShade = artwork.wingShades[playerBank < 0 ? 1 : 0];
-    if (bankEffect && !isFlashing && farWingShade && bankAmount > 0) {
+    if (!isFlashing && farWingShade && bankAmount > 0) {
       context.globalAlpha *= bankAmount;
       context.drawImage(farWingShade, -width / 2, top, width, height);
     }
@@ -3692,7 +3462,7 @@ function drawPlayer(frameTime) {
     return;
   }
 
-  if (bankEffect) context.translate(-player.x, -player.y);
+  context.translate(-player.x, -player.y);
   context.fillStyle = isFlashing ? "#ffffff" : "#48c9ef";
   context.beginPath();
   context.moveTo(player.x, player.y - player.height / 2);
@@ -4018,12 +3788,13 @@ function drawBoss(boss, frameTime, hatchOpening = 0) {
 
   const remaining = (boss.hitFlashUntil ?? 0) - frameTime;
   if (remaining <= 0 || bossFlashContext === null) {
-    return drawBossArtwork(context, frameTime, hatchOpening, boss);
+    drawBossArtwork(context, frameTime, hatchOpening, boss);
+    return;
   }
 
   bossFlashContext.clearRect(0, 0, bossFlashCanvas.width, bossFlashCanvas.height);
   bossFlashContext.save();
-  const drawPath = drawBossArtwork(bossFlashContext, frameTime, hatchOpening, boss);
+  drawBossArtwork(bossFlashContext, frameTime, hatchOpening, boss);
   // Tint only the pixels of this frame's artwork, keeping its transparency and detail.
   bossFlashContext.globalCompositeOperation = "source-atop";
   bossFlashContext.globalAlpha = 0.28 * Math.min(1, remaining / bossHitFlashDuration);
@@ -4031,7 +3802,6 @@ function drawBoss(boss, frameTime, hatchOpening = 0) {
   bossFlashContext.fillRect(0, 0, bossFlashCanvas.width, bossFlashCanvas.height);
   bossFlashContext.restore();
   context.drawImage(bossFlashCanvas, 0, 0);
-  return drawPath;
 }
 
 function updateSporeChoirBlink() {
@@ -4064,11 +3834,11 @@ function drawSporeChoirPulse(context, interior, x, y, radius, power) {
   context.restore();
 }
 
-function drawSporeChoirLayers(context, boss, left, top, exaggerate, blink = sporeChoirBlink, elapsed = combatElapsed) {
+function drawSporeChoirLayers(context, boss, left, top, blink = sporeChoirBlink, elapsed = combatElapsed) {
   const { organ, startedAt } = blink;
   const progress = Math.min((elapsed - startedAt) / sporeChoirBlinkDuration, 1);
   const power = progress < 1 ? Math.sin(Math.PI * progress) : 0;
-  const spread = exaggerate ? 28 : 22;
+  const spread = 22;
 
   context.save();
   context.translate(left, top);
@@ -4113,7 +3883,7 @@ function drawSporeChoirLayers(context, boss, left, top, exaggerate, blink = spor
   context.restore();
 }
 
-function drawIronSepulchreLayers(context, boss, left, top, exaggerate) {
+function drawIronSepulchreLayers(context, boss, left, top) {
   const elapsed = boss.attackPhaseElapsed;
   let deployment = 0;
   let ventPower = 0;
@@ -4137,8 +3907,8 @@ function drawIronSepulchreLayers(context, boss, left, top, exaggerate) {
   }
   const easedDeployment = deployment * deployment * (3 - 2 * deployment);
   // Translate each plate in the SVG's coordinate space by up to 11 logical pixels.
-  const extension = (exaggerate ? 16 : 11) * easedDeployment * 112 / boss.width;
-  const idleGlow = exaggerate ? 0.04 : 0.17;
+  const extension = 11 * easedDeployment * 112 / boss.width;
+  const idleGlow = 0.17;
   const bodyAlpha = context.globalAlpha;
 
   context.save();
@@ -4221,19 +3991,16 @@ function drawBossArtwork(context, frameTime, hatchOpening, boss) {
     return;
   }
 
-  const exaggerate = DEVELOPER_MODE && developerBossTestLevel === boss.level
-    && (gameState === "playing" || gameState === "bossIntro" || gameState === "playerDeath")
-    && developerExaggerateAnimation.checked;
   if (boss.level === 2) {
     const left = boss.x - boss.width / 2;
     const top = boss.y - boss.height / 2;
     if (ironSepulchreArmour.ready && ironSepulchreVents.ready && ironSepulchreCenter.ready) {
-      drawIronSepulchreLayers(context, boss, left, top, exaggerate);
-      return "Animated layers";
+      drawIronSepulchreLayers(context, boss, left, top);
+      return;
     }
     if (ironSepulchreImageReady) {
       context.drawImage(ironSepulchreImage, left, top, boss.width, boss.height);
-      return "Static SVG fallback";
+      return;
     }
 
     context.fillStyle = "#663b91";
@@ -4248,18 +4015,18 @@ function drawBossArtwork(context, frameTime, hatchOpening, boss) {
     context.fill();
     context.fillStyle = "#dc8cff";
     context.fillRect(boss.x - boss.width * 0.19, top + boss.height * 0.32, boss.width * 0.38, boss.height * 0.4);
-    return "Shape fallback";
+    return;
   }
 
   const left = boss.x - boss.width / 2;
   const top = boss.y - boss.height / 2;
   if (sporeChoirSac.ready && sporeChoirMembrane.ready && sporeChoirFace.ready) {
-    drawSporeChoirLayers(context, boss, left, top, exaggerate);
-    return "Animated layers";
+    drawSporeChoirLayers(context, boss, left, top);
+    return;
   }
   if (sporeChoirImageReady) {
     context.drawImage(sporeChoirImage, left, top, boss.width, boss.height);
-    return "Static SVG fallback";
+    return;
   }
 
   context.fillStyle = "#9d6be8";
@@ -4275,7 +4042,6 @@ function drawBossArtwork(context, frameTime, hatchOpening, boss) {
 
   context.fillStyle = "#f5e6ff";
   context.fillRect(left + boss.width * 0.27, top + boss.height * 0.38, boss.width * 0.46, 7);
-  return "Shape fallback";
 }
 
 function drawVarnokBoss(context, frameTime, hatchOpening) {
@@ -4422,18 +4188,6 @@ const resultViews = {
   },
   loss: { title: "Game over", theme: "loss" },
   win: { title: "You win", details: "Choose Restart to play again", theme: "clear" },
-  level3BossDefeated: {
-    title: `${bossDisplayNames.zhurKai} defeated`,
-    details: "Encounter complete. Choose Restart to play again.",
-    art: crownMawBody.image.src,
-    theme: "clear",
-  },
-  varnokBossDefeated: {
-    title: `${bossDisplayNames.varnok} defeated`,
-    details: "Encounter complete. Choose Restart to play again.",
-    art: varnokPortrait,
-    theme: "victory",
-  },
   endingSummary: {
     title: `${bossDisplayNames.zhurKai} and ${bossDisplayNames.varnok} defeated`,
     bonusText: [
@@ -4524,8 +4278,7 @@ const creditsDevelopment = [
   "Perplexity Computer - Concept workshops, game graphics, background graphics, artwork, alien and boss designs",
   "VS Code + Codex (ChatGPT Plus, Luna 6 medium and GPT-6.2 Sol medium) - Game design, sound effects, writing code and Perplexity sanity check",
   "ElevenLabs - Voice acting",
-  // Provisional draft credit. The planned final local-model reviews have not run.
-  "Local models Gemma-4-e4b and Qwen3.5-9b - reviewing code",
+  "Gemma 4 E4B and Qwen 3.5 9B - audio-control code reviews",
 ];
 const creditsMusic = ["Suno - @backstageriot"];
 const creditsClosing = ["Last but not least, my family for putting up with my endless tinkering!"];
@@ -4623,7 +4376,7 @@ function drawCreditsPortrait(member, centerX, centerY, elapsed) {
     }
   } else if (bossLevel === 1 && sporeChoirSac.ready && sporeChoirMembrane.ready && sporeChoirFace.ready) {
     const pulseIndex = Math.floor(elapsed / 0.85);
-    drawSporeChoirLayers(context, preview, -width / 2, -height / 2, false,
+    drawSporeChoirLayers(context, preview, -width / 2, -height / 2,
       { organ: pulseIndex % 3, startedAt: pulseIndex * 0.85 }, elapsed);
   } else {
     drawBossArtwork(context, elapsed * 1000, 0, preview);
@@ -4731,13 +4484,6 @@ function drawFrame(frameTime) {
   const sceneFrameTime = playerDying ? playerDeathStartedAt : frameTime;
   if (gameState !== "playing" && !playerDying) playerBank = 0;
   updateResultPanel();
-  const showBossAnimationDiagnostics = DEVELOPER_MODE
-    && (gameState === "playing" || gameState === "bossIntro" || playerDying)
-    && (developerBossTestLevel === 1 ? boss?.level === 1
-      : developerBossTestLevel === 2 && level2Bosses.length > 0);
-  if (developerBossAnimationPanel.hidden === showBossAnimationDiagnostics) {
-    developerBossAnimationPanel.hidden = !showBossAnimationDiagnostics;
-  }
   context.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
   if (gameState === "menu") return;
@@ -4752,7 +4498,7 @@ function drawFrame(frameTime) {
   if (gameState === "credits") {
     drawRollingCredits();
     const fadeProgress = creditsRun.elapsed / endingFadeDuration;
-    if (creditsRun.fadeIn && fadeProgress < 1) drawSceneFade(1 - fadeProgress);
+    if (fadeProgress < 1) drawSceneFade(1 - fadeProgress);
     return;
   }
   const varnokOnScreen = boss?.level === 4;
@@ -4784,15 +4530,8 @@ function drawFrame(frameTime) {
       if (varnokMinionShots.has(shot)) drawEnemyShot(shot);
     }
   }
-  const boss1DrawPath = drawBoss(boss, sceneFrameTime, hatchOpening);
-  const boss2DrawPaths = showBossAnimationDiagnostics ? [] : null;
-  for (const targetBoss of level2Bosses) {
-    const drawPath = drawBoss(targetBoss, sceneFrameTime);
-    boss2DrawPaths?.push(drawPath);
-  }
-  if (showBossAnimationDiagnostics) {
-    updateDeveloperBossAnimationReadout(boss1DrawPath, boss2DrawPaths);
-  }
+  drawBoss(boss, sceneFrameTime, hatchOpening);
+  for (const targetBoss of level2Bosses) drawBoss(targetBoss, sceneFrameTime);
   if (emerging.length > 0) drawVarnokHatchlings(emerging, hatchOpening);
   drawBarriers();
   for (const shot of shots) {
@@ -4822,7 +4561,7 @@ function gameLoop(frameTime) {
     else updateDestructionFragments(frameTime / 1000);
   } else if (gameState === "endingSummary" && summaryFadeElapsed !== null) {
     summaryFadeElapsed += deltaSeconds;
-    if (summaryFadeElapsed >= endingFadeDuration) startCredits(true);
+    if (summaryFadeElapsed >= endingFadeDuration) startCredits();
   } else if (gameState === "credits") {
     updateCredits(deltaSeconds);
   } else if (gameState === "bossIntro") {

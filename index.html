@@ -3,27 +3,30 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HAMK AI Project – Space Shooter</title>
+  <title>Varnok's Revenge</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main>
-    <header class="game-header">
-      <h1>Space Shooter</h1>
-      <button id="music-toggle" type="button" data-music-toggle aria-label="Music" aria-pressed="false">Music: Off</button>
-    </header>
-    <div id="game-status" class="status" aria-live="polite" hidden>
-      <span>Score: <strong id="score">0</strong></span>
-      <span id="difficulty">Easy</span>
-      <span>Lives: <strong id="lives">3</strong></span>
-    </div>
     <div class="game-stage">
+      <header class="game-header">
+        <h1>VARNOK'S REVENGE</h1>
+        <div class="header-audio-controls" role="group" aria-label="Audio settings">
+          <button type="button" data-sound-effects-toggle="FX" aria-label="FX (sound effects)" aria-pressed="false">FX: Off</button>
+          <button type="button" data-music-toggle aria-label="Music" aria-pressed="false">Music: Off</button>
+        </div>
+      </header>
+      <div id="game-status" class="status" aria-live="polite" hidden>
+        <span>Score: <strong id="score">0</strong></span>
+        <span id="difficulty">Easy</span>
+        <span>Lives: <strong id="lives">3</strong></span>
+      </div>
       <div class="play-area">
         <canvas id="game" width="800" height="600" aria-label="Space game area" tabindex="-1"></canvas>
         <div id="main-menu" class="screen-overlay main-menu">
           <section class="neon-panel menu-panel">
             <nav id="menu-options" aria-labelledby="menu-title">
-              <h2 id="menu-title">Space Shooter</h2>
+              <h2 id="menu-title">VARNOK'S REVENGE</h2>
               <div id="menu-aliens" class="menu-aliens" aria-hidden="true"></div>
               <div class="menu-controls">
                 <button id="start-game" type="button">Start Game</button>
@@ -100,46 +103,6 @@
           </section>
         </div>
       </div>
-      <aside id="developer-testing" class="developer-panel" aria-labelledby="developer-testing-title" hidden>
-        <h2 id="developer-testing-title">Developer testing</h2>
-        <label class="developer-bank-toggle">
-          <input id="developer-bank-effect" type="checkbox" checked autocomplete="off">
-          Bank effect
-        </label>
-        <div class="developer-level-buttons">
-          <button type="button" data-developer-level="1">Level 1</button>
-          <button type="button" data-developer-level="2">Level 2</button>
-          <button type="button" data-developer-level="3">Level 3</button>
-        </div>
-        <output id="developer-wave-entrance" class="developer-wave-entrance" aria-live="polite" hidden></output>
-        <h2>Boss tests</h2>
-        <div class="developer-boss-buttons">
-          <button type="button" data-developer-boss="1">Test Boss 1</button>
-          <button type="button" data-developer-boss="2">Test Boss 2</button>
-          <button type="button" data-developer-boss="3">Test Boss 3</button>
-          <button type="button" data-developer-boss="4">Test Boss 4</button>
-          <button id="developer-test-credits" type="button">Test Credits</button>
-        </div>
-        <section id="developer-boss-animation" class="developer-boss-animation" aria-labelledby="developer-boss-animation-title" hidden>
-          <h2 id="developer-boss-animation-title">Boss animation diagnostics</h2>
-          <label class="developer-bank-toggle">
-            <input id="developer-exaggerate-animation" type="checkbox" autocomplete="off">
-            Exaggerate animation
-          </label>
-          <div id="developer-boss-animation-readout"></div>
-        </section>
-        <h2>Force next supply drop</h2>
-        <div class="developer-boss-buttons developer-reward-buttons">
-          <button type="button" data-developer-reward="shield" aria-pressed="false">Shield</button>
-          <button type="button" data-developer-reward="machinegun" aria-pressed="false">Machinegun</button>
-          <button type="button" data-developer-reward="double" aria-pressed="false">Double shot</button>
-          <button type="button" data-developer-reward="spread" aria-pressed="false">Spread shot</button>
-        </div>
-        <div class="developer-boss-buttons developer-canvas-measurement">
-          <button id="developer-measure-canvas" type="button">Measure Canvas</button>
-          <output id="developer-canvas-readout" aria-live="polite"></output>
-        </div>
-      </aside>
     </div>
     <button id="restart" type="button" hidden>Restart</button>
     <button id="level-2" type="button" hidden>Level 2</button>

@@ -1,3 +1,11 @@
+@font-face {
+  font-family: Firjar;
+  src: url("Fonts/Firjar/static/Firjar-Bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -21,24 +29,30 @@ main {
   text-align: center;
 }
 
-main.developer-mode {
-  width: min(100%, 1040px);
-}
-
 .game-header {
+  grid-area: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px 16px;
   margin-bottom: 10px;
+  text-align: left;
 }
 
-h1 {
+.header-audio-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-inline-start: auto;
+}
+
+.game-header h1 {
   margin: 0;
   color: #d9f6ff;
   font-size: clamp(1.5rem, 4vw, 2rem);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.035em;
   text-transform: uppercase;
 }
 
@@ -50,6 +64,7 @@ p {
 }
 
 .status {
+  grid-area: 2 / 1;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -82,14 +97,14 @@ canvas {
 }
 
 .game-stage {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
 }
 
 .play-area {
+  grid-area: 3 / 1;
   position: relative;
-  flex: 1;
   min-width: 0;
 }
 
@@ -127,6 +142,19 @@ canvas {
   letter-spacing: 0.035em;
   text-transform: uppercase;
   text-shadow: 0 0 16px var(--halo);
+}
+
+.game-header h1,
+#menu-title {
+  font-family: Firjar, Arial, Helvetica, sans-serif;
+  font-weight: 700;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+#menu-title {
+  font-size: clamp(1.25rem, 4.8vw, 2.75rem);
+  letter-spacing: 0.02em;
 }
 
 .menu-panel {
@@ -381,103 +409,8 @@ canvas {
   margin-bottom: 0;
 }
 
-.game-header button,
 .menu-controls button:first-child {
   margin-top: 0;
-}
-
-.developer-panel {
-  flex: 0 0 160px;
-  padding: 12px;
-  border: 1px solid #263a54;
-  border-radius: 8px;
-  background: #0c1726;
-  text-align: left;
-}
-
-.developer-panel[hidden] {
-  display: none;
-}
-
-.developer-panel h2 {
-  margin: 0 0 10px;
-  color: #c8d8ea;
-  font-size: 0.9rem;
-}
-
-.developer-bank-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-  font-size: 0.85rem;
-}
-
-.developer-level-buttons {
-  display: grid;
-  gap: 8px;
-}
-
-.developer-level-buttons button {
-  width: 100%;
-  margin: 0;
-  padding: 8px 10px;
-  font-size: 0.85rem;
-}
-
-.developer-wave-entrance:not([hidden]) {
-  display: block;
-  margin: 8px 0;
-  color: #d9f6ff;
-  font-size: 0.8rem;
-  white-space: pre-line;
-}
-
-.developer-boss-buttons {
-  display: grid;
-  gap: 8px;
-}
-
-.developer-boss-buttons button {
-  width: 100%;
-  margin: 0;
-  padding: 8px 10px;
-  font-size: 0.85rem;
-}
-
-.developer-reward-buttons button[aria-pressed="true"] {
-  border-color: #ffe08a;
-  color: #ffe08a;
-}
-
-.developer-boss-animation {
-  margin: 12px 0;
-  padding: 8px;
-  border: 1px solid #46829a;
-  border-radius: 6px;
-  background: #07111f;
-}
-
-#developer-boss-animation-readout {
-  color: #d9f6ff;
-  font: 0.8rem/1.4 monospace;
-  font-variant-numeric: tabular-nums;
-  white-space: pre-line;
-}
-
-.developer-canvas-measurement {
-  margin-top: 12px;
-}
-
-.developer-canvas-measurement output {
-  color: #d9f6ff;
-  font: 11px/1.4 monospace;
-  white-space: pre-line;
-  overflow-wrap: anywhere;
-}
-
-.developer-canvas-measurement output:empty {
-  display: none;
 }
 
 button {
@@ -493,10 +426,6 @@ button {
   cursor: pointer;
 }
 
-.developer-panel button:hover {
-  background: #214966;
-}
-
 button:focus-visible {
   outline: 2px solid #ffffff;
   outline-offset: 3px;
@@ -506,7 +435,7 @@ button[hidden] {
   display: none;
 }
 
-button:where(.game-header *, .menu-panel *, #varnok-fight, #restart, #level-2, #level-3, #continue-to-credits) {
+button:where(.menu-panel *, #varnok-fight, #restart, #level-2, #level-3, #continue-to-credits) {
   --button-accent: var(--edge, #63eaff);
   --button-glow: 0 0 0 transparent;
   min-height: 44px;
@@ -517,6 +446,30 @@ button:where(.game-header *, .menu-panel *, #varnok-fight, #restart, #level-2, #
   font-family: inherit;
   box-shadow: var(--button-glow);
   transition: transform 130ms ease, filter 130ms ease, box-shadow 130ms ease;
+}
+
+.header-audio-controls button {
+  min-height: 34px;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid #52677e;
+  border-radius: 7px;
+  background: #0d192d;
+  color: #a9bed2;
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.header-audio-controls button[aria-pressed="true"] {
+  border-color: #63bbcf;
+  background: #10253a;
+  color: #a1eaf6;
+}
+
+.header-audio-controls button:hover {
+  filter: brightness(1.15);
 }
 
 :is(#start-game, #start-selected-ship, #varnok-fight, #restart, #level-2, #level-3, #continue-to-credits) {
@@ -543,30 +496,18 @@ button:where(.game-header *, .menu-panel *, #varnok-fight, #restart, #level-2, #
   --button-end: #ff9bc2;
 }
 
-button:is([data-music-toggle], [data-sound-effects-toggle])[aria-pressed="false"] {
-  border-color: #52677e;
-  color: #a9bed2;
-}
-
-button:is([data-music-toggle], [data-sound-effects-toggle])[aria-pressed="true"] {
-  --button-accent: #63ffcb;
-  --button-glow: 0 0 14px #63ffcb80;
-  background: #083633;
-  color: #cbffed;
-}
-
-button:where(.game-header *, .menu-panel *, #varnok-fight, #restart, #level-2, #level-3, #continue-to-credits):enabled:hover {
+button:where(.menu-panel *, #varnok-fight, #restart, #level-2, #level-3, #continue-to-credits):enabled:hover {
   filter: brightness(1.16);
   transform: translateY(-2px);
   box-shadow: var(--button-glow), 0 0 12px var(--button-accent);
 }
 
-button:where(.game-header *, .menu-panel *, #varnok-fight, #restart, #level-2, #level-3, #continue-to-credits):enabled:active {
+button:where(.menu-panel *, #varnok-fight, #restart, #level-2, #level-3, #continue-to-credits):enabled:active {
   filter: brightness(0.96);
   transform: translateY(1px);
 }
 
-button:where(.game-header *, .menu-panel *, #varnok-fight, #restart, #level-2, #level-3, #continue-to-credits):focus-visible {
+button:where(.menu-panel *, #varnok-fight, #restart, #level-2, #level-3, #continue-to-credits):focus-visible {
   outline: 2px solid var(--button-accent);
   box-shadow: var(--button-glow), 0 0 18px var(--button-accent);
 }
@@ -663,25 +604,5 @@ button:where(.game-header *, .menu-panel *, #varnok-fight, #restart, #level-2, #
   .menu-aliens img,
   .result-panel[data-theme="loss"] {
     animation: none;
-  }
-}
-
-@media (max-width: 760px) {
-  .game-stage {
-    flex-direction: column;
-  }
-
-  .play-area {
-    flex: none;
-    width: 100%;
-  }
-
-  .developer-panel {
-    width: 100%;
-    flex-basis: auto;
-  }
-
-  .developer-level-buttons {
-    grid-template-columns: repeat(3, 1fr);
   }
 }

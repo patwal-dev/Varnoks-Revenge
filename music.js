@@ -183,7 +183,7 @@
     if (creditsPlayback === null) playSelectedTrack();
   }
 
-  // game.js registers the control handlers first, so developer entry has selected its track.
+  // game.js registers its controls first so level changes select their track before playback.
   for (const control of document.querySelectorAll("button:not([data-sound-effects-toggle]), #ship-selection input")) {
     control.addEventListener("click", handlePlaybackClick);
   }
