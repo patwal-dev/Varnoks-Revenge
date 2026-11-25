@@ -1,4 +1,4 @@
-# HAMK AI Project – Varnok's Revenge
+#Varnok's Revenge
 
 ## About
 
